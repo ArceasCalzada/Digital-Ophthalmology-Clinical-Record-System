@@ -1,4 +1,47 @@
 import 'package:flutter/material.dart';
+
+/// Global ThemeController for dynamic Light, Dark, and System Default theme switching
+class ThemeController extends ChangeNotifier {
+  static final ThemeController instance = ThemeController._();
+  ThemeController._();
+
+  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode get themeMode => _themeMode;
+
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode != mode) {
+      _themeMode = mode;
+      notifyListeners();
+    }
+  }
+
+  void setThemeModeByName(String name) {
+    switch (name) {
+      case 'Dark':
+        setThemeMode(ThemeMode.dark);
+        break;
+      case 'System Default':
+        setThemeMode(ThemeMode.system);
+        break;
+      case 'Light':
+      default:
+        setThemeMode(ThemeMode.light);
+        break;
+    }
+  }
+
+  String get currentModeName {
+    switch (_themeMode) {
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System Default';
+      case ThemeMode.light:
+        return 'Light';
+    }
+  }
+}
+
 class AppTheme {
   // Primary Vibrant Blue & Accent Colors
   static const Color primaryBlue = Color(0xFF2563EB);
@@ -88,21 +131,79 @@ class AppTheme {
     );
   }
 
-  // Dark Theme Configuration
+  // Dark Theme Configuration (High-Contrast Clinical Slate)
   static ThemeData get darkTheme {
+    const darkBg = Color(0xFF0F172A);
+    const darkCardBg = Color(0xFF1E293B);
+    const darkTextPrimary = Color(0xFFF8FAFC);
+    const darkTextSecondary = Color(0xFF94A3B8);
+    const darkBorder = Color(0xFF334155);
+
     return ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: const Color(0xFF0F172A),
-      cardColor: const Color(0xFF1E293B),
+      scaffoldBackgroundColor: darkBg,
+      cardColor: darkCardBg,
       primaryColor: primaryBlue,
+      dividerColor: darkBorder,
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0F172A),
+        backgroundColor: darkCardBg,
+        foregroundColor: darkTextPrimary,
         elevation: 0,
         centerTitle: false,
+        titleTextStyle: TextStyle(
+          color: darkTextPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: darkCardBg,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: darkBorder, width: 1),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primaryBlue,
+          side: const BorderSide(color: darkBorder, width: 1),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1E293B),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: const TextStyle(color: darkTextSecondary, fontSize: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+        ),
       ),
       colorScheme: const ColorScheme.dark(
         primary: primaryBlue,
         secondary: odColor,
-        surface: Color(0xFF1E293B),
+        surface: darkCardBg,
       ),
     );
   }

@@ -19,17 +19,24 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DOCRS — Digital Ophthalmology Clinical Record System',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: _isLoggedIn
-          ? MainLayout(
-              onLogout: () => setState(() => _isLoggedIn = false),
-            )
-          : LoginView(
-              onLoginSuccess: () => setState(() => _isLoggedIn = true),
-            ),
+    return ListenableBuilder(
+      listenable: ThemeController.instance,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'DOCRS — Digital Ophthalmology Clinical Record System',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeController.instance.themeMode,
+          home: _isLoggedIn
+              ? MainLayout(
+                  onLogout: () => setState(() => _isLoggedIn = false),
+                )
+              : LoginView(
+                  onLoginSuccess: () => setState(() => _isLoggedIn = true),
+                ),
+        );
+      },
     );
   }
 }
