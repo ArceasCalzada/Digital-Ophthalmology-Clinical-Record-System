@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../theme/app_theme.dart';
+import '../widgets/rx_pad_widget.dart';
 
 class PrescriptionView extends StatefulWidget {
   final Patient? initialPatient;
@@ -15,7 +16,7 @@ class PrescriptionView extends StatefulWidget {
 class _PrescriptionViewState extends State<PrescriptionView> {
   Patient? _selectedPatient;
   final List<PrescriptionItem> _medications = [];
-  final _doctorName = 'Dr. Sarah Jenkins, MD';
+  final _doctorName = 'Dr. Sigrid T. Robillos';
 
   // Form Controllers
   final _medNameController = TextEditingController();
@@ -93,131 +94,29 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          width: 640,
-          padding: const EdgeInsets.all(32),
+          width: 620,
+          padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header Banner
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('DIGITAL OPHTHALMOLOGY CLINICAL RECORD SYSTEM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
-                            Text('Metro Eye Specialists & Refractive Center', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                          ],
-                        ),
-                      ],
-                    ),
+                    const Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
                     IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Divider(color: AppTheme.borderColor),
-                const SizedBox(height: 16),
-
-                // Rx Patient Details
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('PATIENT: ${_selectedPatient?.fullName ?? 'Patient'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
-                        Text('MRN: ${_selectedPatient?.mrn ?? ''}  •  Age/Sex: ${_selectedPatient?.age}y / ${_selectedPatient?.gender}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('DATE: ${rx.date}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                        Text('PHYSICIAN: ${rx.doctorName}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Large Rx Symbol
-                const Text('℞', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
                 const SizedBox(height: 12),
-
-                // Medications Table
-                Table(
-                  border: TableBorder.all(color: AppTheme.borderColor, width: 1),
-                  columnWidths: const {
-                    0: FlexColumnWidth(3),
-                    1: FlexColumnWidth(1.5),
-                    2: FlexColumnWidth(2),
-                    3: FlexColumnWidth(3.5),
-                  },
-                  children: [
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                      children: const [
-                        Padding(padding: EdgeInsets.all(8), child: Text('Medication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        Padding(padding: EdgeInsets.all(8), child: Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        Padding(padding: EdgeInsets.all(8), child: Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        Padding(padding: EdgeInsets.all(8), child: Text('Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                      ],
-                    ),
-                    ...rx.items.map((item) {
-                      return TableRow(
-                        children: [
-                          Padding(padding: const EdgeInsets.all(8), child: Text('${item.medicationName} (${item.strength})', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                          Padding(padding: const EdgeInsets.all(8), child: Text(item.dosage, style: const TextStyle(fontSize: 12))),
-                          Padding(padding: const EdgeInsets.all(8), child: Text(item.frequency, style: const TextStyle(fontSize: 12))),
-                          Padding(padding: const EdgeInsets.all(8), child: Text(item.instructions, style: const TextStyle(fontSize: 12))),
-                        ],
-                      );
-                    }),
-                  ],
+                RxPadWidget(
+                  patient: _selectedPatient,
+                  items: rx.items,
+                  date: rx.date,
+                  doctorName: 'Dr. Sigrid T. Robillos',
+                  showBorder: true,
                 ),
-                const SizedBox(height: 32),
-
-                // Signature Area
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 200,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: AppTheme.textPrimary, width: 1.5)),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Dr. Sarah Jenkins, MD',
-                              style: TextStyle(fontFamily: 'serif', fontStyle: FontStyle.italic, fontSize: 18, color: AppTheme.primaryBlue),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text('Physician Signature & License No. 091823', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-
-                // Action Buttons
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -431,61 +330,33 @@ class _PrescriptionViewState extends State<PrescriptionView> {
               ),
               const SizedBox(width: 20),
 
-              // Current Prescription Draft List
+              // Live Prescription Pad Preview Pane
               Expanded(
                 flex: 6,
-                child: Card(
-                  color: AppTheme.cardBg,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppTheme.borderColor),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Active Prescription Items', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                            Text('${_medications.length} items', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _medications.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(32),
-                                child: Center(child: Text('No medications added yet.', style: TextStyle(color: AppTheme.textSecondary))),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _medications.length,
-                                separatorBuilder: (_, __) => const Divider(color: AppTheme.borderColor),
-                                itemBuilder: (context, index) {
-                                  final item = _medications[index];
-                                  return ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: CircleAvatar(
-                                      backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                                      child: Text('${index + 1}', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
-                                    ),
-                                    title: Text(item.medicationName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                                    subtitle: Text('${item.dosage} • ${item.frequency} • ${item.duration}\n${item.instructions}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                      onPressed: () {
-                                        setState(() => _medications.removeAt(index));
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
+                        const Text('Live Prescription Pad Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                        if (_medications.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: () => setState(() => _medications.clear()),
+                            icon: const Icon(Icons.clear_all, size: 16, color: Colors.redAccent),
+                            label: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                          ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    RxPadWidget(
+                      patient: _selectedPatient,
+                      items: _medications,
+                      date: DateTime.now().toString().substring(0, 10),
+                      doctorName: 'Dr. Sigrid T. Robillos',
+                      showBorder: true,
+                    ),
+                  ],
                 ),
               ),
             ],

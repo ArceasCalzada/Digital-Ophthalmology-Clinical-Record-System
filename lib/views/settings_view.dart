@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/patient.dart';
+import '../models/prescription.dart';
 import '../theme/app_theme.dart';
+import '../widgets/rx_pad_widget.dart';
 
 /// SettingsView - Complete Settings & Workstation Configuration UI/UX for DOCRS
 /// Tailored specifically for a single attending ophthalmologist / physician.
@@ -738,107 +741,34 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Widget _buildPrescriptionPreviewCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Clinic Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.remove_red_eye_rounded, color: AppTheme.primaryBlue, size: 28),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_clinicNameController.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
-                      Text(_clinicAddressController.text, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                    ],
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(_doctorNameController.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                  Text(_licenseController.text, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-
-          // Patient Info Mock Row
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Patient: Johnathan Doe • Age: 45 / M', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
-              Text('Date: Aug 20, 2026', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Rx Symbol & Sample Medications
-          const Text('Rx', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'serif', color: AppTheme.primaryBlue)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('1. Moxifloxacin 0.5% Ophthalmic Solution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                Text('   Instill 1 drop in Right Eye (OD) 4 times daily for 7 days', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                SizedBox(height: 8),
-                Text('2. Sodium Hyaluronate 0.18% Artificial Tears', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                Text('   Instill 1 drop in Both Eyes (OU) every 4 hours as needed', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Signature Block
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (_hasSignature)
-                    Text(
-                      'Sarah Jenkins',
-                      style: TextStyle(fontFamily: 'serif', fontStyle: FontStyle.italic, fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
-                    )
-                  else
-                    const SizedBox(height: 24),
-                  Container(width: 140, height: 1, color: AppTheme.textSecondary),
-                  const SizedBox(height: 4),
-                  Text(_doctorNameController.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary)),
-                  Text(_licenseController.text, style: const TextStyle(fontSize: 9, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
+    final demoPatients = PatientRepository.getAllPatients();
+    final demoPatient = demoPatients.isNotEmpty ? demoPatients.first : null;
+    return RxPadWidget(
+      patient: demoPatient,
+      items: [
+        PrescriptionItem(
+          id: 'rx-1',
+          medicationName: 'Moxifloxacin 0.5% Ophthalmic Solution',
+          strength: '0.5%',
+          dosage: '1 drop OD',
+          frequency: '4 times daily',
+          duration: '7 days',
+          instructions: 'Instill 1 drop in Right Eye (OD) 4 times daily for 7 days.',
+        ),
+        PrescriptionItem(
+          id: 'rx-2',
+          medicationName: 'Sodium Hyaluronate 0.18% Artificial Tears',
+          strength: '0.18%',
+          dosage: '1 drop OU',
+          frequency: 'QID',
+          duration: '30 days',
+          instructions: 'Instill 1 drop in Both Eyes (OU) every 4 hours as needed.',
+        ),
+      ],
+      date: '2026-08-20',
+      doctorName: _doctorNameController.text.isNotEmpty ? _doctorNameController.text : 'Dr. Sigrid T. Robillos',
+      licenseNo: _licenseController.text.isNotEmpty ? _licenseController.text : '100064',
+      showBorder: true,
     );
   }
 
