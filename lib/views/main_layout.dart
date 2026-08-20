@@ -131,15 +131,46 @@ class _MainLayoutState extends State<MainLayout> {
           body: Row(
             children: [
               if (!isMobile)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  width: _isSidebarCollapsed ? 72 : 240,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.cardBg,
-                    border: Border(right: BorderSide(color: AppTheme.borderColor)),
-                  ),
-                  child: _buildSidebarContent(isDrawer: false),
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.centerRight,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      width: _isSidebarCollapsed ? 72 : 240,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.cardBg,
+                        border: Border(right: BorderSide(color: AppTheme.borderColor)),
+                      ),
+                      child: _buildSidebarContent(isDrawer: false),
+                    ),
+                    Positioned(
+                      right: -13,
+                      child: Tooltip(
+                        message: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+                        child: Material(
+                          color: Colors.white,
+                          elevation: 2,
+                          shape: const CircleBorder(
+                            side: BorderSide(color: AppTheme.borderColor, width: 1),
+                          ),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: _toggleSidebar,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                                color: AppTheme.primaryBlue,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
               // Main Workspace Area
@@ -276,38 +307,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
 
-        // Collapse Toggle Button Centered on Divider Line
-        if (!isDrawer)
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              const Divider(height: 1, color: AppTheme.borderColor),
-              Tooltip(
-                message: collapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
-                child: Material(
-                  color: Colors.white,
-                  elevation: 1,
-                  shape: const CircleBorder(
-                    side: BorderSide(color: AppTheme.borderColor, width: 1),
-                  ),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _toggleSidebar,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(
-                        collapsed ? Icons.chevron_right : Icons.chevron_left,
-                        color: AppTheme.primaryBlue,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          )
-        else
-          const Divider(height: 1, color: AppTheme.borderColor),
+        const Divider(height: 1, color: AppTheme.borderColor),
         const SizedBox(height: 12),
 
         // Navigation Links (Expanded or Icon-Only when Collapsed)
