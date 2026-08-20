@@ -46,6 +46,52 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
+  void _showMobileSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Search Patient Record', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: _searchController,
+          autofocus: true,
+          onSubmitted: (query) {
+            if (query.trim().isNotEmpty) {
+              final results = PatientRepository.searchPatients(query);
+              if (results.isNotEmpty) {
+                Navigator.pop(context);
+                _navigateToPatientProfile(results.first);
+              }
+            }
+          },
+          decoration: const InputDecoration(
+            hintText: 'Enter patient name, MRN, or DOB...',
+            prefixIcon: Icon(Icons.search, color: AppTheme.primaryBlue),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final query = _searchController.text.trim();
+              if (query.isNotEmpty) {
+                final results = PatientRepository.searchPatients(query);
+                if (results.isNotEmpty) {
+                  Navigator.pop(context);
+                  _navigateToPatientProfile(results.first);
+                }
+              }
+            },
+            child: const Text('Search'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_isExamMode && _selectedPatient != null && _selectedIndex == 2) {
       return EyeExamView(
@@ -116,15 +162,31 @@ class _MainLayoutState extends State<MainLayout> {
           appBar: isMobile
               ? AppBar(
                   backgroundColor: AppTheme.cardBg,
-                  elevation: 0,
+                  elevation: 0.5,
                   iconTheme: const IconThemeData(color: AppTheme.textPrimary),
                   title: const Row(
                     children: [
                       Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 22),
                       SizedBox(width: 8),
-                      Text('DOCRS Workstation', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('DOCRS', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 0.5)),
                     ],
                   ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.search, color: AppTheme.primaryBlue),
+                      tooltip: 'Search Patient',
+                      onPressed: () => _showMobileSearchDialog(context),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none, color: AppTheme.textSecondary),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('No unread clinical alerts.')),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                  ],
                 )
               : null,
           drawer: isMobile ? Drawer(child: _buildSidebarContent(isDrawer: true)) : null,
@@ -187,14 +249,6 @@ class _MainLayoutState extends State<MainLayout> {
                         ),
                   child: Row(
                     children: [
-                      // Sidebar Toggle Button
-                      IconButton(
-                        icon: Icon(_isSidebarCollapsed ? Icons.menu : Icons.menu_open, color: AppTheme.primaryBlue),
-                        tooltip: _isSidebarCollapsed ? 'Expand Navigation Sidebar' : 'Collapse Navigation Sidebar',
-                        onPressed: _toggleSidebar,
-                      ),
-                      const SizedBox(width: 12),
-
                       // Global Quick Search
                       Expanded(
                         child: Container(
