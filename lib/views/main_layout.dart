@@ -246,11 +246,11 @@ class _MainLayoutState extends State<MainLayout> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // DOCRS Branding Header & Collapse Toggle
+        // DOCRS Branding Header
         Padding(
           padding: EdgeInsets.all(collapsed ? 12 : 16),
           child: Row(
-            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -272,16 +272,42 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
               ],
-              if (!isDrawer)
-                IconButton(
-                  icon: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: AppTheme.textSecondary, size: 20),
-                  tooltip: collapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
-                  onPressed: _toggleSidebar,
-                ),
             ],
           ),
         ),
-        const Divider(height: 1, color: AppTheme.borderColor),
+
+        // Collapse Toggle Button Centered on Divider Line
+        if (!isDrawer)
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              const Divider(height: 1, color: AppTheme.borderColor),
+              Tooltip(
+                message: collapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+                child: Material(
+                  color: Colors.white,
+                  elevation: 1,
+                  shape: const CircleBorder(
+                    side: BorderSide(color: AppTheme.borderColor, width: 1),
+                  ),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _toggleSidebar,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        collapsed ? Icons.chevron_right : Icons.chevron_left,
+                        color: AppTheme.primaryBlue,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          const Divider(height: 1, color: AppTheme.borderColor),
         const SizedBox(height: 12),
 
         // Navigation Links (Expanded or Icon-Only when Collapsed)
