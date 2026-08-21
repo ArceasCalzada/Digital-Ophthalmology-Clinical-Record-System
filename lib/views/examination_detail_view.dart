@@ -84,14 +84,14 @@ class ExaminationDetailView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(patient.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                        Text('${patient.mrn}  •  ${patient.gender}, ${patient.age}y  •  DOB: ${patient.dateOfBirth}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                        Text('${patient.mrn}  •  ${patient.gender}, ${patient.age}y  •  DOB: ${formatClinicalDate(patient.dateOfBirth)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('Attending Physician: ${encounter.doctorName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
-                        Text('Date of Exam: ${encounter.date}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        Text('Date of Exam: ${formatClinicalDate(encounter.date)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       ],
                     ),
                   ],

@@ -88,7 +88,7 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                               items: encounters.map((e) {
                                 return DropdownMenuItem(
                                   value: e,
-                                  child: Text('${e.date} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                                  child: Text('${formatClinicalDate(e.date)} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
                                 );
                               }).toList(),
                               onChanged: (val) {
@@ -119,7 +119,7 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                               items: encounters.map((e) {
                                 return DropdownMenuItem(
                                   value: e,
-                                  child: Text('${e.date} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  child: Text('${formatClinicalDate(e.date)} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
                                 );
                               }).toList(),
                               onChanged: (val) {

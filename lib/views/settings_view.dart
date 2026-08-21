@@ -18,7 +18,7 @@ class _SettingsViewState extends State<SettingsView> {
   String _activeSection = 'doctor_profile';
 
   // 1. Doctor Profile Controllers & State
-  final _doctorNameController = TextEditingController(text: 'Dr. Sarah Jenkins, MD');
+  final _doctorNameController = TextEditingController(text: 'Dr. Sigrid Robillos, MD');
   final _doctorEmailController = TextEditingController(text: 'dr.jenkins@metroeye.com');
   final _doctorPhoneController = TextEditingController(text: '+63 917 555 0192');
   final _doctorTitleController = TextEditingController(text: 'Attending Ophthalmologist');

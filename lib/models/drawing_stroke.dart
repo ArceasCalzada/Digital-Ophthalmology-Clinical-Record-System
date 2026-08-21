@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'eye_exam.dart';
 
-enum DrawingTool { pen, eraser, symbol, text }
+enum DrawingTool { pen, highlighter, eraser, symbol, text }
 
 class VectorStroke {
   final String id;
@@ -48,6 +48,45 @@ class VectorStroke {
           .toList(),
       symbolType: json['symbolType'] as String?,
       labelText: json['labelText'] as String?,
+    );
+  }
+}
+
+class PaperSheetDrawingData {
+  final String id;
+  final String encounterId;
+  final String patientId;
+  final List<VectorStroke> strokes;
+  final String updatedAt;
+
+  PaperSheetDrawingData({
+    required this.id,
+    required this.encounterId,
+    required this.patientId,
+    required this.strokes,
+    required this.updatedAt,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'encounterId': encounterId,
+      'patientId': patientId,
+      'strokes': strokes.map((s) => s.toJson()).toList(),
+      'updatedAt': updatedAt,
+    };
+  }
+
+  factory PaperSheetDrawingData.fromJson(Map<String, dynamic> json) {
+    return PaperSheetDrawingData(
+      id: json['id'] as String,
+      encounterId: json['encounterId'] as String,
+      patientId: json['patientId'] as String,
+      strokes: (json['strokes'] as List<dynamic>?)
+              ?.map((s) => VectorStroke.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          [],
+      updatedAt: json['updatedAt'] as String? ?? DateTime.now().toIso8601String(),
     );
   }
 }

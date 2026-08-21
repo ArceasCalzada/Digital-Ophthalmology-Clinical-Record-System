@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
+import '../widgets/clinical_date_picker.dart';
 import '../theme/app_theme.dart';
 
 class NewPatientModal extends StatefulWidget {
@@ -56,6 +57,21 @@ class _NewPatientModalState extends State<NewPatientModal> {
       PatientRepository.addPatient(newPatient);
       widget.onPatientCreated(newPatient);
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _selectDob() async {
+    final now = DateTime.now();
+    final picked = await showClinicalDatePicker(
+      context: context,
+      initialDate: DateTime(1985, 6, 15),
+      firstDate: DateTime(1900),
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text = formatClinicalDate('${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}');
+      });
     }
   }
 
@@ -130,11 +146,18 @@ class _NewPatientModalState extends State<NewPatientModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Date of Birth (YYYY-MM-DD) *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          const Text('Date of Birth *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                           const SizedBox(height: 6),
                           TextFormField(
                             controller: _dobController,
-                            decoration: const InputDecoration(hintText: '1985-06-15'),
+                            decoration: InputDecoration(
+                              hintText: 'Jun 15, 1985',
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.calendar_month_outlined, size: 20, color: AppTheme.primaryBlue),
+                                tooltip: 'Select Date of Birth from Calendar',
+                                onPressed: _selectDob,
+                              ),
+                            ),
                             validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                           ),
                         ],

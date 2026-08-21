@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:perfect_freehand/perfect_freehand.dart';
 import '../../models/drawing_stroke.dart';
 import '../../models/eye_exam.dart';
 import '../../theme/app_theme.dart';
@@ -55,7 +56,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
   DrawingTool _activeTool = DrawingTool.pen;
   Color _selectedColor = const Color(0xFFDC2626);
-  final double _brushSize = 3.0;
+  final double _brushSize = 4.0;
   String _selectedSymbol = 'cataract';
 
   bool _showColorDrawer = false;
@@ -653,6 +654,44 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   }
 }
 
+List<Offset> _subdivideEyePoints(List<Offset> rawPoints, {double maxDistance = 5.0}) {
+  if (rawPoints.length < 3) return rawPoints;
+
+  final result = <Offset>[rawPoints.first];
+  for (int i = 0; i < rawPoints.length - 1; i++) {
+    final p0 = i > 0 ? rawPoints[i - 1] : rawPoints[i];
+    final p1 = rawPoints[i];
+    final p2 = rawPoints[i + 1];
+    final p3 = (i + 2 < rawPoints.length) ? rawPoints[i + 2] : p2;
+
+    final dist = (p2 - p1).distance;
+    if (dist > maxDistance) {
+      final segments = (dist / maxDistance).ceil().clamp(2, 8);
+      for (int s = 1; s < segments; s++) {
+        final t = s / segments;
+        final t2 = t * t;
+        final t3 = t2 * t;
+
+        final x = 0.5 * (
+          (2 * p1.dx) +
+          (-p0.dx + p2.dx) * t +
+          (2 * p0.dx - 5 * p1.dx + 4 * p2.dx - p3.dx) * t2 +
+          (-p0.dx + 3 * p1.dx - 3 * p2.dx + p3.dx) * t3
+        );
+        final y = 0.5 * (
+          (2 * p1.dy) +
+          (-p0.dy + p2.dy) * t +
+          (2 * p0.dy - 5 * p1.dy + 4 * p2.dy - p3.dy) * t2 +
+          (-p0.dy + 3 * p1.dy - 3 * p2.dy + p3.dy) * t3
+        );
+        result.add(Offset(x, y));
+      }
+    }
+    result.add(p2);
+  }
+  return result;
+}
+
 class AnatomicalEyePainter extends CustomPainter {
   final EyeType eye;
   final String diagramType;
@@ -677,6 +716,60 @@ class AnatomicalEyePainter extends CustomPainter {
     this.priorStrokes,
     required this.ghostOpacity,
   });
+
+  Path _getStrokePath(List<Offset> rawPoints, double size) {
+    if (rawPoints.isEmpty) return Path();
+    if (rawPoints.length == 1) {
+      final path = Path();
+      path.addOval(Rect.fromCircle(
+          center: rawPoints.first, radius: size / 2));
+      return path;
+    }
+
+    final points = _subdivideEyePoints(rawPoints);
+
+    final strokeOptions = StrokeOptions(
+      size: size,
+      thinning: 0.22, // Balanced speed-responsive thinning without over-pinching
+      smoothing: 0.80,
+      streamline: 0.55,
+      simulatePressure: true,
+      isComplete: true,
+    );
+
+    final outlinePoints = getStroke(
+      points.map((p) => PointVector(p.dx, p.dy)).toList(),
+      options: strokeOptions,
+    );
+
+    final path = Path();
+    if (outlinePoints.isEmpty) return path;
+
+    if (outlinePoints.length < 3) {
+      path.moveTo(outlinePoints.first.dx, outlinePoints.first.dy);
+      for (int i = 1; i < outlinePoints.length; i++) {
+        path.lineTo(outlinePoints[i].dx, outlinePoints[i].dy);
+      }
+      path.close();
+      return path;
+    }
+
+    // Midpoint quadratic bezier curves for continuous C1 smooth contours
+    final first = outlinePoints[0];
+    final second = outlinePoints[1];
+    path.moveTo((first.dx + second.dx) / 2, (first.dy + second.dy) / 2);
+
+    for (int i = 1; i < outlinePoints.length; i++) {
+      final current = outlinePoints[i];
+      final next = outlinePoints[(i + 1) % outlinePoints.length];
+      final midX = (current.dx + next.dx) / 2;
+      final midY = (current.dy + next.dy) / 2;
+      path.quadraticBezierTo(current.dx, current.dy, midX, midY);
+    }
+
+    path.close();
+    return path;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -706,22 +799,24 @@ class AnatomicalEyePainter extends CustomPainter {
     }
 
     // Render Active In-Progress Drag Points
-    if (currentPoints.length > 1) {
-      final paint = Paint()
-        ..color = currentTool == DrawingTool.eraser
-            ? (diagramType == 'plain' ? Colors.white : const Color(0xFF451A03))
-            : currentColor
-        ..strokeWidth = currentBrushSize
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
+    if (currentPoints.isNotEmpty) {
+      if (currentTool == DrawingTool.symbol) {
+        // Handled immediately on touch, no drag preview needed for symbols
+      } else {
+        final bgEraserColor = diagramType == 'plain' ? Colors.white : const Color(0xFF451A03);
+        final paint = Paint()
+          ..color = currentTool == DrawingTool.eraser ? bgEraserColor : currentColor
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true
+          ..filterQuality = FilterQuality.high;
 
-      final path = Path();
-      path.moveTo(currentPoints.first.dx, currentPoints.first.dy);
-      for (int i = 1; i < currentPoints.length; i++) {
-        path.lineTo(currentPoints[i].dx, currentPoints[i].dy);
+        if (currentPoints.length == 1) {
+          canvas.drawCircle(currentPoints.first, currentBrushSize / 2, paint);
+        } else {
+          final path = _getStrokePath(currentPoints, currentBrushSize);
+          canvas.drawPath(path, paint);
+        }
       }
-      canvas.drawPath(path, paint);
     }
   }
 
@@ -808,10 +903,9 @@ class AnatomicalEyePainter extends CustomPainter {
     final bgEraserColor = diagramType == 'plain' ? Colors.white : const Color(0xFF451A03);
     final paint = Paint()
       ..color = stroke.tool == DrawingTool.eraser ? bgEraserColor : stroke.color
-      ..strokeWidth = stroke.size
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = stroke.tool == DrawingTool.symbol ? PaintingStyle.fill : PaintingStyle.stroke;
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true
+      ..filterQuality = FilterQuality.high;
 
     if (stroke.tool == DrawingTool.symbol && stroke.points.isNotEmpty) {
       final pt = stroke.points.first;
@@ -832,13 +926,13 @@ class AnatomicalEyePainter extends CustomPainter {
       return;
     }
 
-    if (stroke.points.length > 1) {
-      final path = Path();
-      path.moveTo(stroke.points.first.dx, stroke.points.first.dy);
-      for (int i = 1; i < stroke.points.length; i++) {
-        path.lineTo(stroke.points[i].dx, stroke.points[i].dy);
+    if (stroke.points.isNotEmpty) {
+      if (stroke.points.length == 1) {
+        canvas.drawCircle(stroke.points.first, stroke.size / 2, paint);
+      } else {
+        final path = _getStrokePath(stroke.points, stroke.size);
+        canvas.drawPath(path, paint);
       }
-      canvas.drawPath(path, paint);
     }
   }
 

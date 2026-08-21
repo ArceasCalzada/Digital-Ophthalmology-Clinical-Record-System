@@ -22,21 +22,33 @@ class _MainLayoutState extends State<MainLayout> {
   Patient? _selectedPatient;
   bool _isExamMode = false;
   bool _isSidebarCollapsed = false;
+  bool _isPatientsMenuExpanded = true;
   final _searchController = TextEditingController();
 
   void _navigateToPatientProfile(Patient patient) {
     setState(() {
       _selectedPatient = patient;
       _isExamMode = false;
+      _isPatientsMenuExpanded = true;
       _selectedIndex = 1; // Patients tab
     });
   }
 
-  void _startExamForPatient(Patient patient) {
+  void _startExamForPatient(Patient? patient) {
     setState(() {
       _selectedPatient = patient;
       _isExamMode = true;
+      _isPatientsMenuExpanded = true;
       _selectedIndex = 2; // Examinations tab
+    });
+  }
+
+  void _openPrescriptionForPatient(Patient patient) {
+    setState(() {
+      _selectedPatient = patient;
+      _isExamMode = false;
+      _isPatientsMenuExpanded = true;
+      _selectedIndex = 3; // Prescriptions tab
     });
   }
 
@@ -111,6 +123,7 @@ class _MainLayoutState extends State<MainLayout> {
         return DashboardScreen(
           onSelectPatient: _navigateToPatientProfile,
           onStartExam: _startExamForPatient,
+          onOpenPrescription: _openPrescriptionForPatient,
         );
       case 1:
         if (_selectedPatient != null) {
@@ -125,6 +138,7 @@ class _MainLayoutState extends State<MainLayout> {
         return PatientsScreen(
           onSelectPatient: _navigateToPatientProfile,
           onStartExam: _startExamForPatient,
+          onOpenPrescription: _openPrescriptionForPatient,
         );
       case 2:
         return EyeExamView(
@@ -189,17 +203,16 @@ class _MainLayoutState extends State<MainLayout> {
                   ],
                 )
               : null,
-          drawer: isMobile ? Drawer(child: _buildSidebarContent(isDrawer: true)) : null,
-          body: Row(
+          body: Stack(
             children: [
-              if (!isMobile)
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.centerRight,
-                  children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isMobile)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeInOut,
+                      height: constraints.maxHeight,
                       width: _isSidebarCollapsed ? 72 : 240,
                       decoration: const BoxDecoration(
                         color: AppTheme.cardBg,
@@ -207,122 +220,52 @@ class _MainLayoutState extends State<MainLayout> {
                       ),
                       child: _buildSidebarContent(isDrawer: false),
                     ),
-                    Positioned(
-                      right: -13,
-                      child: Tooltip(
-                        message: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
-                        child: Material(
-                          color: Colors.white,
-                          elevation: 2,
-                          shape: const CircleBorder(
-                            side: BorderSide(color: AppTheme.borderColor, width: 1),
-                          ),
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: _toggleSidebar,
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                                color: AppTheme.primaryBlue,
-                                size: 16,
-                              ),
-                            ),
+
+                  // Main Workspace Area (Anchored to the very top)
+                  Expanded(
+                    child: SizedBox(
+                      height: constraints.maxHeight,
+                      child: _buildBody(),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Floating Sidebar Toggle (Vertically centered along the sidebar edge)
+              if (!isMobile)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  left: (_isSidebarCollapsed ? 72 : 240) - 14,
+                  top: (constraints.maxHeight / 2) - 15,
+                  child: Tooltip(
+                    message: _isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+                    child: Material(
+                      color: Colors.white,
+                      elevation: 4,
+                      shape: const CircleBorder(
+                        side: BorderSide(color: AppTheme.borderColor, width: 1.2),
+                      ),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _toggleSidebar,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                            color: AppTheme.primaryBlue,
+                            size: 16,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-
-              // Main Workspace Area
-              Expanded(
-                child: Column(
-                  children: [
-                    if (!isMobile)
-                      Container(
-                        height: 64,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: const BoxDecoration(
-                          color: AppTheme.cardBg,
-                          border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
-                        ),
-                  child: Row(
-                    children: [
-                      // Global Quick Search
-                      Expanded(
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 480),
-                          height: 40,
-                          child: TextField(
-                            controller: _searchController,
-                            onSubmitted: (query) {
-                              if (query.trim().isNotEmpty) {
-                                final results = PatientRepository.searchPatients(query);
-                                if (results.isNotEmpty) {
-                                  _navigateToPatientProfile(results.first);
-                                }
-                              }
-                            },
-                            style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-                            decoration: const InputDecoration(
-                              hintText: 'Search patient by name, ID, or DOB...',
-                              prefixIcon: Icon(Icons.search, size: 18, color: AppTheme.primaryBlue),
-                              contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // Notifications Bell
-                      IconButton(
-                        icon: const Icon(Icons.notifications_none, color: AppTheme.textSecondary),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No unread clinical alerts.')),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Doctor Profile Quick Chip
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.borderColor),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.local_hospital, size: 16, color: AppTheme.primaryBlue),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Text('Metro Eye Center • Room 402', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary), overflow: TextOverflow.ellipsis),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-
-                // Main Content Display
-                Expanded(
-                  child: _buildBody(),
-                ),
-              ],
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
-  },
-);
   }
 
   Widget _buildSidebarContent({bool isDrawer = false}) {
@@ -337,13 +280,17 @@ class _MainLayoutState extends State<MainLayout> {
           child: Row(
             mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              InkWell(
+                onTap: collapsed ? _toggleSidebar : null,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 24),
                 ),
-                child: const Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 24),
               ),
               if (!collapsed) ...[
                 const SizedBox(width: 10),
@@ -356,6 +303,13 @@ class _MainLayoutState extends State<MainLayout> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.menu_open, color: AppTheme.primaryBlue, size: 20),
+                  tooltip: 'Collapse Sidebar',
+                  onPressed: _toggleSidebar,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
               ],
             ],
           ),
@@ -364,68 +318,130 @@ class _MainLayoutState extends State<MainLayout> {
         const Divider(height: 1, color: AppTheme.borderColor),
         const SizedBox(height: 12),
 
-        // Navigation Links (Expanded or Icon-Only when Collapsed)
+        // Navigation Links:
         _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isDrawer: isDrawer),
-        _buildNavItem(1, Icons.people_outline, Icons.people, 'Patients', isDrawer: isDrawer),
+
+        const SizedBox(height: 14),
+
+        // Patients Section Group (Direct access, clearly labeled under Patients)
+        if (!collapsed)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              children: [
+                Icon(Icons.people_alt_outlined, size: 14, color: AppTheme.primaryBlue),
+                SizedBox(width: 6),
+                Text(
+                  'PATIENTS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                    color: AppTheme.primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Divider(height: 1, color: AppTheme.borderColor),
+          ),
+
+        _buildNavItem(1, Icons.folder_shared_outlined, Icons.folder_shared, 'Records', isDrawer: isDrawer),
         _buildNavItem(2, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer),
         _buildNavItem(3, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer),
+
+        // Active Patient Context Pill (if a patient is currently active)
+        if (_selectedPatient != null && !collapsed)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_circle, size: 16, color: AppTheme.primaryBlue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedPatient!.fullName,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${_selectedPatient!.mrn} • ${_selectedPatient!.gender}, ${_selectedPatient!.age}y',
+                        style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedPatient = null;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Spacer pushes Settings and Doctor info down to the very bottom
+        const Spacer(),
+
+        const Divider(height: 1, color: AppTheme.borderColor),
+        const SizedBox(height: 4),
+
+        // Settings - Fixed to the very, very bottom
         _buildNavItem(4, Icons.settings_outlined, Icons.settings, 'Settings', isDrawer: isDrawer),
 
-        const Spacer(),
+        const SizedBox(height: 4),
         const Divider(height: 1, color: AppTheme.borderColor),
 
-        // Workstation Status & Doctor Info
+        // Doctor Info
         Padding(
           padding: EdgeInsets.all(collapsed ? 10 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-                children: [
-                  const Icon(Icons.circle, color: Color(0xFF059669), size: 8),
-                  if (!collapsed) ...[
-                    const SizedBox(width: 6),
-                    const Expanded(
-                      child: Text('Workstation Online', style: TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ],
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                child: const Text('SR', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    child: const Text('SJ', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+              if (!collapsed) ...[
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Dr. Sigrid Robillos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary), overflow: TextOverflow.ellipsis),
+                      Text('Ophthalmologist', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                    ],
                   ),
-                  if (!collapsed) ...[
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Dr. Sarah Jenkins', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary), overflow: TextOverflow.ellipsis),
-                          Text('Ophthalmologist', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, size: 18, color: AppTheme.textSecondary),
-                      tooltip: 'Logout',
-                      onPressed: widget.onLogout,
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
       ],
     );
   }
+
+
 
   Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String title, {bool isDrawer = false}) {
     final isSelected = _selectedIndex == index;

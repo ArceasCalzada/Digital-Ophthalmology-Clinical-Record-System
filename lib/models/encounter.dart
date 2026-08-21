@@ -11,6 +11,7 @@ class Encounter {
   final EyeExamData examOS;
   final EyeDrawingData? drawingOD;
   final EyeDrawingData? drawingOS;
+  final PaperSheetDrawingData? paperSheetDrawing;
   final String diagnosis;
   final String treatmentPlan;
   final String status; // 'in-progress' | 'completed'
@@ -19,12 +20,13 @@ class Encounter {
     required this.id,
     required this.patientId,
     required this.date,
-    this.doctorName = 'Dr. Sarah Jenkins, MD',
+    this.doctorName = 'Dr. Sigrid Robillos, MD',
     required this.chiefComplaint,
     required this.examOD,
     required this.examOS,
     this.drawingOD,
     this.drawingOS,
+    this.paperSheetDrawing,
     required this.diagnosis,
     required this.treatmentPlan,
     this.status = 'completed',

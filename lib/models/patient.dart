@@ -1,8 +1,41 @@
 import 'encounter.dart';
 import 'eye_exam.dart';
-import 'drawing_stroke.dart';
 import 'prescription.dart';
-import 'package:flutter/material.dart';
+
+String formatClinicalDate(String dateStr) {
+  if (dateStr.isEmpty) return dateStr;
+  try {
+    // If format like "7/30/26" or "07/30/2026"
+    if (dateStr.contains('/')) {
+      final slashParts = dateStr.split('/');
+      if (slashParts.length == 3) {
+        final m = int.tryParse(slashParts[0]) ?? 1;
+        final d = int.tryParse(slashParts[1]) ?? 1;
+        var y = slashParts[2];
+        if (y.length == 2) y = '20$y';
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final monthName = (m >= 1 && m <= 12) ? months[m - 1] : slashParts[0];
+        return '$monthName $d, $y';
+      }
+    }
+    // If format like "2026-07-30" or ISO format
+    final parts = dateStr.split('-');
+    if (parts.length == 3) {
+      final year = parts[0];
+      final monthIndex = int.tryParse(parts[1]) ?? 1;
+      final day = int.tryParse(parts[2]) ?? 1;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final monthName = (monthIndex >= 1 && monthIndex <= 12) ? months[monthIndex - 1] : parts[1];
+      return '$monthName $day, $year';
+    }
+    final dt = DateTime.tryParse(dateStr);
+    if (dt != null) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+    }
+  } catch (_) {}
+  return dateStr;
+}
 
 class TodayPatientQueue {
   final Patient patient;
@@ -22,6 +55,7 @@ class Patient {
   final String id;
   final String mrn; // Medical Record Number
   final String fullName;
+  final String middleName;
   final String dateOfBirth; // YYYY-MM-DD
   final String gender;
   final String phone;
@@ -42,6 +76,7 @@ class Patient {
     required this.id,
     required this.mrn,
     required this.fullName,
+    this.middleName = '',
     required this.dateOfBirth,
     required this.gender,
     required this.phone,
@@ -77,7 +112,7 @@ class PatientRepository {
       id: 'rx-2026-001',
       patientId: 'pat-001',
       encounterId: 'enc-2026-0510',
-      doctorName: 'Dr. Sarah Jenkins, MD',
+      doctorName: 'Dr. Sigrid Robillos, MD',
       date: '2026-05-10',
       items: [
         PrescriptionItem(
@@ -104,9 +139,65 @@ class PatientRepository {
 
   static final List<Patient> _patients = [
     Patient(
+      id: 'pat-asturias',
+      mrn: 'MRN-2026-7302',
+      fullName: 'Edgardo Asturias',
+      middleName: 'Perez',
+      dateOfBirth: '1963-05-07',
+      gender: 'Male',
+      phone: '+63 917 882 1963',
+      address: 'Apas, Davao City',
+      occupation: 'Civil Servant',
+      phicNumber: '19-02581024-8',
+      referringDoctor: 'Dr. Ramon Santos',
+      medicalHistory: ['Hypertension (HPN)', 'Cholesterol det (Dyslipidemia)'],
+      allergies: ['No Known Drug Allergies (NKDA)'],
+      previousDiagnoses: ['Mature Cataract OS', 'Glaucoma Suspect OU'],
+      previousPrescriptions: ['Tropicamide 0.5% + Phenylephrine 0.5% Drops - 1 drop OU PRN'],
+      prescriptions: [],
+      lastVisitDate: '2026-07-30',
+      totalVisits: 1,
+      encounters: [
+        Encounter(
+          id: 'enc-2026-0730',
+          patientId: 'pat-asturias',
+          date: '2026-07-30',
+          doctorName: 'Dr. Sigrid Robillos, MD',
+          chiefComplaint: 'OS BOV x 1 year. Came in w/ silingan. No family.',
+          examOD: EyeExamData(
+            acuity: VisualAcuity(uncorrected: 'HM', pinhole: 'HM', bestCorrected: 'Plano', oldCc: 'Plano', ar: 'NO TARGET', ak: 'NO TARGET'),
+            refraction: Refraction(sph: '0.00', cyl: '0.00', axis: '180'),
+            color: 'B / G',
+            iop: '16',
+            anglesGonioscopy: 'Open',
+            cdrOn: '0.4',
+            confrontationPeripheral: 'WNL',
+            vanHerick: 'G4 Wide',
+            slitLampNotes: 'Clear cornea, anterior chamber deep and quiet.',
+            fundoscopyNotes: 'Clear view OD, C/D ratio 0.4.',
+          ),
+          examOS: EyeExamData(
+            acuity: VisualAcuity(uncorrected: 'HM', pinhole: 'HM', bestCorrected: 'Plano', oldCc: 'Plano', ar: 'NO TARGET', ak: 'NO TARGET'),
+            refraction: Refraction(sph: '0.00', cyl: '0.00', axis: '180'),
+            color: 'B / G',
+            iop: '18',
+            anglesGonioscopy: 'Open',
+            cdrOn: '0.5',
+            confrontationPeripheral: 'WNL',
+            vanHerick: 'G4 Wide',
+            slitLampNotes: 'Mature brunescent nuclear cataract OS. Poor red reflex.',
+            fundoscopyNotes: 'Hazy view OS secondary to mature lens opacity.',
+          ),
+          diagnosis: 'Mature Cataract OS',
+          treatmentPlan: 'Dilate OU. To BSC - PHIC only.',
+        ),
+      ],
+    ),
+    Patient(
       id: 'pat-001',
       mrn: 'MRN-2026-9041',
       fullName: 'Juan Dela Cruz',
+      middleName: 'Reyes',
       dateOfBirth: '1978-04-12',
       gender: 'Male',
       phone: '+63 917 555 0192',
@@ -124,7 +215,7 @@ class PatientRepository {
           id: 'enc-2026-0510',
           patientId: 'pat-001',
           date: '2026-05-10',
-          doctorName: 'Dr. Sarah Jenkins, MD',
+          doctorName: 'Dr. Sigrid Robillos, MD',
           chiefComplaint: 'Blurred vision in right eye when reading, mild dry eye sensation.',
           examOD: EyeExamData(
             acuity: VisualAcuity(uncorrected: '20/50', bestCorrected: '20/25', pinhole: '20/20'),
@@ -142,84 +233,8 @@ class PatientRepository {
             slitLampNotes: 'Clear cornea and crystalline lens.',
             fundoscopyNotes: 'Normal optic disc C/D 0.35, sharp margins.',
           ),
-          drawingOD: EyeDrawingData(
-            id: 'drw-0510-od',
-            encounterId: 'enc-2026-0510',
-            patientId: 'pat-001',
-            eye: EyeType.OD,
-            cdRatio: 0.45,
-            updatedAt: '2026-05-10T10:30:00Z',
-            strokes: [
-              VectorStroke(
-                id: 's1',
-                tool: DrawingTool.pen,
-                color: const Color(0xFFDC2626), // Retinal Red
-                size: 4,
-                points: const [Offset(210, 180), Offset(215, 182), Offset(220, 180)],
-              ),
-              VectorStroke(
-                id: 's2',
-                tool: DrawingTool.symbol,
-                color: const Color(0xFFEAB308), // Drusen Yellow
-                size: 6,
-                points: const [Offset(140, 200)],
-                symbolType: 'drusen',
-              ),
-            ],
-          ),
-          drawingOS: EyeDrawingData(
-            id: 'drw-0510-os',
-            encounterId: 'enc-2026-0510',
-            patientId: 'pat-001',
-            eye: EyeType.OS,
-            cdRatio: 0.35,
-            updatedAt: '2026-05-10T10:35:00Z',
-            strokes: [],
-          ),
           diagnosis: 'Mild Non-Proliferative Diabetic Retinopathy (NPDR) OD',
           treatmentPlan: 'Glycemic control optimization. Follow up in 3 months for dilated fundus exam.',
-        ),
-        Encounter(
-          id: 'enc-2026-0115',
-          patientId: 'pat-001',
-          date: '2026-01-15',
-          doctorName: 'Dr. Sarah Jenkins, MD',
-          chiefComplaint: 'Routine annual diabetic eye screening.',
-          examOD: EyeExamData(
-            acuity: VisualAcuity(uncorrected: '20/40', bestCorrected: '20/20'),
-            refraction: Refraction(sph: '-2.25', cyl: '-0.75', axis: '090'),
-            iop: '17',
-            iopMethod: 'NCT',
-            slitLampNotes: 'Normal anterior segment.',
-            fundoscopyNotes: 'Single dot hemorrhage inferotemporal to macula.',
-          ),
-          examOS: EyeExamData(
-            acuity: VisualAcuity(uncorrected: '20/25', bestCorrected: '20/20'),
-            refraction: Refraction(sph: '-1.75', cyl: '-0.50', axis: '085'),
-            iop: '15',
-            iopMethod: 'NCT',
-            slitLampNotes: 'Normal.',
-            fundoscopyNotes: 'Unremarkable fundus.',
-          ),
-          drawingOD: EyeDrawingData(
-            id: 'drw-0115-od',
-            encounterId: 'enc-2026-0115',
-            patientId: 'pat-001',
-            eye: EyeType.OD,
-            cdRatio: 0.40,
-            updatedAt: '2026-01-15T11:00:00Z',
-            strokes: [
-              VectorStroke(
-                id: 's01',
-                tool: DrawingTool.pen,
-                color: const Color(0xFFDC2626),
-                size: 3,
-                points: const [Offset(220, 220), Offset(222, 222)],
-              ),
-            ],
-          ),
-          diagnosis: 'Diabetic Retinopathy Baseline OD',
-          treatmentPlan: 'Continue current diabetic medications. Retest in 6 months.',
         ),
       ],
     ),
@@ -227,6 +242,7 @@ class PatientRepository {
       id: 'pat-002',
       mrn: 'MRN-2026-8812',
       fullName: 'Maria Santos',
+      middleName: 'Gonzales',
       dateOfBirth: '1962-11-23',
       gender: 'Female',
       phone: '+63 918 222 9011',
@@ -257,6 +273,7 @@ class PatientRepository {
     final q = query.toLowerCase();
     return _patients.where((p) {
       return p.fullName.toLowerCase().contains(q) ||
+          p.middleName.toLowerCase().contains(q) ||
           p.mrn.toLowerCase().contains(q) ||
           p.phone.contains(q);
     }).toList();
@@ -275,6 +292,7 @@ class PatientRepository {
         id: p.id,
         mrn: p.mrn,
         fullName: p.fullName,
+        middleName: p.middleName,
         dateOfBirth: p.dateOfBirth,
         gender: p.gender,
         phone: p.phone,
@@ -297,12 +315,18 @@ class PatientRepository {
       TodayPatientQueue(
         patient: _patients.first,
         time: '09:00 AM',
-        visitType: 'Follow-up Examination',
+        visitType: 'Clinical Consultation Sheet',
         status: 'In Examination',
       ),
       TodayPatientQueue(
         patient: _patients.length > 1 ? _patients[1] : _patients.first,
         time: '09:30 AM',
+        visitType: 'Follow-up Examination',
+        status: 'Waiting',
+      ),
+      TodayPatientQueue(
+        patient: _patients.length > 2 ? _patients[2] : _patients.first,
+        time: '10:15 AM',
         visitType: 'Glaucoma Consultation',
         status: 'Waiting',
       ),
@@ -318,6 +342,7 @@ class PatientRepository {
         id: existing.id,
         mrn: existing.mrn,
         fullName: existing.fullName,
+        middleName: existing.middleName,
         dateOfBirth: existing.dateOfBirth,
         gender: existing.gender,
         phone: existing.phone,

@@ -227,7 +227,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        '${_patient.gender}, ${_patient.age}y  •  DOB: ${_patient.dateOfBirth}',
+                                        '${_patient.gender}, ${_patient.age}y  •  DOB: ${formatClinicalDate(_patient.dateOfBirth)}',
                                         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                       ),
                                     ],
@@ -416,7 +416,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: _patient.encounters.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final enc = _patient.encounters[index];
         final hasDrawing = enc.drawingOD != null || enc.drawingOS != null;
@@ -440,7 +440,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                       children: [
                         const Icon(Icons.event_available, color: AppTheme.primaryBlue, size: 18),
                         const SizedBox(width: 8),
-                        Text(enc.date, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        Text(formatClinicalDate(enc.date), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                         const SizedBox(width: 8),
                         Text('— ${enc.doctorName}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       ],
@@ -512,7 +512,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: _patient.prescriptions.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final rx = _patient.prescriptions[index];
 

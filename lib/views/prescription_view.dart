@@ -108,7 +108,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 RxPadWidget(
                   patient: _selectedPatient,
                   items: rx.items,
