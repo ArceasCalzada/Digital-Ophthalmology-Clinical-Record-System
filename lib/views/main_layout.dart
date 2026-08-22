@@ -303,13 +303,6 @@ class _MainLayoutState extends State<MainLayout> {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.menu_open, color: AppTheme.primaryBlue, size: 20),
-                  tooltip: 'Collapse Sidebar',
-                  onPressed: _toggleSidebar,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
               ],
             ],
           ),
