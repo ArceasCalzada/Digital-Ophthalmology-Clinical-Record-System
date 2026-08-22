@@ -453,7 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right) - Perfect Height Alignment
+          // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right)
           LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 960;
@@ -468,15 +468,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               }
 
-              return IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: _buildTodayQueueCard(isNarrow: false)),
-                    const SizedBox(width: 20),
-                    _buildMiniCalendarCard(isNarrow: false),
-                  ],
-                ),
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildTodayQueueCard(isNarrow: false)),
+                  const SizedBox(width: 20),
+                  _buildMiniCalendarCard(isNarrow: false),
+                ],
               );
             },
           ),
@@ -962,8 +960,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
+    final weekRows = <Widget>[];
+    for (int week = 0; week < 5; week++) {
+      final dayCells = <Widget>[];
+      for (int day = 0; day < 7; day++) {
+        final index = week * 7 + day;
+        final dayNumber = index - firstWeekday + 1;
+        if (dayNumber < 1 || dayNumber > daysInMonth) {
+          dayCells.add(const Expanded(child: SizedBox(height: 28)));
+        } else {
+          final isToday = dayNumber == now.day;
+          final hasAppointments = [2, 10, 21, 24, 30].contains(dayNumber);
+
+          dayCells.add(
+            Expanded(
+              child: Container(
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isToday ? AppTheme.primaryBlue : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Text(
+                      '$dayNumber',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                        color: isToday ? Colors.white : AppTheme.textPrimary,
+                      ),
+                    ),
+                    if (hasAppointments && !isToday)
+                      Positioned(
+                        bottom: 1,
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primaryBlue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+      weekRows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: dayCells,
+          ),
+        ),
+      );
+    }
+
     return Container(
-      width: isNarrow ? double.infinity : 320,
+      width: isNarrow ? double.infinity : 360,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -981,7 +1041,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // STACKED DATE & TIME HEADER (Right on top of the Calendar)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: const BoxDecoration(
               color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.only(
@@ -994,12 +1054,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.access_time_filled_rounded, color: AppTheme.primaryBlue, size: 18),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 14),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13),
                     ),
                   ],
                 ),
@@ -1010,6 +1071,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.calendar_today_rounded, color: AppTheme.primaryBlue, size: 12),
                       const SizedBox(width: 4),
@@ -1026,7 +1088,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // CALENDAR BODY
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1065,60 +1127,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 6),
 
-                // Days grid (Fixed non-interactive calendar)
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemCount: 35, // 5 weeks display
-                  itemBuilder: (context, index) {
-                    final dayNumber = index - firstWeekday + 1;
-                    if (dayNumber < 1 || dayNumber > daysInMonth) {
-                      return const SizedBox();
-                    }
-
-                    final isToday = dayNumber == now.day;
-                    final hasAppointments = [2, 10, 21, 24, 30].contains(dayNumber);
-
-                    return Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isToday ? AppTheme.primaryBlue : Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Text(
-                            '$dayNumber',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
-                              color: isToday ? Colors.white : AppTheme.textPrimary,
-                            ),
-                          ),
-                          if (hasAppointments && !isToday)
-                            Positioned(
-                              bottom: 2,
-                              child: Container(
-                                width: 4,
-                                height: 4,
-                                decoration: const BoxDecoration(
-                                  color: AppTheme.primaryBlue,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                // Days grid (5 rows)
+                ...weekRows,
               ],
             ),
           ),
@@ -1149,7 +1159,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isNarrow ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1183,10 +1192,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-          if (isNarrow) const SizedBox(height: 12),
+          const SizedBox(height: 12),
           ...queue.map((item) {
             return Container(
-              margin: EdgeInsets.only(bottom: isNarrow ? 8 : 0),
+              margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
