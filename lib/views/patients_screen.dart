@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_modal_picker.dart';
 import 'new_patient_modal.dart';
 
 class PatientsScreen extends StatefulWidget {
@@ -231,115 +232,44 @@ class _PatientsScreenState extends State<PatientsScreen> {
     );
   }
 
-  Widget _buildNewActionsDropdownButton() {
-    const double dropdownWidth = 260.0;
+  Widget _buildNewActionsDropdownButton({double? width}) {
+    final double dropdownWidth = width ?? 260.0;
 
-    return PopupMenuButton<String>(
-      tooltip: 'Create New Item',
-      offset: const Offset(0, 52),
-      constraints: const BoxConstraints(minWidth: dropdownWidth, maxWidth: dropdownWidth),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(14),
-          bottomRight: Radius.circular(14),
-          topLeft: Radius.zero,
-          topRight: Radius.zero,
-        ),
-      ),
-      color: Colors.white,
-      elevation: 6,
-      onSelected: (value) {
-        switch (value) {
-          case 'exam':
-            _openPatientSelectorForExam();
-            break;
-          case 'rx':
-            _openPatientSelectorForPrescription();
-            break;
-          case 'patient':
-            _openNewPatientModal();
-            break;
-        }
+    return InkWell(
+      onTap: () {
+        showClinicalActionModal(
+          context: context,
+          title: 'New Patient Action',
+          subtitle: 'Select an action to perform in patient records',
+          actions: [
+            ClinicalActionItem(
+              id: 'exam',
+              title: 'New Examination',
+              subtitle: 'Open consultation sheet & exam',
+              icon: Icons.draw_rounded,
+              color: AppTheme.primaryBlue,
+              onTap: _openPatientSelectorForExam,
+            ),
+            ClinicalActionItem(
+              id: 'rx',
+              title: 'New Prescription',
+              subtitle: 'Write digital ophthalmic Rx',
+              icon: Icons.medication_rounded,
+              color: const Color(0xFF0284C7),
+              onTap: _openPatientSelectorForPrescription,
+            ),
+            ClinicalActionItem(
+              id: 'patient',
+              title: 'Register New Patient',
+              subtitle: 'Add new patient profile',
+              icon: Icons.person_add_alt_1_rounded,
+              color: const Color(0xFF10B981),
+              onTap: _openNewPatientModal,
+            ),
+          ],
+        );
       },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: 'exam',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.draw_rounded, color: AppTheme.primaryBlue, size: 18),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('New Examination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                    Text('Consultation sheet & matrix', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'rx',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.medication_rounded, color: Color(0xFF0284C7), size: 18),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('New Prescription', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                    Text('Write digital ophthalmic Rx', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'patient',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFF10B981), size: 18),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Register New Patient', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                    Text('Add new patient profile', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         width: dropdownWidth,
         height: 54,
@@ -348,29 +278,25 @@ class _PatientsScreenState extends State<PatientsScreen> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: const Stack(
-          alignment: Alignment.center,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, color: Colors.white, size: 20),
-                SizedBox(width: 6),
-                Text(
-                  'New',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ],
-            ),
-            Positioned(
-              right: 16,
-              child: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 22),
+            Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'New',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -410,7 +336,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     ],
                   ),
                   if (isMobile) const SizedBox(height: 12),
-                  _buildNewActionsDropdownButton(),
+                  _buildNewActionsDropdownButton(width: isMobile ? double.infinity : 260.0),
                 ],
               ),
               const SizedBox(height: 20),
@@ -819,67 +745,45 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   Widget _buildPatientCardNewActionsButton(Patient patient) {
-    return PopupMenuButton<String>(
-      tooltip: 'New action for ${patient.fullName}',
-      offset: const Offset(0, 38),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
-      elevation: 4,
-      onSelected: (value) {
-        switch (value) {
-          case 'exam':
-            if (widget.onStartExam != null) {
-              widget.onStartExam!(patient);
-            } else {
-              widget.onSelectPatient(patient);
-            }
-            break;
-          case 'rx':
-            if (widget.onOpenPrescription != null) {
-              widget.onOpenPrescription!(patient);
-            } else {
-              widget.onSelectPatient(patient);
-            }
-            break;
-        }
+    return InkWell(
+      onTap: () {
+        showClinicalActionModal(
+          context: context,
+          title: 'Action for ${patient.fullName}',
+          subtitle: 'MRN: ${patient.mrn} • ${patient.age} yrs, ${patient.gender}',
+          actions: [
+            ClinicalActionItem(
+              id: 'exam',
+              title: 'New Examination',
+              subtitle: 'Open consultation paper sheet for ${patient.fullName}',
+              icon: Icons.draw_rounded,
+              color: AppTheme.primaryBlue,
+              onTap: () {
+                if (widget.onStartExam != null) {
+                  widget.onStartExam!(patient);
+                } else {
+                  widget.onSelectPatient(patient);
+                }
+              },
+            ),
+            ClinicalActionItem(
+              id: 'rx',
+              title: 'New Prescription (Rx)',
+              subtitle: 'Write digital prescription for ${patient.fullName}',
+              icon: Icons.medication_rounded,
+              color: const Color(0xFF0284C7),
+              onTap: () {
+                if (widget.onOpenPrescription != null) {
+                  widget.onOpenPrescription!(patient);
+                } else {
+                  widget.onSelectPatient(patient);
+                }
+              },
+            ),
+          ],
+        );
       },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: 'exam',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.draw_rounded, color: AppTheme.primaryBlue, size: 16),
-              ),
-              const SizedBox(width: 10),
-              const Text('New Examination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'rx',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.medication_rounded, color: Color(0xFF0284C7), size: 16),
-              ),
-              const SizedBox(width: 10),
-              const Text('New Prescription (Rx)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-            ],
-          ),
-        ),
-      ],
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -895,8 +799,6 @@ class _PatientsScreenState extends State<PatientsScreen> {
               'New',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
             ),
-            SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
           ],
         ),
       ),

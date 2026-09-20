@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_modal_picker.dart';
 import 'new_patient_modal.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -281,113 +282,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // =========================================================================
   // TOP "+ NEW" ACTION BUTTON & FLUSH DROPDOWN MENU (CONNECTED SEAMLESSLY)
   // =========================================================================
-  Widget _buildNewActionsDropdownButton() {
-    return PopupMenuButton<String>(
-      tooltip: 'Create New Patient, Examination, or Prescription',
-      offset: const Offset(0, 52), // Placed flush directly attached under the 54px button
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.zero, // Zero gap connection with top button
-          topRight: Radius.zero,
-          bottomLeft: Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-        side: BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
-      ),
-      elevation: 12,
-      color: Colors.white,
-      constraints: const BoxConstraints(
-        minWidth: 260,
-        maxWidth: 260,
-      ),
-      onSelected: (action) {
-        if (action == 'new_patient') {
-          _openNewPatientModal();
-        } else if (action == 'new_exam') {
-          _openPatientSelectorForExam();
-        } else if (action == 'new_rx') {
-          _openPatientSelectorForPrescription();
-        }
+  Widget _buildNewActionsDropdownButton({double? width}) {
+    return InkWell(
+      onTap: () {
+        showClinicalActionModal(
+          context: context,
+          title: 'Create New Record',
+          subtitle: 'Choose an action to create a clinical entry',
+          actions: [
+            ClinicalActionItem(
+              id: 'new_patient',
+              title: 'New Patient',
+              subtitle: 'Register a new patient record in the system',
+              icon: Icons.person_add_rounded,
+              color: const Color(0xFF10B981),
+              onTap: _openNewPatientModal,
+            ),
+            ClinicalActionItem(
+              id: 'new_exam',
+              title: 'New Examination',
+              subtitle: 'Open clinical consultation paper sheet',
+              icon: Icons.draw_rounded,
+              color: AppTheme.primaryBlue,
+              onTap: _openPatientSelectorForExam,
+            ),
+            ClinicalActionItem(
+              id: 'new_rx',
+              title: 'New Prescription',
+              subtitle: 'Write digital prescription (Rx) for patient',
+              icon: Icons.medication_rounded,
+              color: const Color(0xFF0284C7),
+              onTap: _openPatientSelectorForPrescription,
+            ),
+          ],
+        );
       },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: 'new_patient',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.person_add_rounded, color: Color(0xFF10B981), size: 18),
-              ),
-              const SizedBox(width: 14),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('New Patient', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                  Text('Register new clinical record', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'new_exam',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.draw_rounded, color: AppTheme.primaryBlue, size: 18),
-              ),
-              const SizedBox(width: 14),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('New Examination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                  Text('Open consultation sheet', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem<String>(
-          value: 'new_rx',
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.medication_rounded, color: Color(0xFF0284C7), size: 18),
-              ),
-              const SizedBox(width: 14),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('New Prescription', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                  Text('Write digital Rx for patient', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         height: 54,
-        width: 260,
+        width: width ?? 260,
         decoration: BoxDecoration(
           color: AppTheme.primaryBlue,
           borderRadius: BorderRadius.circular(14),
@@ -399,29 +332,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        child: const Stack(
-          alignment: Alignment.center,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'New',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              right: 16,
-              child: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 22),
+            Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'New',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -484,65 +407,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: _isSearching && _searchController.text.trim().isNotEmpty
-                            ? const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28))
-                            : BorderRadius.circular(28),
-                        border: Border.all(color: AppTheme.borderColor),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: _onSearchChanged,
-                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                              decoration: const InputDecoration(
-                                hintText: 'Search patient by name, patient ID (MRN), or date of birth...',
-                                hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                                filled: false,
-                                fillColor: Colors.transparent,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 14),
-                              ),
-                            ),
-                          ),
-                          if (_searchController.text.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
-                              tooltip: 'Clear search',
-                              onPressed: () {
-                                _searchController.clear();
-                                _onSearchChanged('');
-                              },
-                            ),
-                        ],
-                      ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 600;
+
+                  final searchBarContainer = Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: _isSearching && _searchController.text.trim().isNotEmpty
+                          ? const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28))
+                          : BorderRadius.circular(28),
+                      border: Border.all(color: AppTheme.borderColor),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  _buildNewActionsDropdownButton(),
-                ],
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: _onSearchChanged,
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            decoration: const InputDecoration(
+                              hintText: 'Search patient by name, patient ID (MRN)...',
+                              hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                              filled: false,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          ),
+                      ],
+                    ),
+                  );
+
+                  if (isMobile) {
+                    return Column(
+                      children: [
+                        searchBarContainer,
+                        const SizedBox(height: 12),
+                        _buildNewActionsDropdownButton(width: double.infinity),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: searchBarContainer),
+                      const SizedBox(width: 14),
+                      _buildNewActionsDropdownButton(),
+                    ],
+                  );
+                },
               ),
 
               // Floating/Flush Dropdown of Patient Names attached below the Search Bar
@@ -865,67 +804,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPatientCardNewActionsButton(Patient patient) {
-    return PopupMenuButton<String>(
-      tooltip: 'New action for ${patient.fullName}',
-      offset: const Offset(0, 38),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
-      elevation: 4,
-      onSelected: (value) {
-        switch (value) {
-          case 'exam':
-            if (widget.onStartExam != null) {
-              widget.onStartExam!(patient);
-            } else if (widget.onSelectPatient != null) {
-              widget.onSelectPatient!(patient);
-            }
-            break;
-          case 'rx':
-            if (widget.onOpenPrescription != null) {
-              widget.onOpenPrescription!(patient);
-            } else if (widget.onSelectPatient != null) {
-              widget.onSelectPatient!(patient);
-            }
-            break;
-        }
+    return InkWell(
+      onTap: () {
+        showClinicalActionModal(
+          context: context,
+          title: 'Action for ${patient.fullName}',
+          subtitle: 'MRN: ${patient.mrn} • ${patient.age} yrs, ${patient.gender}',
+          actions: [
+            ClinicalActionItem(
+              id: 'exam',
+              title: 'New Examination',
+              subtitle: 'Open consultation paper sheet for ${patient.fullName}',
+              icon: Icons.draw_rounded,
+              color: AppTheme.primaryBlue,
+              onTap: () {
+                if (widget.onStartExam != null) {
+                  widget.onStartExam!(patient);
+                } else if (widget.onSelectPatient != null) {
+                  widget.onSelectPatient!(patient);
+                }
+              },
+            ),
+            ClinicalActionItem(
+              id: 'rx',
+              title: 'New Prescription (Rx)',
+              subtitle: 'Write digital prescription for ${patient.fullName}',
+              icon: Icons.medication_rounded,
+              color: const Color(0xFF0284C7),
+              onTap: () {
+                if (widget.onOpenPrescription != null) {
+                  widget.onOpenPrescription!(patient);
+                } else if (widget.onSelectPatient != null) {
+                  widget.onSelectPatient!(patient);
+                }
+              },
+            ),
+          ],
+        );
       },
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: 'exam',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.draw_rounded, color: AppTheme.primaryBlue, size: 16),
-              ),
-              const SizedBox(width: 10),
-              const Text('New Examination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'rx',
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.medication_rounded, color: Color(0xFF0284C7), size: 16),
-              ),
-              const SizedBox(width: 10),
-              const Text('New Prescription (Rx)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-            ],
-          ),
-        ),
-      ],
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -941,8 +858,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'New',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
             ),
-            SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
           ],
         ),
       ),
@@ -1053,17 +968,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.access_time_filled_rounded, color: AppTheme.primaryBlue, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13),
-                    ),
-                  ],
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_filled_rounded, color: AppTheme.primaryBlue, size: 18),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -1095,10 +1016,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '$currentMonthName ${now.year}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                    Expanded(
+                      child: Text(
+                        '$currentMonthName ${now.year}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     const Text(
                       'Clinic Calendar',
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),

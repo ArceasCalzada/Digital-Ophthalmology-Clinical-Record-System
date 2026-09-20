@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_modal_picker.dart';
 import '../widgets/rx_pad_widget.dart';
 
 /// SettingsView - Complete Settings & Workstation Configuration UI/UX for DOCRS
@@ -866,14 +867,34 @@ class _SettingsViewState extends State<SettingsView> {
                   children: [
                     const Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                     const SizedBox(width: 16),
-                    DropdownButton<String>(
-                      value: _autoLockDuration,
-                      items: ['5 minutes', '10 minutes', '15 minutes', '30 minutes', 'Never']
-                          .map((val) => DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 13))))
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _autoLockDuration = val);
-                      },
+                    Expanded(
+                      child: ClinicalModalPickerField<String>(
+                        placeholder: 'Select timeout...',
+                        displayText: _autoLockDuration,
+                        icon: Icons.timer_outlined,
+                        onTap: () async {
+                          const options = ['5 minutes', '10 minutes', '15 minutes', '30 minutes', 'Never'];
+                          final items = options.map((dur) {
+                            return ClinicalPickerItem<String>(
+                              value: dur,
+                              label: dur,
+                              icon: Icons.timer_rounded,
+                              iconColor: AppTheme.primaryBlue,
+                            );
+                          }).toList();
+
+                          final selected = await showClinicalModalPicker<String>(
+                            context: context,
+                            title: 'Select Inactivity Timeout',
+                            selectedValue: _autoLockDuration,
+                            items: items,
+                          );
+
+                          if (selected != null) {
+                            setState(() => _autoLockDuration = selected);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -1491,18 +1512,31 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Widget _buildDropdownField(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: value,
-          decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontSize: 13)))).toList(),
-          onChanged: onChanged,
-        ),
-      ],
+    return ClinicalModalPickerField<String>(
+      label: label,
+      placeholder: 'Select option...',
+      displayText: value,
+      onTap: () async {
+        final pickerItems = items.map((item) {
+          return ClinicalPickerItem<String>(
+            value: item,
+            label: item,
+            icon: Icons.tune_rounded,
+            iconColor: AppTheme.primaryBlue,
+          );
+        }).toList();
+
+        final selected = await showClinicalModalPicker<String>(
+          context: context,
+          title: 'Select $label',
+          selectedValue: value,
+          items: pickerItems,
+        );
+
+        if (selected != null) {
+          onChanged(selected);
+        }
+      },
     );
   }
 

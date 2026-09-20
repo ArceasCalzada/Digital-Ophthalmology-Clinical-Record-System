@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'clinical_modal_picker.dart';
 
 /// Shows a clean, jitter-free clinical calendar picker modal.
 /// Eliminates the wide side-panel and ensures all month names (up to "September")
@@ -139,83 +140,112 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
               // With fixed width containers so nothing shifts when month/year changes!
               Row(
                 children: [
-                  // Fixed Month Selector
-                  Container(
-                    width: 125,
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightBg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.borderColor),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _displayMonth,
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryBlue, size: 20),
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                        items: List.generate(12, (index) {
+                  // Month Selector Modal Button
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        final items = List.generate(12, (index) {
                           final monthNum = index + 1;
-                          return DropdownMenuItem<int>(
+                          return ClinicalPickerItem<int>(
                             value: monthNum,
-                            child: Text(
-                              _monthNames[index],
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            label: _monthNames[index],
+                            icon: Icons.calendar_month_rounded,
+                            iconColor: AppTheme.primaryBlue,
                           );
-                        }),
-                        onChanged: (newMonth) {
-                          if (newMonth != null) {
-                            setState(() {
-                              _displayMonth = newMonth;
-                            });
-                          }
-                        },
+                        });
+
+                        final selectedMonth = await showClinicalModalPicker<int>(
+                          context: context,
+                          title: 'Select Month',
+                          selectedValue: _displayMonth,
+                          items: items,
+                        );
+
+                        if (selectedMonth != null) {
+                          setState(() => _displayMonth = selectedMonth);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _monthNames[_displayMonth - 1],
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, color: AppTheme.primaryBlue, size: 20),
+                          ],
+                        ),
                       ),
                     ),
                   ),
 
                   const SizedBox(width: 8),
 
-                  // Fixed Year Selector
-                  Container(
-                    width: 86,
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.lightBg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.borderColor),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: _displayYear.clamp(widget.firstDate.year, widget.lastDate.year),
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryBlue, size: 20),
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                        items: [
-                          for (int y = widget.lastDate.year; y >= widget.firstDate.year; y--)
-                            DropdownMenuItem<int>(
-                              value: y,
-                              child: Text('$y'),
+                  // Year Selector Modal Button
+                  InkWell(
+                    onTap: () async {
+                      final items = [
+                        for (int y = widget.lastDate.year; y >= widget.firstDate.year; y--)
+                          ClinicalPickerItem<int>(
+                            value: y,
+                            label: '$y',
+                            icon: Icons.date_range_rounded,
+                            iconColor: AppTheme.primaryBlue,
+                          ),
+                      ];
+
+                      final selectedYear = await showClinicalModalPicker<int>(
+                        context: context,
+                        title: 'Select Year',
+                        enableSearch: true,
+                        searchHint: 'Type year (e.g. 1995)...',
+                        selectedValue: _displayYear,
+                        items: items,
+                      );
+
+                      if (selectedYear != null) {
+                        setState(() => _displayYear = selectedYear);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 96,
+                      height: 38,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lightBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.borderColor),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '$_displayYear',
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, color: AppTheme.primaryBlue, size: 20),
                         ],
-                        onChanged: (newYear) {
-                          if (newYear != null) {
-                            setState(() {
-                              _displayYear = newYear;
-                            });
-                          }
-                        },
                       ),
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_modal_picker.dart';
 import '../widgets/rx_pad_widget.dart';
 
 class PrescriptionView extends StatefulWidget {
@@ -206,17 +207,33 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   const Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: DropdownButtonFormField<Patient>(
-                      initialValue: _selectedPatient,
-                      decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-                      items: allPatients.map((p) {
-                        return DropdownMenuItem(
-                          value: p,
-                          child: Text('${p.fullName} (${p.mrn}) • Age ${p.age}'),
+                    child: ClinicalModalPickerField<Patient>(
+                      placeholder: 'Search & select patient...',
+                      displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : '',
+                      icon: Icons.person_rounded,
+                      onTap: () async {
+                        final items = allPatients.map((p) {
+                          return ClinicalPickerItem<Patient>(
+                            value: p,
+                            label: p.fullName,
+                            subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}',
+                            icon: Icons.person_rounded,
+                            iconColor: AppTheme.primaryBlue,
+                          );
+                        }).toList();
+
+                        final selected = await showClinicalModalPicker<Patient>(
+                          context: context,
+                          title: 'Select Patient for Prescription',
+                          searchHint: 'Type patient name or MRN...',
+                          enableSearch: true,
+                          selectedValue: _selectedPatient,
+                          items: items,
                         );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedPatient = val);
+
+                        if (selected != null) {
+                          setState(() => _selectedPatient = selected);
+                        }
                       },
                     ),
                   ),

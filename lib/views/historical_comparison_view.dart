@@ -3,6 +3,7 @@ import '../models/patient.dart';
 import '../models/encounter.dart';
 import '../models/eye_exam.dart';
 import '../widgets/drawing/eye_drawing_canvas.dart';
+import '../widgets/clinical_modal_picker.dart';
 import '../theme/app_theme.dart';
 
 class HistoricalComparisonView extends StatefulWidget {
@@ -75,28 +76,33 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Row(
-                        children: [
-                          const Text('Prior Visit: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButton<Encounter>(
-                              value: _encounterLeft,
-                              dropdownColor: AppTheme.cardBg,
-                              isExpanded: true,
-                              underline: Container(),
-                              items: encounters.map((e) {
-                                return DropdownMenuItem(
-                                  value: e,
-                                  child: Text('${formatClinicalDate(e.date)} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _encounterLeft = val);
-                              },
-                            ),
-                          ),
-                        ],
+                      child: ClinicalModalPickerField<Encounter>(
+                        label: 'Prior Visit',
+                        placeholder: 'Select visit...',
+                        displayText: '${formatClinicalDate(_encounterLeft.date)} — ${_encounterLeft.diagnosis}',
+                        icon: Icons.history_rounded,
+                        onTap: () async {
+                          final items = encounters.map((e) {
+                            return ClinicalPickerItem<Encounter>(
+                              value: e,
+                              label: formatClinicalDate(e.date),
+                              subtitle: '${e.diagnosis} • ${e.doctorName}',
+                              icon: Icons.event_note_rounded,
+                              iconColor: AppTheme.primaryBlue,
+                            );
+                          }).toList();
+
+                          final selected = await showClinicalModalPicker<Encounter>(
+                            context: context,
+                            title: 'Select Prior Visit Encounter',
+                            selectedValue: _encounterLeft,
+                            items: items,
+                          );
+
+                          if (selected != null) {
+                            setState(() => _encounterLeft = selected);
+                          }
+                        },
                       ),
                     ),
 
@@ -106,28 +112,34 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                     ),
 
                     Expanded(
-                      child: Row(
-                        children: [
-                          const Text('Recent Visit: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButton<Encounter>(
-                              value: _encounterRight,
-                              dropdownColor: AppTheme.cardBg,
-                              isExpanded: true,
-                              underline: Container(),
-                              items: encounters.map((e) {
-                                return DropdownMenuItem(
-                                  value: e,
-                                  child: Text('${formatClinicalDate(e.date)} — ${e.diagnosis}', style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _encounterRight = val);
-                              },
-                            ),
-                          ),
-                        ],
+                      child: ClinicalModalPickerField<Encounter>(
+                        label: 'Recent Visit',
+                        placeholder: 'Select visit...',
+                        displayText: '${formatClinicalDate(_encounterRight.date)} — ${_encounterRight.diagnosis}',
+                        icon: Icons.event_available_rounded,
+                        isHighlighted: true,
+                        onTap: () async {
+                          final items = encounters.map((e) {
+                            return ClinicalPickerItem<Encounter>(
+                              value: e,
+                              label: formatClinicalDate(e.date),
+                              subtitle: '${e.diagnosis} • ${e.doctorName}',
+                              icon: Icons.event_note_rounded,
+                              iconColor: AppTheme.primaryBlue,
+                            );
+                          }).toList();
+
+                          final selected = await showClinicalModalPicker<Encounter>(
+                            context: context,
+                            title: 'Select Recent Visit Encounter',
+                            selectedValue: _encounterRight,
+                            items: items,
+                          );
+
+                          if (selected != null) {
+                            setState(() => _encounterRight = selected);
+                          }
+                        },
                       ),
                     ),
                   ],

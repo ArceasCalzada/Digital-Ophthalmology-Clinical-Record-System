@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../widgets/clinical_date_picker.dart';
+import '../widgets/clinical_modal_picker.dart';
 import '../theme/app_theme.dart';
 
 class NewPatientModal extends StatefulWidget {
@@ -170,12 +171,23 @@ class _NewPatientModalState extends State<NewPatientModal> {
                         children: [
                           const Text('Sex / Gender', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                           const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            initialValue: _gender,
-                            decoration: const InputDecoration(),
-                            items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                            onChanged: (val) {
-                              if (val != null) setState(() => _gender = val);
+                          ClinicalModalPickerField<String>(
+                            placeholder: 'Select Gender',
+                            displayText: _gender,
+                            onTap: () async {
+                              final selected = await showClinicalModalPicker<String>(
+                                context: context,
+                                title: 'Select Gender',
+                                selectedValue: _gender,
+                                items: const [
+                                  ClinicalPickerItem(value: 'Male', label: 'Male', icon: Icons.male_rounded, iconColor: AppTheme.primaryBlue),
+                                  ClinicalPickerItem(value: 'Female', label: 'Female', icon: Icons.female_rounded, iconColor: Color(0xFFEC4899)),
+                                  ClinicalPickerItem(value: 'Other', label: 'Other', icon: Icons.person_outline_rounded, iconColor: Color(0xFF8B5CF6)),
+                                ],
+                              );
+                              if (selected != null) {
+                                setState(() => _gender = selected);
+                              }
                             },
                           ),
                         ],
