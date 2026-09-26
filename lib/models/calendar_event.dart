@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/offline_sync_service.dart';
+
 class CalendarEvent {
   final String id;
   final String title;
@@ -77,6 +79,19 @@ class CalendarEventRepository extends ChangeNotifier {
 
   void addEvent(CalendarEvent event) {
     _events.add(event);
+    OfflineSyncService().enqueueMutation(
+      id: event.id,
+      entityType: 'CalendarEvent',
+      action: 'CREATE',
+      payload: {
+        'id': event.id,
+        'title': event.title,
+        'eventType': event.eventType,
+        'location': event.location,
+        'dateTime': event.dateTime.toIso8601String(),
+        'patientName': event.patientName,
+      },
+    );
     notifyListeners();
   }
 
@@ -84,12 +99,27 @@ class CalendarEventRepository extends ChangeNotifier {
     final idx = _events.indexWhere((e) => e.id == id);
     if (idx != -1) {
       _events[idx].isCompleted = !_events[idx].isCompleted;
+      OfflineSyncService().enqueueMutation(
+        id: id,
+        entityType: 'CalendarEvent',
+        action: 'UPDATE',
+        payload: {
+          'id': id,
+          'isCompleted': _events[idx].isCompleted,
+        },
+      );
       notifyListeners();
     }
   }
 
   void deleteEvent(String id) {
     _events.removeWhere((e) => e.id == id);
+    OfflineSyncService().enqueueMutation(
+      id: id,
+      entityType: 'CalendarEvent',
+      action: 'DELETE',
+      payload: {'id': id},
+    );
     notifyListeners();
   }
 

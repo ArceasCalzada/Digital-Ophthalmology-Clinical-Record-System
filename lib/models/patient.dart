@@ -1,3 +1,4 @@
+import '../services/offline_sync_service.dart';
 import 'encounter.dart';
 import 'eye_exam.dart';
 import 'prescription.dart';
@@ -281,6 +282,18 @@ class PatientRepository {
 
   static void addPatient(Patient newPatient) {
     _patients.insert(0, newPatient);
+    OfflineSyncService().enqueueMutation(
+      id: newPatient.id,
+      entityType: 'Patient',
+      action: 'CREATE',
+      payload: {
+        'id': newPatient.id,
+        'mrn': newPatient.mrn,
+        'fullName': newPatient.fullName,
+        'phone': newPatient.phone,
+        'lastVisitDate': newPatient.lastVisitDate,
+      },
+    );
   }
 
   static void addPrescription(String patientId, Prescription prescription) {
@@ -306,6 +319,18 @@ class PatientRepository {
         encounters: p.encounters,
         lastVisitDate: p.lastVisitDate,
         totalVisits: p.totalVisits,
+      );
+
+      OfflineSyncService().enqueueMutation(
+        id: prescription.id,
+        entityType: 'Prescription',
+        action: 'CREATE',
+        payload: {
+          'id': prescription.id,
+          'patientId': patientId,
+          'doctorName': prescription.doctorName,
+          'date': prescription.date,
+        },
       );
     }
   }
@@ -358,6 +383,18 @@ class PatientRepository {
         encounters: updatedEncounters,
         lastVisitDate: encounter.date,
         totalVisits: existing.totalVisits + 1,
+      );
+
+      OfflineSyncService().enqueueMutation(
+        id: encounter.id,
+        entityType: 'Encounter',
+        action: 'CREATE',
+        payload: {
+          'id': encounter.id,
+          'patientId': patientId,
+          'diagnosis': encounter.diagnosis,
+          'date': encounter.date,
+        },
       );
     }
   }

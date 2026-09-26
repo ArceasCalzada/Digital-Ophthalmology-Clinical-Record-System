@@ -76,7 +76,7 @@ void main() {
           home: MainLayout(onLogout: () {}),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(find.byType(BottomNavigationBar), findsOneWidget);
       expect(find.text('Calendar'), findsOneWidget);

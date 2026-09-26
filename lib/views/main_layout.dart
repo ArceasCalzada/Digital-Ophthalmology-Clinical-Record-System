@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/calendar_event.dart';
 import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_event_modal.dart';
+import '../widgets/sync_status_indicator.dart';
 import 'calendar_page_view.dart';
 import 'dashboard_screen.dart';
 import 'eye_exam_view.dart';
@@ -432,215 +432,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildCalendarEventTile(CalendarEvent evt, CalendarEventRepository repo) {
-    Color tagColor;
-    switch (evt.eventType) {
-      case 'Surgery':
-        tagColor = const Color(0xFFEF4444);
-        break;
-      case 'Emergency':
-        tagColor = const Color(0xFFD97706);
-        break;
-      case 'IOP Check':
-        tagColor = const Color(0xFF10B981);
-        break;
-      case 'Follow-up':
-        tagColor = const Color(0xFF0284C7);
-        break;
-      case 'Consultation':
-      default:
-        tagColor = AppTheme.primaryBlue;
-        break;
-    }
 
-    final formattedTime = TimeOfDay.fromDateTime(evt.dateTime).format(context);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: tagColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  evt.eventType.toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tagColor, letterSpacing: 0.5),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                formattedTime,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: Icon(
-                  evt.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: evt.isCompleted ? const Color(0xFF10B981) : AppTheme.textSecondary,
-                  size: 20,
-                ),
-                onPressed: () => repo.toggleEventStatus(evt.id),
-                tooltip: 'Toggle completed',
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            evt.title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: evt.isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
-              decoration: evt.isCompleted ? TextDecoration.lineThrough : null,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.person_outline, size: 13, color: AppTheme.textSecondary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  evt.patientName,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Icon(Icons.location_on_outlined, size: 13, color: AppTheme.textSecondary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  evt.location,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          if (evt.notes.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Notes: ${evt.notes}',
-              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppTheme.textSecondary),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileCalendarGrid(DateTime now) {
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final firstWeekday = DateTime(now.year, now.month, 1).weekday % 7;
-    const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-    final weekRows = <Widget>[];
-    for (int week = 0; week < 5; week++) {
-      final dayCells = <Widget>[];
-      for (int day = 0; day < 7; day++) {
-        final index = week * 7 + day;
-        final dayNumber = index - firstWeekday + 1;
-        if (dayNumber < 1 || dayNumber > daysInMonth) {
-          dayCells.add(const Expanded(child: SizedBox(height: 28)));
-        } else {
-          final isToday = dayNumber == now.day;
-          final hasEvents = [now.day, 2, 10, 21, 24].contains(dayNumber);
-
-          dayCells.add(
-            Expanded(
-              child: Container(
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isToday ? AppTheme.primaryBlue : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      '$dayNumber',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
-                        color: isToday ? Colors.white : AppTheme.textPrimary,
-                      ),
-                    ),
-                    if (hasEvents && !isToday)
-                      Positioned(
-                        bottom: 1,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryBlue,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-      }
-      weekRows.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: dayCells,
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: weekdays.map((w) {
-            final isWeekend = w == 'Su' || w == 'Sa';
-            return Expanded(
-              child: Text(
-                w,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isWeekend ? const Color(0xFFEF4444) : AppTheme.textSecondary,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 6),
-        ...weekRows,
-      ],
-    );
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -655,13 +447,24 @@ class _MainLayoutState extends State<MainLayout> {
                   backgroundColor: AppTheme.cardBg,
                   elevation: 0.5,
                   title: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 22),
-                      SizedBox(width: 8),
-                      Text('DOCRS Mobile', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 17)),
+                      Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 20),
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'DOCRS',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
                     ],
                   ),
                   actions: [
+                    const Padding(
+                      padding: EdgeInsets.only(right: 6),
+                      child: Center(child: SyncStatusIndicator(compact: true)),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryBlue),
                       tooltip: 'Add Event',
@@ -821,6 +624,17 @@ class _MainLayoutState extends State<MainLayout> {
             ],
           ),
         ),
+        if (!collapsed)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: SyncStatusIndicator(compact: false),
+          )
+        else
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Center(child: SyncStatusIndicator(compact: true)),
+          ),
+        const SizedBox(height: 6),
         const Divider(height: 1, color: AppTheme.borderColor),
         Expanded(
           child: SingleChildScrollView(

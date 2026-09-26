@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/offline_sync_service.dart';
+
 enum NotificationSeverity { urgent, warning, info }
 
 class ClinicalNotification {
@@ -44,6 +46,12 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     final idx = _notifications.indexWhere((n) => n.id == id);
     if (idx != -1 && !_notifications[idx].isRead) {
       _notifications[idx].isRead = true;
+      OfflineSyncService().enqueueMutation(
+        id: id,
+        entityType: 'Notification',
+        action: 'UPDATE',
+        payload: {'id': id, 'isRead': true},
+      );
       notifyListeners();
     }
   }
@@ -54,6 +62,12 @@ class ClinicalNotificationRepository extends ChangeNotifier {
       if (!n.isRead) {
         n.isRead = true;
         changed = true;
+        OfflineSyncService().enqueueMutation(
+          id: n.id,
+          entityType: 'Notification',
+          action: 'UPDATE',
+          payload: {'id': n.id, 'isRead': true},
+        );
       }
     }
     if (changed) notifyListeners();
@@ -61,11 +75,27 @@ class ClinicalNotificationRepository extends ChangeNotifier {
 
   void dismissNotification(String id) {
     _notifications.removeWhere((n) => n.id == id);
+    OfflineSyncService().enqueueMutation(
+      id: id,
+      entityType: 'Notification',
+      action: 'DELETE',
+      payload: {'id': id},
+    );
     notifyListeners();
   }
 
   void addNotification(ClinicalNotification notification) {
     _notifications.insert(0, notification);
+    OfflineSyncService().enqueueMutation(
+      id: notification.id,
+      entityType: 'Notification',
+      action: 'CREATE',
+      payload: {
+        'id': notification.id,
+        'title': notification.title,
+        'message': notification.message,
+      },
+    );
     notifyListeners();
   }
 
