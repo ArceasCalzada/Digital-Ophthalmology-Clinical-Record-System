@@ -854,7 +854,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppTheme.primaryBlue,
+                activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 title: const Text('Auto-Lock System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                 subtitle: const Text('Automatically lock system after a period of inactivity to protect patient privacy.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -912,7 +912,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppTheme.primaryBlue,
+                activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 title: const Text('Two-Factor Authentication (2FA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                 subtitle: const Text('Add an extra layer of security when signing into the DOCRS workstation.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -1028,7 +1028,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                activeColor: AppTheme.primaryBlue,
+                activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 title: const Text('Enable Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                 subtitle: const Text('Automatically backup local encrypted clinical database at specified intervals.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -1046,7 +1046,7 @@ class _SettingsViewState extends State<SettingsView> {
                           const Text('Backup Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: _backupFrequency,
+                            initialValue: _backupFrequency,
                             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                             items: ['Daily', 'Weekly', 'Monthly']
                                 .map((val) => DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 13))))
@@ -1066,7 +1066,7 @@ class _SettingsViewState extends State<SettingsView> {
                           const Text('Backup Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: _backupTime,
+                            initialValue: _backupTime,
                             decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                             items: ['10:00 PM', '11:00 PM', '12:00 AM', '01:00 AM']
                                 .map((val) => DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 13))))

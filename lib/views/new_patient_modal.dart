@@ -56,8 +56,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
       );
 
       PatientRepository.addPatient(newPatient);
-      widget.onPatientCreated(newPatient);
       Navigator.pop(context);
+      widget.onPatientCreated(newPatient);
     }
   }
 
@@ -249,4 +249,126 @@ class _NewPatientModalState extends State<NewPatientModal> {
       ],
     );
   }
+}
+
+void showPatientCreatedSuccessModal({
+  required BuildContext context,
+  required Patient patient,
+  required VoidCallback onViewProfile,
+  required VoidCallback onStartExam,
+}) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      title: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 42),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Patient Registered Successfully!',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Record saved locally & queued for Cloud Firestore sync.',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        patient.fullName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          patient.mrn,
+                          style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text('Gender & Age: ${patient.gender}, ${patient.age} years old', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Contact Phone: ${patient.phone}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Address: ${patient.address}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      onStartExam();
+                    },
+                    icon: const Icon(Icons.draw_rounded, size: 16),
+                    label: const Text('Start Exam', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryBlue,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      onViewProfile();
+                    },
+                    icon: const Icon(Icons.folder_shared_rounded, size: 16),
+                    label: const Text('View Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/offline_sync_service.dart';
 import 'encounter.dart';
 import 'eye_exam.dart';
@@ -57,7 +60,7 @@ class Patient {
   final String mrn; // Medical Record Number
   final String fullName;
   final String middleName;
-  final String dateOfBirth; // YYYY-MM-DD
+  final String dateOfBirth; // YYYY-MM-DD or formatted string
   final String gender;
   final String phone;
   final String address;
@@ -97,7 +100,16 @@ class Patient {
 
   int get age {
     final dob = DateTime.tryParse(dateOfBirth);
-    if (dob == null) return 45;
+    if (dob == null) {
+      final parts = dateOfBirth.split(RegExp(r'[,/\s]+'));
+      if (parts.length >= 3) {
+        final y = int.tryParse(parts.last);
+        if (y != null) {
+          return DateTime.now().year - y;
+        }
+      }
+      return 45;
+    }
     final now = DateTime.now();
     int years = now.year - dob.year;
     if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
@@ -105,9 +117,56 @@ class Patient {
     }
     return years;
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'mrn': mrn,
+        'fullName': fullName,
+        'middleName': middleName,
+        'dateOfBirth': dateOfBirth,
+        'gender': gender,
+        'phone': phone,
+        'address': address,
+        'occupation': occupation,
+        'phicNumber': phicNumber,
+        'referringDoctor': referringDoctor,
+        'medicalHistory': medicalHistory,
+        'allergies': allergies,
+        'previousDiagnoses': previousDiagnoses,
+        'previousPrescriptions': previousPrescriptions,
+        'prescriptions': prescriptions.map((p) => p.toJson()).toList(),
+        'encounters': encounters.map((e) => e.toJson()).toList(),
+        'lastVisitDate': lastVisitDate,
+        'totalVisits': totalVisits,
+      };
+
+  factory Patient.fromJson(Map<String, dynamic> json) => Patient(
+        id: json['id'] as String,
+        mrn: json['mrn'] as String,
+        fullName: json['fullName'] as String,
+        middleName: json['middleName'] as String? ?? '',
+        dateOfBirth: json['dateOfBirth'] as String,
+        gender: json['gender'] as String,
+        phone: json['phone'] as String,
+        address: json['address'] as String,
+        occupation: json['occupation'] as String? ?? 'Civil Servant',
+        phicNumber: json['phicNumber'] as String? ?? '19-02581024-8',
+        referringDoctor: json['referringDoctor'] as String?,
+        medicalHistory: (json['medicalHistory'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        allergies: (json['allergies'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        previousDiagnoses: (json['previousDiagnoses'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        previousPrescriptions: (json['previousPrescriptions'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        prescriptions: (json['prescriptions'] as List<dynamic>?)?.map((p) => Prescription.fromJson(p as Map<String, dynamic>)).toList() ?? [],
+        encounters: (json['encounters'] as List<dynamic>?)?.map((e) => Encounter.fromJson(e as Map<String, dynamic>)).toList() ?? [],
+        lastVisitDate: json['lastVisitDate'] as String? ?? DateTime.now().toString().substring(0, 10),
+        totalVisits: (json['totalVisits'] as num?)?.toInt() ?? 1,
+      );
 }
 
 class PatientRepository {
+  static const String _storageKey = 'docrs_patients_v1';
+  static final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
+
   static final List<Prescription> _initialPrescriptions = [
     Prescription(
       id: 'rx-2026-001',
@@ -259,6 +318,41 @@ class PatientRepository {
     ),
   ];
 
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_storageKey);
+      if (jsonString != null && jsonString.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(jsonString);
+        final loaded = jsonList.map((j) => Patient.fromJson(j as Map<String, dynamic>)).toList();
+        if (loaded.isNotEmpty) {
+          // Merge loaded patients while preserving seed patients if missing
+          final existingIds = loaded.map((p) => p.id).toSet();
+          for (final seed in _patients) {
+            if (!existingIds.contains(seed.id)) {
+              loaded.add(seed);
+            }
+          }
+          _patients.clear();
+          _patients.addAll(loaded);
+        }
+      }
+    } catch (e) {
+      debugPrint('PatientRepository local init error: $e');
+    }
+  }
+
+  static Future<void> _saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _patients.map((p) => p.toJson()).toList();
+      await prefs.setString(_storageKey, jsonEncode(jsonList));
+      changeNotifier.value++;
+    } catch (e) {
+      debugPrint('PatientRepository save error: $e');
+    }
+  }
+
   static List<Patient> getAllPatients() => List.unmodifiable(_patients);
 
   static Patient? getPatientById(String id) {
@@ -282,6 +376,7 @@ class PatientRepository {
 
   static void addPatient(Patient newPatient) {
     _patients.insert(0, newPatient);
+    _saveToStorage();
     OfflineSyncService().enqueueMutation(
       id: newPatient.id,
       entityType: 'Patient',
@@ -320,6 +415,7 @@ class PatientRepository {
         lastVisitDate: p.lastVisitDate,
         totalVisits: p.totalVisits,
       );
+      _saveToStorage();
 
       OfflineSyncService().enqueueMutation(
         id: prescription.id,
@@ -384,6 +480,7 @@ class PatientRepository {
         lastVisitDate: encounter.date,
         totalVisits: existing.totalVisits + 1,
       );
+      _saveToStorage();
 
       OfflineSyncService().enqueueMutation(
         id: encounter.id,

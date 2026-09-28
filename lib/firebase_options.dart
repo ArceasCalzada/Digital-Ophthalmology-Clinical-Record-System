@@ -20,44 +20,51 @@ class DefaultFirebaseOptions {
       case TargetPlatform.linux:
         return web;
       default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
+        return windows;
     }
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDOCRS-WebApiKeyPlaceholder',
-    appId: '1:1234567890:web:docrs123456',
-    messagingSenderId: '1234567890',
+    apiKey: 'AIzaSyByRsK25Z3A-QXqxKxqGaN4nEeyMGpwMC4',
+    appId: '1:805661697613:web:5f2a1919e41deeaa62de04',
+    messagingSenderId: '805661697613',
     projectId: 'docrs-clinical-system',
     authDomain: 'docrs-clinical-system.firebaseapp.com',
-    storageBucket: 'docrs-clinical-system.appspot.com',
+    storageBucket: 'docrs-clinical-system.firebasestorage.app',
+    measurementId: 'G-6WY5NWKBRC',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDOCRS-AndroidApiKeyPlaceholder',
-    appId: '1:1234567890:android:docrs123456',
-    messagingSenderId: '1234567890',
+    apiKey: 'AIzaSyCeGYPfb2dC_kxxRaOoMiMCVRSmu_730Gw',
+    appId: '1:805661697613:android:5e301e553a89fbb362de04',
+    messagingSenderId: '805661697613',
     projectId: 'docrs-clinical-system',
-    storageBucket: 'docrs-clinical-system.appspot.com',
+    storageBucket: 'docrs-clinical-system.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDOCRS-IosApiKeyPlaceholder',
-    appId: '1:1234567890:ios:docrs123456',
-    messagingSenderId: '1234567890',
+    apiKey: 'AIzaSyBbOuuelOwePreg49rqFvna63CC9UKdkWs',
+    appId: '1:805661697613:ios:8587921af2e0d09e62de04',
+    messagingSenderId: '805661697613',
     projectId: 'docrs-clinical-system',
-    storageBucket: 'docrs-clinical-system.appspot.com',
-    iosBundleId: 'com.docrs.ophthalmologyClinicalRecordSystem',
+    storageBucket: 'docrs-clinical-system.firebasestorage.app',
+    iosBundleId: 'com.example.ophthalmologyClinicalRecordSystem',
+  );
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBbOuuelOwePreg49rqFvna63CC9UKdkWs',
+    appId: '1:805661697613:ios:8587921af2e0d09e62de04',
+    messagingSenderId: '805661697613',
+    projectId: 'docrs-clinical-system',
+    storageBucket: 'docrs-clinical-system.firebasestorage.app',
+    iosBundleId: 'com.example.ophthalmologyClinicalRecordSystem',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDOCRS-MacosApiKeyPlaceholder',
-    appId: '1:1234567890:ios:docrs123456',
-    messagingSenderId: '1234567890',
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyByRsK25Z3A-QXqxKxqGaN4nEeyMGpwMC4',
+    appId: '1:805661697613:web:111b9262da8a9d6562de04',
+    messagingSenderId: '805661697613',
     projectId: 'docrs-clinical-system',
-    storageBucket: 'docrs-clinical-system.appspot.com',
-    iosBundleId: 'com.docrs.ophthalmologyClinicalRecordSystem',
+    authDomain: 'docrs-clinical-system.firebaseapp.com',
+    storageBucket: 'docrs-clinical-system.firebasestorage.app',
+    measurementId: 'G-YZ5MGTH6Z4',
   );
 }

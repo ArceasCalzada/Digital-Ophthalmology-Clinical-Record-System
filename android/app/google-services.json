@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "805661697613",
+    "project_id": "docrs-clinical-system",
+    "storage_bucket": "docrs-clinical-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:805661697613:android:5e301e553a89fbb362de04",
+        "android_client_info": {
+          "package_name": "com.example.ophthalmology_clinical_record_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeGYPfb2dC_kxxRaOoMiMCVRSmu_730Gw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

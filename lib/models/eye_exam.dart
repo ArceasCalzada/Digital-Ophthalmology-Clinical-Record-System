@@ -13,6 +13,20 @@ class Refraction {
     this.axis = '180',
     this.add,
   });
+
+  Map<String, dynamic> toJson() => {
+        'sph': sph,
+        'cyl': cyl,
+        'axis': axis,
+        'add': add,
+      };
+
+  factory Refraction.fromJson(Map<String, dynamic> json) => Refraction(
+        sph: json['sph'] as String? ?? '0.00',
+        cyl: json['cyl'] as String? ?? '0.00',
+        axis: json['axis'] as String? ?? '180',
+        add: json['add'] as String?,
+      );
 }
 
 class VisualAcuity {
@@ -31,6 +45,24 @@ class VisualAcuity {
     this.ar = '',
     this.ak = '',
   });
+
+  Map<String, dynamic> toJson() => {
+        'uncorrected': uncorrected,
+        'bestCorrected': bestCorrected,
+        'pinhole': pinhole,
+        'oldCc': oldCc,
+        'ar': ar,
+        'ak': ak,
+      };
+
+  factory VisualAcuity.fromJson(Map<String, dynamic> json) => VisualAcuity(
+        uncorrected: json['uncorrected'] as String? ?? '20/20',
+        bestCorrected: json['bestCorrected'] as String? ?? '20/20',
+        pinhole: json['pinhole'] as String? ?? 'HM',
+        oldCc: json['oldCc'] as String? ?? '',
+        ar: json['ar'] as String? ?? '',
+        ak: json['ak'] as String? ?? '',
+      );
 }
 
 class EyeExamData {
@@ -59,4 +91,32 @@ class EyeExamData {
     this.slitLampNotes = '',
     this.fundoscopyNotes = '',
   });
+
+  Map<String, dynamic> toJson() => {
+        'acuity': acuity.toJson(),
+        'refraction': refraction.toJson(),
+        'color': color,
+        'iop': iop,
+        'iopMethod': iopMethod,
+        'anglesGonioscopy': anglesGonioscopy,
+        'cdrOn': cdrOn,
+        'confrontationPeripheral': confrontationPeripheral,
+        'vanHerick': vanHerick,
+        'slitLampNotes': slitLampNotes,
+        'fundoscopyNotes': fundoscopyNotes,
+      };
+
+  factory EyeExamData.fromJson(Map<String, dynamic> json) => EyeExamData(
+        acuity: json['acuity'] != null ? VisualAcuity.fromJson(json['acuity'] as Map<String, dynamic>) : VisualAcuity(),
+        refraction: json['refraction'] != null ? Refraction.fromJson(json['refraction'] as Map<String, dynamic>) : Refraction(),
+        color: json['color'] as String? ?? 'Normal',
+        iop: json['iop'] as String? ?? '15',
+        iopMethod: json['iopMethod'] as String? ?? 'Goldmann',
+        anglesGonioscopy: json['anglesGonioscopy'] as String? ?? 'Open',
+        cdrOn: json['cdrOn'] as String? ?? '0.3',
+        confrontationPeripheral: json['confrontationPeripheral'] as String? ?? 'WNL',
+        vanHerick: json['vanHerick'] as String? ?? 'G4 Wide',
+        slitLampNotes: json['slitLampNotes'] as String? ?? '',
+        fundoscopyNotes: json['fundoscopyNotes'] as String? ?? '',
+      );
 }

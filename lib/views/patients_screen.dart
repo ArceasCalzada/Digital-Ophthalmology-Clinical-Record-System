@@ -48,10 +48,21 @@ class _PatientsScreenState extends State<PatientsScreen> {
   void _openNewPatientModal() {
     showDialog(
       context: context,
-      builder: (context) => NewPatientModal(
+      builder: (dialogCtx) => NewPatientModal(
         onPatientCreated: (newPatient) {
           _loadPatients();
-          widget.onSelectPatient(newPatient);
+          showPatientCreatedSuccessModal(
+            context: context,
+            patient: newPatient,
+            onViewProfile: () => widget.onSelectPatient(newPatient),
+            onStartExam: () {
+              if (widget.onStartExam != null) {
+                widget.onStartExam!(newPatient);
+              } else {
+                widget.onSelectPatient(newPatient);
+              }
+            },
+          );
         },
       ),
     );
@@ -187,7 +198,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             )
                           : ListView.separated(
                               itemCount: matchingPatients.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
                               itemBuilder: (context, idx) {
                                 final p = matchingPatients[idx];
                                 return ListTile(
@@ -306,9 +317,16 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 768;
+    return ListenableBuilder(
+      listenable: PatientRepository.changeNotifier,
+      builder: (context, child) {
+        if (_searchController.text.trim().isEmpty && _selectedFilter == 'All') {
+          _patients = PatientRepository.getAllPatients();
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 768;
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(isMobile ? 12 : 24),
@@ -597,6 +615,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
         );
       },
     );
+  },
+);
   }
 
   // Modern Cards Grid Layout (Unified with Dashboard Homepage)

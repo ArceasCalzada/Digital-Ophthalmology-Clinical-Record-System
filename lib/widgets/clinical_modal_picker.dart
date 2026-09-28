@@ -222,7 +222,7 @@ class _ClinicalModalPickerContentState<T> extends State<_ClinicalModalPickerCont
                     shrinkWrap: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: _filteredItems.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F9)),
+                    separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F9)),
                     itemBuilder: (context, index) {
                       final item = _filteredItems[index];
                       final isSelected = item.value == widget.selectedValue;

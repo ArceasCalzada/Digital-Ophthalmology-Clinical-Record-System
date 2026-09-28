@@ -215,7 +215,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: matchingPatients.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => const Divider(height: 1),
                               itemBuilder: (ctx, idx) {
                                 final p = matchingPatients[idx];
                                 return ListTile(

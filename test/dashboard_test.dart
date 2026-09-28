@@ -5,9 +5,9 @@ import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart
 
 void main() {
   testWidgets('Dashboard renders greeting, queue, calendar and patient records', (WidgetTester tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(1920, 1080);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-    addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
       MaterialApp(

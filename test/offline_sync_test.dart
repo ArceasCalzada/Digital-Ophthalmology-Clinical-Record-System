@@ -5,6 +5,8 @@ import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/sync_status_indicator.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -12,6 +14,7 @@ void main() {
     late OfflineSyncService syncService;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       syncService = OfflineSyncService();
       syncService.resetForTesting();
     });

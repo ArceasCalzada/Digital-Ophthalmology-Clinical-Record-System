@@ -26,22 +26,12 @@ class PatientProfileView extends StatefulWidget {
 }
 
 class _PatientProfileViewState extends State<PatientProfileView> {
-  late Patient _patient;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPatient();
-  }
-
-  void _loadPatient() {
-    final p = PatientRepository.getPatientById(widget.patientId);
-    if (p != null) {
-      _patient = p;
-    }
-  }
+  Patient? get _patientNullable => PatientRepository.getPatientById(widget.patientId);
+  Patient get _patient => _patientNullable!;
 
   void _startNewExamination() async {
+    if (_patientNullable == null) return;
+
     if (widget.onStartNewExam != null) {
       widget.onStartNewExam!();
       return;
@@ -53,9 +43,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
         builder: (context) => EyeExamView(patient: _patient),
       ),
     );
-    setState(() {
-      _loadPatient();
-    });
+    setState(() {});
   }
 
   void _openDrawingModal(BuildContext context, Encounter encounter) {
@@ -156,6 +144,28 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_patientNullable == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.person_off_outlined, size: 48, color: AppTheme.textSecondary),
+              const SizedBox(height: 12),
+              const Text('Patient Record Not Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Back to Patient Directory'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return DefaultTabController(
       length: 3,
       child: LayoutBuilder(

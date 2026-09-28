@@ -31,4 +31,30 @@ class Encounter {
     required this.treatmentPlan,
     this.status = 'completed',
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'patientId': patientId,
+        'date': date,
+        'doctorName': doctorName,
+        'chiefComplaint': chiefComplaint,
+        'examOD': examOD.toJson(),
+        'examOS': examOS.toJson(),
+        'diagnosis': diagnosis,
+        'treatmentPlan': treatmentPlan,
+        'status': status,
+      };
+
+  factory Encounter.fromJson(Map<String, dynamic> json) => Encounter(
+        id: json['id'] as String,
+        patientId: json['patientId'] as String,
+        date: json['date'] as String,
+        doctorName: json['doctorName'] as String? ?? 'Dr. Sigrid Robillos, MD',
+        chiefComplaint: json['chiefComplaint'] as String? ?? '',
+        examOD: json['examOD'] != null ? EyeExamData.fromJson(json['examOD'] as Map<String, dynamic>) : EyeExamData(acuity: VisualAcuity(), refraction: Refraction()),
+        examOS: json['examOS'] != null ? EyeExamData.fromJson(json['examOS'] as Map<String, dynamic>) : EyeExamData(acuity: VisualAcuity(), refraction: Refraction()),
+        diagnosis: json['diagnosis'] as String? ?? '',
+        treatmentPlan: json['treatmentPlan'] as String? ?? '',
+        status: json['status'] as String? ?? 'completed',
+      );
 }
