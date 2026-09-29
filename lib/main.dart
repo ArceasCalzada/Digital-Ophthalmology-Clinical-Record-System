@@ -9,7 +9,6 @@ import 'views/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await PatientRepository.init();
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -22,6 +21,8 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase init fallback: $e');
   }
+
+  await PatientRepository.init();
   runApp(const OphthalmologyApp());
 }
 

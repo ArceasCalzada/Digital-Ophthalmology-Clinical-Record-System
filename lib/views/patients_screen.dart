@@ -320,8 +320,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
     return ListenableBuilder(
       listenable: PatientRepository.changeNotifier,
       builder: (context, child) {
-        if (_searchController.text.trim().isEmpty && _selectedFilter == 'All') {
+        final query = _searchController.text.trim();
+        if (query.isEmpty && _selectedFilter == 'All') {
           _patients = PatientRepository.getAllPatients();
+        } else if (query.isNotEmpty) {
+          _patients = PatientRepository.searchPatients(query);
         }
 
         return LayoutBuilder(

@@ -141,27 +141,102 @@ class Patient {
         'totalVisits': totalVisits,
       };
 
-  factory Patient.fromJson(Map<String, dynamic> json) => Patient(
-        id: json['id'] as String,
-        mrn: json['mrn'] as String,
-        fullName: json['fullName'] as String,
-        middleName: json['middleName'] as String? ?? '',
-        dateOfBirth: json['dateOfBirth'] as String,
-        gender: json['gender'] as String,
-        phone: json['phone'] as String,
-        address: json['address'] as String,
-        occupation: json['occupation'] as String? ?? 'Civil Servant',
-        phicNumber: json['phicNumber'] as String? ?? '19-02581024-8',
-        referringDoctor: json['referringDoctor'] as String?,
-        medicalHistory: (json['medicalHistory'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-        allergies: (json['allergies'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-        previousDiagnoses: (json['previousDiagnoses'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-        previousPrescriptions: (json['previousPrescriptions'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-        prescriptions: (json['prescriptions'] as List<dynamic>?)?.map((p) => Prescription.fromJson(p as Map<String, dynamic>)).toList() ?? [],
-        encounters: (json['encounters'] as List<dynamic>?)?.map((e) => Encounter.fromJson(e as Map<String, dynamic>)).toList() ?? [],
-        lastVisitDate: json['lastVisitDate'] as String? ?? DateTime.now().toString().substring(0, 10),
-        totalVisits: (json['totalVisits'] as num?)?.toInt() ?? 1,
-      );
+  factory Patient.fromJson(Map<String, dynamic> json) {
+    String extractString(List<String> keys, String defaultValue) {
+      for (final key in keys) {
+        if (json[key] != null && json[key].toString().trim().isNotEmpty) {
+          return json[key].toString().trim();
+        }
+      }
+      return defaultValue;
+    }
+
+    List<String> extractStringList(List<String> keys) {
+      for (final key in keys) {
+        final val = json[key];
+        if (val is List) {
+          return val.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+        } else if (val is String && val.trim().isNotEmpty) {
+          return [val.trim()];
+        }
+      }
+      return [];
+    }
+
+    final id = extractString(['id', 'patientId', 'docId'], 'pat-${DateTime.now().millisecondsSinceEpoch}');
+    final mrn = extractString(['mrn', 'MRN', 'medicalRecordNumber'], 'PT-000000');
+
+    String fullName = extractString(['fullName', 'name', 'full_name', 'patientName'], '');
+    if (fullName.isEmpty) {
+      final first = extractString(['firstName', 'first_name'], '');
+      final last = extractString(['lastName', 'last_name'], '');
+      fullName = '$first $last'.trim();
+    }
+    if (fullName.isEmpty) {
+      fullName = 'Patient $mrn';
+    }
+
+    final middleName = extractString(['middleName', 'middle_name'], '');
+    final dateOfBirth = extractString(['dateOfBirth', 'dob', 'date_of_birth', 'birthDate'], '1985-06-15');
+    final gender = extractString(['gender', 'sex'], 'Unspecified');
+    final phone = extractString(['phone', 'contactNumber', 'phoneNumber', 'mobile', 'contact'], 'N/A');
+    final address = extractString(['address', 'location'], 'N/A');
+    final occupation = extractString(['occupation'], 'Civil Servant');
+    final phicNumber = extractString(['phicNumber', 'phic'], '19-02581024-8');
+    final referringDoctor = json['referringDoctor']?.toString() ?? json['doctor']?.toString();
+
+    final medicalHistory = extractStringList(['medicalHistory', 'medical_history']);
+    final allergies = extractStringList(['allergies']);
+    final previousDiagnoses = extractStringList(['previousDiagnoses', 'diagnoses']);
+    final previousPrescriptions = extractStringList(['previousPrescriptions']);
+
+    final rxList = <Prescription>[];
+    if (json['prescriptions'] is List) {
+      for (final item in json['prescriptions'] as List) {
+        if (item is Map) {
+          try {
+            rxList.add(Prescription.fromJson(Map<String, dynamic>.from(item)));
+          } catch (_) {}
+        }
+      }
+    }
+
+    final encList = <Encounter>[];
+    if (json['encounters'] is List) {
+      for (final item in json['encounters'] as List) {
+        if (item is Map) {
+          try {
+            encList.add(Encounter.fromJson(Map<String, dynamic>.from(item)));
+          } catch (_) {}
+        }
+      }
+    }
+
+    final lastVisitDate = extractString(['lastVisitDate', 'last_visit', 'lastVisit'], DateTime.now().toString().substring(0, 10));
+    final totalVisits = (json['totalVisits'] as num?)?.toInt() ?? (json['visits'] as num?)?.toInt() ?? 1;
+
+    return Patient(
+      id: id,
+      mrn: mrn,
+      fullName: fullName,
+      middleName: middleName,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      phone: phone,
+      address: address,
+      occupation: occupation,
+      phicNumber: phicNumber,
+      referringDoctor: referringDoctor,
+      medicalHistory: medicalHistory,
+      allergies: allergies,
+      previousDiagnoses: previousDiagnoses,
+      previousPrescriptions: previousPrescriptions,
+      prescriptions: rxList,
+      encounters: encList,
+      lastVisitDate: lastVisitDate,
+      totalVisits: totalVisits,
+    );
+  }
 }
 
 class PatientRepository {
@@ -175,6 +250,10 @@ class PatientRepository {
     await _loadFromLocalStorage();
 
     // 2. Connect to live Cloud Firestore 'patients' collection for real-time sync
+    _connectFirestore();
+  }
+
+  static void _connectFirestore() {
     try {
       final options = FirebaseFirestore.instance.app.options;
       if (!options.apiKey.contains('Placeholder')) {
@@ -250,29 +329,38 @@ class PatientRepository {
 
   static List<Patient> searchPatients(String query) {
     if (query.trim().isEmpty) return _patients;
-    final q = query.toLowerCase();
+    final q = query.trim().toLowerCase();
+    final cleanDigitsQuery = q.replaceAll(RegExp(r'\D'), '');
+
     return _patients.where((p) {
-      return p.fullName.toLowerCase().contains(q) ||
-          p.middleName.toLowerCase().contains(q) ||
-          p.mrn.toLowerCase().contains(q) ||
-          p.phone.contains(q);
+      final nameMatch = p.fullName.toLowerCase().contains(q) ||
+          p.middleName.toLowerCase().contains(q);
+      final mrnMatch = p.mrn.toLowerCase().contains(q);
+      final idMatch = p.id.toLowerCase().contains(q);
+
+      final phoneClean = p.phone.replaceAll(RegExp(r'\D'), '');
+      final phoneMatch = p.phone.toLowerCase().contains(q) ||
+          (cleanDigitsQuery.isNotEmpty && phoneClean.contains(cleanDigitsQuery));
+
+      final addressMatch = p.address.toLowerCase().contains(q);
+
+      return nameMatch || mrnMatch || idMatch || phoneMatch || addressMatch;
     }).toList();
   }
 
   static void addPatient(Patient newPatient) {
-    _patients.insert(0, newPatient);
+    final existingIdx = _patients.indexWhere((p) => p.id == newPatient.id || p.mrn == newPatient.mrn);
+    if (existingIdx != -1) {
+      _patients[existingIdx] = newPatient;
+    } else {
+      _patients.insert(0, newPatient);
+    }
     _saveToStorage();
     OfflineSyncService().enqueueMutation(
       id: newPatient.id,
       entityType: 'Patient',
       action: 'CREATE',
-      payload: {
-        'id': newPatient.id,
-        'mrn': newPatient.mrn,
-        'fullName': newPatient.fullName,
-        'phone': newPatient.phone,
-        'lastVisitDate': newPatient.lastVisitDate,
-      },
+      payload: newPatient.toJson(),
     );
   }
 
