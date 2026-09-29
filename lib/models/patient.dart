@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/offline_sync_service.dart';
 import 'encounter.dart';
-import 'eye_exam.dart';
 import 'prescription.dart';
 
 String formatClinicalDate(String dateStr) {
@@ -166,159 +167,49 @@ class Patient {
 class PatientRepository {
   static const String _storageKey = 'docrs_patients_v1';
   static final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
-
-  static final List<Prescription> _initialPrescriptions = [
-    Prescription(
-      id: 'rx-2026-001',
-      patientId: 'pat-001',
-      encounterId: 'enc-2026-0510',
-      doctorName: 'Dr. Sigrid Robillos, MD',
-      date: '2026-05-10',
-      items: [
-        PrescriptionItem(
-          id: 'item-1',
-          medicationName: 'Latanoprost 0.005% Ophthalmic Solution',
-          strength: '0.005%',
-          dosage: '1 drop',
-          frequency: 'Once daily at bedtime',
-          duration: '30 days',
-          instructions: 'Instill 1 drop in both eyes (OU) every night before sleep.',
-        ),
-        PrescriptionItem(
-          id: 'item-2',
-          medicationName: 'Carboxymethylcellulose 0.5% Artificial Tears',
-          strength: '0.5%',
-          dosage: '1-2 drops',
-          frequency: '4 times daily PRN',
-          duration: '60 days',
-          instructions: 'Instill 1 to 2 drops in both eyes as needed for dry eye relief.',
-        ),
-      ],
-    ),
-  ];
-
-  static final List<Patient> _patients = [
-    Patient(
-      id: 'pat-asturias',
-      mrn: 'MRN-2026-7302',
-      fullName: 'Edgardo Asturias',
-      middleName: 'Perez',
-      dateOfBirth: '1963-05-07',
-      gender: 'Male',
-      phone: '+63 917 882 1963',
-      address: 'Apas, Davao City',
-      occupation: 'Civil Servant',
-      phicNumber: '19-02581024-8',
-      referringDoctor: 'Dr. Ramon Santos',
-      medicalHistory: ['Hypertension (HPN)', 'Cholesterol det (Dyslipidemia)'],
-      allergies: ['No Known Drug Allergies (NKDA)'],
-      previousDiagnoses: ['Mature Cataract OS', 'Glaucoma Suspect OU'],
-      previousPrescriptions: ['Tropicamide 0.5% + Phenylephrine 0.5% Drops - 1 drop OU PRN'],
-      prescriptions: [],
-      lastVisitDate: '2026-07-30',
-      totalVisits: 1,
-      encounters: [
-        Encounter(
-          id: 'enc-2026-0730',
-          patientId: 'pat-asturias',
-          date: '2026-07-30',
-          doctorName: 'Dr. Sigrid Robillos, MD',
-          chiefComplaint: 'OS BOV x 1 year. Came in w/ silingan. No family.',
-          examOD: EyeExamData(
-            acuity: VisualAcuity(uncorrected: 'HM', pinhole: 'HM', bestCorrected: 'Plano', oldCc: 'Plano', ar: 'NO TARGET', ak: 'NO TARGET'),
-            refraction: Refraction(sph: '0.00', cyl: '0.00', axis: '180'),
-            color: 'B / G',
-            iop: '16',
-            anglesGonioscopy: 'Open',
-            cdrOn: '0.4',
-            confrontationPeripheral: 'WNL',
-            vanHerick: 'G4 Wide',
-            slitLampNotes: 'Clear cornea, anterior chamber deep and quiet.',
-            fundoscopyNotes: 'Clear view OD, C/D ratio 0.4.',
-          ),
-          examOS: EyeExamData(
-            acuity: VisualAcuity(uncorrected: 'HM', pinhole: 'HM', bestCorrected: 'Plano', oldCc: 'Plano', ar: 'NO TARGET', ak: 'NO TARGET'),
-            refraction: Refraction(sph: '0.00', cyl: '0.00', axis: '180'),
-            color: 'B / G',
-            iop: '18',
-            anglesGonioscopy: 'Open',
-            cdrOn: '0.5',
-            confrontationPeripheral: 'WNL',
-            vanHerick: 'G4 Wide',
-            slitLampNotes: 'Mature brunescent nuclear cataract OS. Poor red reflex.',
-            fundoscopyNotes: 'Hazy view OS secondary to mature lens opacity.',
-          ),
-          diagnosis: 'Mature Cataract OS',
-          treatmentPlan: 'Dilate OU. To BSC - PHIC only.',
-        ),
-      ],
-    ),
-    Patient(
-      id: 'pat-001',
-      mrn: 'MRN-2026-9041',
-      fullName: 'Juan Dela Cruz',
-      middleName: 'Reyes',
-      dateOfBirth: '1978-04-12',
-      gender: 'Male',
-      phone: '+63 917 555 0192',
-      address: '124 Rizal Ave, Quezon City, Metro Manila',
-      referringDoctor: 'Dr. Ramon Santos',
-      medicalHistory: ['Type 2 Diabetes Mellitus', 'Hypertension (Controlled)', 'No Prior Eye Surgery'],
-      allergies: ['Penicillin', 'Sulfa Drugs'],
-      previousDiagnoses: ['Mild Non-Proliferative Diabetic Retinopathy (NPDR)', 'Cortical Cataract OD'],
-      previousPrescriptions: ['Latanoprost 0.005% Eye Drops - 1 drop OU at bedtime', 'Carboxymethylcellulose 0.5% Artificial Tears'],
-      prescriptions: _initialPrescriptions,
-      lastVisitDate: '2026-05-10',
-      totalVisits: 3,
-      encounters: [
-        Encounter(
-          id: 'enc-2026-0510',
-          patientId: 'pat-001',
-          date: '2026-05-10',
-          doctorName: 'Dr. Sigrid Robillos, MD',
-          chiefComplaint: 'Blurred vision in right eye when reading, mild dry eye sensation.',
-          examOD: EyeExamData(
-            acuity: VisualAcuity(uncorrected: '20/50', bestCorrected: '20/25', pinhole: '20/20'),
-            refraction: Refraction(sph: '-2.50', cyl: '-0.75', axis: '090', add: '+2.00'),
-            iop: '18',
-            iopMethod: 'Goldmann',
-            slitLampNotes: 'Mild nuclear sclerosis, clear cornea.',
-            fundoscopyNotes: 'Scattered microaneurysms in posterior pole OD.',
-          ),
-          examOS: EyeExamData(
-            acuity: VisualAcuity(uncorrected: '20/30', bestCorrected: '20/20'),
-            refraction: Refraction(sph: '-2.00', cyl: '-0.50', axis: '085', add: '+2.00'),
-            iop: '16',
-            iopMethod: 'Goldmann',
-            slitLampNotes: 'Clear cornea and crystalline lens.',
-            fundoscopyNotes: 'Normal optic disc C/D 0.35, sharp margins.',
-          ),
-          diagnosis: 'Mild Non-Proliferative Diabetic Retinopathy (NPDR) OD',
-          treatmentPlan: 'Glycemic control optimization. Follow up in 3 months for dilated fundus exam.',
-        ),
-      ],
-    ),
-    Patient(
-      id: 'pat-002',
-      mrn: 'MRN-2026-8812',
-      fullName: 'Maria Santos',
-      middleName: 'Gonzales',
-      dateOfBirth: '1962-11-23',
-      gender: 'Female',
-      phone: '+63 918 222 9011',
-      address: '45 Katipunan Ave, Quezon City',
-      medicalHistory: ['Primary Open-Angle Glaucoma (POAG)', 'Hypertension'],
-      allergies: ['No Known Drug Allergies (NKDA)'],
-      previousDiagnoses: ['Bilateral POAG', 'Nuclear Sclerotic Cataract 2+ OU'],
-      previousPrescriptions: ['Bimatoprost 0.01% Drops - 1 drop OU bedtime', 'Brimonidine 0.2% Drops - 1 drop BID'],
-      prescriptions: [],
-      lastVisitDate: '2026-07-02',
-      totalVisits: 5,
-      encounters: [],
-    ),
-  ];
+  static final List<Patient> _patients = [];
+  static StreamSubscription? _firestoreSubscription;
 
   static Future<void> init() async {
+    // 1. Load locally persisted patients from SharedPreferences first (offline fallback & fast load)
+    await _loadFromLocalStorage();
+
+    // 2. Connect to live Cloud Firestore 'patients' collection for real-time sync
+    try {
+      final options = FirebaseFirestore.instance.app.options;
+      if (!options.apiKey.contains('Placeholder')) {
+        _firestoreSubscription?.cancel();
+        _firestoreSubscription = FirebaseFirestore.instance
+            .collection('patients')
+            .snapshots()
+            .listen((snapshot) {
+          if (snapshot.docs.isNotEmpty) {
+            final List<Patient> firestorePatients = [];
+            for (final doc in snapshot.docs) {
+              try {
+                final data = Map<String, dynamic>.from(doc.data());
+                data['id'] = doc.id;
+                firestorePatients.add(Patient.fromJson(data));
+              } catch (e) {
+                debugPrint('Error parsing Firestore patient ${doc.id}: $e');
+              }
+            }
+            if (firestorePatients.isNotEmpty) {
+              _patients.clear();
+              _patients.addAll(firestorePatients);
+              _saveToStorage();
+            }
+          }
+        }, onError: (e) {
+          debugPrint('Firestore patients stream error: $e');
+        });
+      }
+    } catch (e) {
+      debugPrint('PatientRepository Firestore init error: $e');
+    }
+  }
+
+  static Future<void> _loadFromLocalStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(_storageKey);
@@ -326,19 +217,13 @@ class PatientRepository {
         final List<dynamic> jsonList = jsonDecode(jsonString);
         final loaded = jsonList.map((j) => Patient.fromJson(j as Map<String, dynamic>)).toList();
         if (loaded.isNotEmpty) {
-          // Merge loaded patients while preserving seed patients if missing
-          final existingIds = loaded.map((p) => p.id).toSet();
-          for (final seed in _patients) {
-            if (!existingIds.contains(seed.id)) {
-              loaded.add(seed);
-            }
-          }
           _patients.clear();
           _patients.addAll(loaded);
+          changeNotifier.value++;
         }
       }
     } catch (e) {
-      debugPrint('PatientRepository local init error: $e');
+      debugPrint('PatientRepository local load error: $e');
     }
   }
 
@@ -432,26 +317,36 @@ class PatientRepository {
   }
 
   static List<TodayPatientQueue> getTodayQueue() {
-    return [
+    if (_patients.isEmpty) return [];
+    final queue = <TodayPatientQueue>[
       TodayPatientQueue(
         patient: _patients.first,
         time: '09:00 AM',
         visitType: 'Clinical Consultation Sheet',
         status: 'In Examination',
       ),
-      TodayPatientQueue(
-        patient: _patients.length > 1 ? _patients[1] : _patients.first,
-        time: '09:30 AM',
-        visitType: 'Follow-up Examination',
-        status: 'Waiting',
-      ),
-      TodayPatientQueue(
-        patient: _patients.length > 2 ? _patients[2] : _patients.first,
-        time: '10:15 AM',
-        visitType: 'Glaucoma Consultation',
-        status: 'Waiting',
-      ),
     ];
+    if (_patients.length > 1) {
+      queue.add(
+        TodayPatientQueue(
+          patient: _patients[1],
+          time: '09:30 AM',
+          visitType: 'Follow-up Examination',
+          status: 'Waiting',
+        ),
+      );
+    }
+    if (_patients.length > 2) {
+      queue.add(
+        TodayPatientQueue(
+          patient: _patients[2],
+          time: '10:15 AM',
+          visitType: 'Glaucoma Consultation',
+          status: 'Waiting',
+        ),
+      );
+    }
+    return queue;
   }
 
   static void addEncounter(String patientId, Encounter encounter) {
