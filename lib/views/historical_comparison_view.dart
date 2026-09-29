@@ -3,7 +3,9 @@ import '../models/patient.dart';
 import '../models/encounter.dart';
 import '../models/eye_exam.dart';
 import '../widgets/drawing/eye_drawing_canvas.dart';
+import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/field_label.dart';
 import '../theme/app_theme.dart';
 
 class HistoricalComparisonView extends StatefulWidget {
@@ -76,33 +78,20 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: ClinicalModalPickerField<Encounter>(
-                        label: 'Prior Visit',
+                      child: ClinicalDropdownField<Encounter>(
+                        label: const FieldLabel('Prior Visit', fontSize: 12),
                         placeholder: 'Select visit...',
+                        value: _encounterLeft,
                         displayText: '${formatClinicalDate(_encounterLeft.date)} — ${_encounterLeft.diagnosis}',
-                        icon: Icons.history_rounded,
-                        onTap: () async {
-                          final items = encounters.map((e) {
-                            return ClinicalPickerItem<Encounter>(
+                        items: [
+                          for (final e in encounters)
+                            ClinicalPickerItem<Encounter>(
                               value: e,
                               label: formatClinicalDate(e.date),
                               subtitle: '${e.diagnosis} • ${e.doctorName}',
-                              icon: Icons.event_note_rounded,
-                              iconColor: AppTheme.primaryBlue,
-                            );
-                          }).toList();
-
-                          final selected = await showClinicalModalPicker<Encounter>(
-                            context: context,
-                            title: 'Select Prior Visit Encounter',
-                            selectedValue: _encounterLeft,
-                            items: items,
-                          );
-
-                          if (selected != null) {
-                            setState(() => _encounterLeft = selected);
-                          }
-                        },
+                            ),
+                        ],
+                        onChanged: (e) => setState(() => _encounterLeft = e),
                       ),
                     ),
 
@@ -112,34 +101,20 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                     ),
 
                     Expanded(
-                      child: ClinicalModalPickerField<Encounter>(
-                        label: 'Recent Visit',
+                      child: ClinicalDropdownField<Encounter>(
+                        label: const FieldLabel('Recent Visit', fontSize: 12),
                         placeholder: 'Select visit...',
+                        value: _encounterRight,
                         displayText: '${formatClinicalDate(_encounterRight.date)} — ${_encounterRight.diagnosis}',
-                        icon: Icons.event_available_rounded,
-                        isHighlighted: true,
-                        onTap: () async {
-                          final items = encounters.map((e) {
-                            return ClinicalPickerItem<Encounter>(
+                        items: [
+                          for (final e in encounters)
+                            ClinicalPickerItem<Encounter>(
                               value: e,
                               label: formatClinicalDate(e.date),
                               subtitle: '${e.diagnosis} • ${e.doctorName}',
-                              icon: Icons.event_note_rounded,
-                              iconColor: AppTheme.primaryBlue,
-                            );
-                          }).toList();
-
-                          final selected = await showClinicalModalPicker<Encounter>(
-                            context: context,
-                            title: 'Select Recent Visit Encounter',
-                            selectedValue: _encounterRight,
-                            items: items,
-                          );
-
-                          if (selected != null) {
-                            setState(() => _encounterRight = selected);
-                          }
-                        },
+                            ),
+                        ],
+                        onChanged: (e) => setState(() => _encounterRight = e),
                       ),
                     ),
                   ],

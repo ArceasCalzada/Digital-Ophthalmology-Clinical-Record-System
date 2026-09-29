@@ -1,63 +1,114 @@
+import '../widgets/clinic_dialogs.dart';
 import 'package:flutter/material.dart';
 
 import '../models/calendar_event.dart';
 import '../models/patient.dart';
+import '../services/event_options_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_event_modal.dart';
+import '../widgets/filter_pill.dart';
+import '../widgets/page_header.dart';
+
+/// "Wed, Sep 30 (Tomorrow)": weekday, month and day, then how far away it is.
+/// With [long] it reads "Wednesday, Sep. 30 (Tomorrow)". The year is only added
+/// when it is not the current year ("Thu, Jan 7, 2027 (3 months from now)").
+/// Days are compared by calendar date, so 11 PM tonight is still "Today".
+String formatScheduleDate(DateTime date, {DateTime? now, bool long = false}) {
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const longWeekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  final today = now ?? DateTime.now();
+
+  final weekday = (long ? longWeekdays : weekdays)[date.weekday - 1];
+  // Short months that are complete words ("May") take no period.
+  final month = long && date.month != 5 ? '${months[date.month - 1]}.' : months[date.month - 1];
+  final year = date.year != today.year ? ', ${date.year}' : '';
+  return '$weekday, $month ${date.day}$year (${_relativeDay(date, today)})';
+}
+
+/// How far [date] is from [today]: exact days for the first week, then whole
+/// weeks, whole calendar months and whole years ("2 weeks from now").
+String _relativeDay(DateTime date, DateTime today) {
+  final days = DateTime.utc(date.year, date.month, date.day)
+      .difference(DateTime.utc(today.year, today.month, today.day))
+      .inDays;
+  if (days == 0) return 'Today';
+  if (days == 1) return 'Tomorrow';
+  if (days == -1) return 'Yesterday';
+
+  final ahead = days > 0;
+  final from = ahead ? today : date;
+  final to = ahead ? date : today;
+  final months = (to.year - from.year) * 12 + to.month - from.month - (to.day < from.day ? 1 : 0);
+
+  String amount(int n, String unit) => '$n ${n == 1 ? unit : '${unit}s'}';
+  final String span;
+  if (months >= 12) {
+    span = amount(months ~/ 12, 'year');
+  } else if (months >= 1) {
+    span = amount(months, 'month');
+  } else if (days.abs() >= 7) {
+    span = amount(days.abs() ~/ 7, 'week');
+  } else {
+    span = amount(days.abs(), 'day');
+  }
+  return ahead ? '$span from now' : '$span ago';
+}
 
 class CalendarPageView extends StatefulWidget {
   final Function(Patient)? onSelectPatient;
 
-  const CalendarPageView({super.key, this.onSelectPatient});
+  /// The day to show selected when the page opens; today when null.
+  final DateTime? initialDate;
+
+  const CalendarPageView({super.key, this.onSelectPatient, this.initialDate});
 
   @override
   State<CalendarPageView> createState() => _CalendarPageViewState();
 }
 
 class _CalendarPageViewState extends State<CalendarPageView> {
-  DateTime _focusedMonth = DateTime.now();
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _focusedMonth = widget.initialDate ?? DateTime.now();
+  late DateTime _selectedDate = widget.initialDate ?? DateTime.now();
   String _selectedTypeFilter = 'All';
   String _selectedLocationFilter = 'All';
+  bool _filtersExpanded = false; // most people never filter, so it starts collapsed
 
-  final List<String> _typeFilters = [
-    'All',
-    'Surgery',
-    'Checkup',
-    'Follow-up',
-    'IOP Check',
-    'Emergency',
-    'Laser Procedure',
-  ];
+  // The filter choices follow the clinic's own lists (edited from the Add Event dropdowns).
+  List<String> get _typeFilters => ['All', ...EventOptionsStore.instance.types];
+  List<String> get _locationFilters => ['All', ...EventOptionsStore.instance.locations];
 
-  final List<String> _locationFilters = [
-    'All',
-    'Davao',
-    'Bukidnon',
-    'General Santos',
-    'OR Suite 3',
-    'Exam Room 1',
-    'Exam Room 2',
-  ];
+  /// Which way the month grid slides: 1 when moving to a later month (new grid
+  /// rises from below), -1 when moving to an earlier one (new grid drops from above).
+  int _slideDirection = 1;
 
-  void _previousMonth() {
+  /// Moves the calendar to the month containing [target], optionally selecting [select].
+  void _showMonth(DateTime target, {DateTime? select}) {
+    final month = DateTime(target.year, target.month, 1);
     setState(() {
-      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+      if (month.isAfter(_focusedMonth)) {
+        _slideDirection = 1;
+      } else if (month.isBefore(_focusedMonth)) {
+        _slideDirection = -1;
+      }
+      _focusedMonth = month;
+      if (select != null) _selectedDate = select;
     });
   }
 
-  void _nextMonth() {
-    setState(() {
-      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
-    });
+  /// Adds an appointment on the selected day, asking for a clinic first if there is none.
+  Future<void> _addEvent() async {
+    if (!await ensureClinic(context) || !mounted) return;
+    await AddEventModal.show(context, initialDate: _selectedDate);
   }
+
+  void _previousMonth() => _showMonth(DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1));
+
+  void _nextMonth() => _showMonth(DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1));
 
   void _goToToday() {
-    setState(() {
-      final now = DateTime.now();
-      _focusedMonth = DateTime(now.year, now.month, 1);
-      _selectedDate = now;
-    });
+    final now = DateTime.now();
+    _showMonth(now, select: now);
   }
 
   Color _getEventTypeColor(String type) {
@@ -91,8 +142,12 @@ class _CalendarPageViewState extends State<CalendarPageView> {
     final repo = CalendarEventRepository();
 
     return ListenableBuilder(
-      listenable: repo,
+      listenable: Listenable.merge([repo, EventOptionsStore.instance]),
       builder: (context, child) {
+        // A filter whose type or location was just deleted goes back to showing everything.
+        if (!_typeFilters.contains(_selectedTypeFilter)) _selectedTypeFilter = 'All';
+        if (!_locationFilters.contains(_selectedLocationFilter)) _selectedLocationFilter = 'All';
+
         final allFilteredEvents = repo.getFilteredEvents(
           typeFilter: _selectedTypeFilter,
           locationFilter: _selectedLocationFilter,
@@ -111,13 +166,12 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               final isNarrow = constraints.maxWidth < 900;
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(PageHeader.pagePadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header Bar with Quick Action
                     _buildPageHeader(context),
-                    const SizedBox(height: 16),
 
                     // Categorization Filter Bar
                     _buildFilterSection(context),
@@ -156,92 +210,32 @@ class _CalendarPageViewState extends State<CalendarPageView> {
   }
 
   Widget _buildPageHeader(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobileHeader = constraints.maxWidth < 500;
-
-        final titleWidget = Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.calendar_month_rounded,
-                color: AppTheme.primaryBlue,
-                size: 26,
-              ),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Clinical Calendar & Scheduling',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Patient appointments, surgeries & locations',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-
-        final addButton = ElevatedButton.icon(
-          onPressed: () => AddEventModal.show(context, initialDate: _selectedDate),
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Add Event', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryBlue,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor),
-          ),
-          child: isMobileHeader
-              ? Column(
-                  children: [
-                    titleWidget,
-                    const SizedBox(height: 12),
-                    SizedBox(width: double.infinity, child: addButton),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(child: titleWidget),
-                    const SizedBox(width: 12),
-                    addButton,
-                  ],
-                ),
-        );
-      },
+    return PageHeader(
+      title: 'Clinical Calendar & Scheduling',
+      subtitle: 'Patient appointments, surgeries & locations',
+      action: ElevatedButton.icon(
+        onPressed: () => _addEvent(),
+        icon: const Icon(Icons.add_rounded, size: 18),
+        label: const Text('Add Event', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
     );
   }
 
+  /// Collapsible "Filters" card. When collapsed it still says which filters are
+  /// active, so a hidden filter never silently hides events.
   Widget _buildFilterSection(BuildContext context) {
+    final active = [
+      if (_selectedTypeFilter != 'All') _selectedTypeFilter,
+      if (_selectedLocationFilter != 'All') _selectedLocationFilter,
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -250,99 +244,105 @@ class _CalendarPageViewState extends State<CalendarPageView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Event Type Filter Chips
-          Row(
-            children: [
-              const Icon(Icons.filter_alt_outlined, size: 16, color: AppTheme.primaryBlue),
-              const SizedBox(width: 6),
-              const Text(
-                'Type Filter:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  const Text(
+                    'Filters',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                  if (active.isNotEmpty && !_filtersExpanded) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        active.join(' • '),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ] else
+                    const Spacer(),
+                  Icon(
+                    _filtersExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: AppTheme.textSecondary,
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _typeFilters.map((type) {
-                      final isSelected = _selectedTypeFilter == type;
-                      final chipColor = type == 'All' ? AppTheme.primaryBlue : _getEventTypeColor(type);
+            ),
+          ),
+          if (_filtersExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: _buildFilterChips(context),
+            ),
+        ],
+      ),
+    );
+  }
 
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(type),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedTypeFilter = type);
-                            }
-                          },
-                          selectedColor: chipColor,
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          labelStyle: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      );
-                    }).toList(),
+  Widget _buildFilterChips(BuildContext context) {
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Pills wrap onto the next line instead of scrolling out of the card.
+          // Event Type Filter Chips
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: Text(
+                    'Type Filter:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                 ),
-              ),
-            ],
+                for (final type in _typeFilters)
+                  FilterPill(
+                    label: type,
+                    selected: _selectedTypeFilter == type,
+                    selectedColor: type == 'All' ? AppTheme.primaryBlue : _getEventTypeColor(type),
+                    onSelected: () => setState(() => _selectedTypeFilter = type),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
 
           // Location Filter Chips
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF10B981)),
-              const SizedBox(width: 6),
-              const Text(
-                'Location:',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _locationFilters.map((loc) {
-                      final isSelected = _selectedLocationFilter == loc;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(loc),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedLocationFilter = loc);
-                            }
-                          },
-                          selectedColor: const Color(0xFF10B981),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          labelStyle: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      );
-                    }).toList(),
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(right: 4),
+                  child: Text(
+                    'Location:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                 ),
-              ),
-            ],
+                for (final loc in _locationFilters)
+                  FilterPill(
+                    label: loc,
+                    selected: _selectedLocationFilter == loc,
+                    selectedColor: const Color(0xFF10B981),
+                    onSelected: () => setState(() => _selectedLocationFilter = loc),
+                  ),
+              ],
+            ),
           ),
         ],
-      ),
     );
   }
 
@@ -361,13 +361,8 @@ class _CalendarPageViewState extends State<CalendarPageView> {
       child: Column(
         children: [
           // Navigation controls for Month View
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Row(
+          LayoutBuilder(builder: (context, constraints) {
+            final monthNav = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
@@ -396,8 +391,8 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     padding: EdgeInsets.zero,
                   ),
                 ],
-              ),
-              OutlinedButton.icon(
+              );
+            final todayButton = OutlinedButton.icon(
                 onPressed: _goToToday,
                 icon: const Icon(Icons.today_rounded, size: 14),
                 label: const Text('Today', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
@@ -408,9 +403,27 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                   foregroundColor: AppTheme.primaryBlue,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-              ),
-            ],
-          ),
+              );
+
+            // Month centred with Today at the right; on a narrow card there is no
+            // room for both, so they wrap instead.
+            if (constraints.maxWidth < 420) {
+              return Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [monthNav, todayButton],
+              );
+            }
+            return Row(
+              children: [
+                const Expanded(child: SizedBox.shrink()),
+                monthNav,
+                Expanded(child: Align(alignment: Alignment.centerRight, child: todayButton)),
+              ],
+            );
+          }),
           const SizedBox(height: 12),
 
           // Days of the week header
@@ -436,8 +449,31 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           const Divider(height: 1, color: AppTheme.borderColor),
           const SizedBox(height: 8),
 
-          // Month Days Grid
-          _buildMonthGrid(context, repo, now),
+          // Month Days Grid: slides up when going forward, down when going back
+          ClipRect(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 550), // slow enough to follow which way the month moved
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final isIncoming = child.key == ValueKey('${_focusedMonth.year}-${_focusedMonth.month}');
+                // The outgoing grid runs its animation in reverse, so it exits toward the
+                // opposite side from where the incoming one enters.
+                final offset = Tween<Offset>(
+                  begin: Offset(0, isIncoming ? 0.12 * _slideDirection : -0.12 * _slideDirection),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: offset, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey('${_focusedMonth.year}-${_focusedMonth.month}'),
+                child: _buildMonthGrid(context, repo, now),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -464,17 +500,13 @@ class _CalendarPageViewState extends State<CalendarPageView> {
       ),
       itemCount: totalGridCells,
       itemBuilder: (context, index) {
-        final dayNumber = index - leadingEmptyDays + 1;
-        if (dayNumber < 1 || dayNumber > daysInMonth) {
-          return Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(8),
-            ),
-          );
-        }
+        final rawDay = index - leadingEmptyDays + 1;
+        final isOutsideMonth = rawDay < 1 || rawDay > daysInMonth;
 
-        final cellDate = DateTime(year, month, dayNumber);
+        // DateTime rolls over out-of-range days, so a day of 0 is the last day of the
+        // previous month and daysInMonth + 1 is the 1st of the next.
+        final cellDate = DateTime(year, month, rawDay);
+        final dayNumber = cellDate.day;
         final isToday = cellDate.year == now.year && cellDate.month == now.month && cellDate.day == now.day;
         final isSelected = cellDate.year == _selectedDate.year && cellDate.month == _selectedDate.month && cellDate.day == _selectedDate.day;
 
@@ -486,19 +518,28 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
         return InkWell(
           onTap: () {
-            setState(() {
-              _selectedDate = cellDate;
-            });
-            // Seamless event creation: double-tap or click directly on any date block opens "Add Event" modal
-            AddEventModal.show(context, initialDate: cellDate);
+            // Selecting a day shows its timeline (agenda) first, where events can be edited
+            // or deleted; new events are added from there or via "Add Event".
+            // A grayed-out day from a neighbouring month also switches to that month.
+            if (isOutsideMonth) {
+              _showMonth(cellDate, select: cellDate);
+            } else {
+              setState(() {
+                _selectedDate = cellDate;
+              });
+            }
           },
           borderRadius: BorderRadius.circular(10),
-          child: Container(
+          child: Opacity(
+            opacity: isOutsideMonth ? 0.5 : 1,
+            child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppTheme.primaryBlue.withValues(alpha: 0.12)
-                  : (isToday ? const Color(0xFFEFF6FF) : Colors.white),
+                  : (isOutsideMonth
+                      ? const Color(0xFFF8FAFC)
+                      : (isToday ? const Color(0xFFEFF6FF) : Colors.white)),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
@@ -510,10 +551,11 @@ class _CalendarPageViewState extends State<CalendarPageView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // A Stack, not a Row: on a phone the cell is narrower than the number
+                // plus the dot, and a Row would overflow.
+                SizedBox(
+                  height: 20,
+                  child: Stack(
                     children: [
                       Container(
                         width: 20,
@@ -533,12 +575,16 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                         ),
                       ),
                       if (dayEvents.isNotEmpty)
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: _getEventTypeColor(dayEvents.first.eventType),
-                            shape: BoxShape.circle,
+                        Positioned(
+                          top: 7,
+                          right: 0,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: _getEventTypeColor(dayEvents.first.eventType),
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
                     ],
@@ -581,6 +627,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               ],
             ),
           ),
+          ),
         );
       },
     );
@@ -592,7 +639,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
     List<CalendarEvent> selectedDayEvents,
     List<CalendarEvent> allFilteredEvents,
   ) {
-    final selectedDateFormatted = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    final selectedDateFormatted = formatScheduleDate(_selectedDate, long: true);
 
     return Container(
       decoration: BoxDecoration(
@@ -605,110 +652,92 @@ class _CalendarPageViewState extends State<CalendarPageView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
+          // Title + events for the selected day. Picking another date cross-fades
+          // to the new day while the card grows or shrinks, so it is easy to follow.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.topCenter,
+                children: [...previous, ?current],
+              ),
+              child: SizedBox(
+                key: ValueKey('agenda-${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}'),
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.format_list_bulleted_rounded, color: AppTheme.primaryBlue, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Agenda for $selectedDateFormatted',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      'Agenda for $selectedDateFormatted',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 14),
+                    if (selectedDayEvents.isEmpty)
+                      // The heading already names the day, so no extra "nothing scheduled" text.
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.event_available_rounded, size: 36, color: AppTheme.textSecondary),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'No events for this date',
+                              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () => _addEvent(),
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('Schedule Event on This Date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                foregroundColor: Colors.white,
+                                visualDensity: VisualDensity.compact,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: selectedDayEvents.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
+                        itemBuilder: (context, idx) {
+                          final evt = selectedDayEvents[idx];
+                          return _buildAgendaItemCard(context, evt, repo);
+                        },
+                      ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${selectedDayEvents.length} Events',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          if (selectedDayEvents.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderColor),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.event_available_rounded, size: 36, color: AppTheme.textSecondary),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No appointments or surgeries for $selectedDateFormatted.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: () => AddEventModal.show(context, initialDate: _selectedDate),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('Schedule Event on This Date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                      visualDensity: VisualDensity.compact,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: selectedDayEvents.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, idx) {
-                final evt = selectedDayEvents[idx];
-                return _buildAgendaItemCard(context, evt, repo);
-              },
             ),
-
+          ),
           const SizedBox(height: 20),
           const Divider(height: 1, color: AppTheme.borderColor),
           const SizedBox(height: 14),
 
           // Overall Chronological Upcoming Schedule
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Upcoming Master Schedule',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Total: ${allFilteredEvents.length}',
-                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-              ),
-            ],
+          const Text(
+            'Upcoming Master Schedule',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
 
@@ -719,59 +748,65 @@ class _CalendarPageViewState extends State<CalendarPageView> {
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, idx) {
               final evt = allFilteredEvents[idx];
-              final dateStr = '${evt.dateTime.year}-${evt.dateTime.month.toString().padLeft(2, '0')}-${evt.dateTime.day.toString().padLeft(2, '0')}';
+              final dateStr = formatScheduleDate(evt.dateTime);
               final timeStr = TimeOfDay.fromDateTime(evt.dateTime).format(context);
-              final tagColor = _getEventTypeColor(evt.eventType);
+              // Only today's events keep their colour, so what is coming next stands out.
+              final now = DateTime.now();
+              final isToday = evt.dateTime.year == now.year && evt.dateTime.month == now.month && evt.dateTime.day == now.day;
+              final tagColor = isToday ? _getEventTypeColor(evt.eventType) : const Color(0xFFCBD5E1);
 
               return Container(
-                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: tagColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                // Tapping a row opens it for editing (same as the agenda cards).
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => AddEventModal.show(context, event: evt),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
                         children: [
-                          Text(
-                            evt.title,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: evt.isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
-                              decoration: evt.isCompleted ? TextDecoration.lineThrough : null,
+                          Container(
+                            width: 4,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: tagColor,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            '$dateStr • $timeStr • ${evt.patientName} (${evt.location})',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                            overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  evt.title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: evt.isCompleted || !isToday ? AppTheme.textSecondary : AppTheme.textPrimary,
+                                    decoration: evt.isCompleted ? TextDecoration.lineThrough : null,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '$dateStr • $timeStr • ${evt.patientName}${evt.location.isEmpty ? '' : ' (${evt.location})'}',
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(
-                        evt.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: evt.isCompleted ? const Color(0xFF10B981) : AppTheme.textSecondary,
-                        size: 18,
-                      ),
-                      onPressed: () => repo.toggleEventStatus(evt.id),
-                    ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -786,35 +821,49 @@ class _CalendarPageViewState extends State<CalendarPageView> {
     final formattedTime = TimeOfDay.fromDateTime(evt.dateTime).format(context);
 
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1))],
       ),
+      // The whole card is the edit button: tapping it opens the event for editing.
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => AddEventModal.show(context, event: evt),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Flexible(
+              // Tags on the left, the time in the upper-right corner.
+              Expanded(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: tagColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        evt.eventType.toUpperCase(),
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tagColor, letterSpacing: 0.5),
-                        overflow: TextOverflow.ellipsis,
+                    // Event type and location are optional, so their tags only show when set.
+                    if (evt.eventType.isNotEmpty)
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: tagColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          evt.eventType.toUpperCase(),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tagColor, letterSpacing: 0.5),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    if (evt.eventType.isNotEmpty && evt.location.isNotEmpty) const SizedBox(width: 6),
+                    if (evt.location.isNotEmpty)
                     Flexible(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -844,7 +893,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               const SizedBox(width: 8),
               Text(
                 formattedTime,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
               ),
             ],
           ),
@@ -876,58 +925,16 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           ),
 
           if (evt.notes.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Text(
               'Notes: ${evt.notes}',
-              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 12, height: 1.4, fontStyle: FontStyle.italic, color: AppTheme.textSecondary),
             ),
           ],
-
-          const Divider(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const Icon(Icons.alarm, size: 13, color: Color(0xFFD97706)),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Reminder: ${evt.reminderMinutes}m before',
-                        style: const TextStyle(fontSize: 10, color: Color(0xFFD97706), fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      evt.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: evt.isCompleted ? const Color(0xFF10B981) : AppTheme.textSecondary,
-                      size: 20,
-                    ),
-                    onPressed: () => repo.toggleEventStatus(evt.id),
-                    tooltip: 'Toggle status',
-                  ),
-                  IconButton(
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 20),
-                    onPressed: () => repo.deleteEvent(evt.id),
-                    tooltip: 'Delete event',
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }

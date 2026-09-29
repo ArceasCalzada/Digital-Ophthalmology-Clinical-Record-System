@@ -32,7 +32,7 @@ Everything is explained in the numbered sections further down; this is the order
       Windows only: enable **Developer Mode** (`start ms-settings:developers`), then `flutter pub get`.
       *Done when:* `flutter analyze` shows no issues.
 - [ ] **B. (Recommended) run the tests** — `flutter test`, then `cd firebase-rules-tests && npm ci && npm test`
-      (needs Java 21+ for the emulator). *Done when:* both pass (Flutter 82 tests, rules 55 tests).
+      (needs Java 21+ for the emulator). *Done when:* both pass (Flutter 139 tests, rules 56 tests).
 - [ ] **C. Plan and cost protection** — sections **1** and **2**. *Done when:* you know if the project is Spark or Blaze,
       and (if Blaze) a budget alert exists.
 - [ ] **D. Create the sign-in accounts** — section **3**. *Done when:* each staff member can be found under Authentication → Users,

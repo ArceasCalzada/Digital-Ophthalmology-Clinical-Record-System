@@ -34,7 +34,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: firebase-rules-tests/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -68,7 +68,8 @@ jobs:
           retention-days: 7
 
   # Deploys the web app to Firebase Hosting from main only, after every check
-  # passed. Needs the FIREBASE_SERVICE_ACCOUNT secret (see docs/FIREBASE_SETUP.md).
+  # passed. It needs the FIREBASE_SERVICE_ACCOUNT secret (see docs/FIREBASE_SETUP.md).
+  # Until that secret exists the deploy is skipped (with a notice) instead of failing.
   # Security rules are NOT deployed from CI: publish them by hand so a rules
   # change is always a deliberate step.
   deploy-web:
@@ -77,13 +78,27 @@ jobs:
     needs: [web]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
+      - name: Check deploy credentials
+        id: creds
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Deploy skipped::Add the FIREBASE_SERVICE_ACCOUNT secret to deploy (docs/FIREBASE_SETUP.md, section 9)."
+          fi
       - uses: actions/checkout@v4
+        if: steps.creds.outputs.enabled == 'true'
       - uses: actions/download-artifact@v4
+        if: steps.creds.outputs.enabled == 'true'
         with:
           name: web-build
           path: build/web
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: steps.creds.outputs.enabled == 'true'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

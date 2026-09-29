@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/clinical_notification.dart';
 import '../theme/app_theme.dart';
+import '../widgets/filter_pill.dart';
 
 class NotificationCenterView extends StatefulWidget {
   const NotificationCenterView({super.key});
@@ -11,6 +12,16 @@ class NotificationCenterView extends StatefulWidget {
 
 class _NotificationCenterViewState extends State<NotificationCenterView> {
   String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    // Opening the notification center counts as reading everything in it.
+    // Deferred so listeners (the unread badges) aren't notified during build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ClinicalNotificationRepository().markAllAsRead();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +47,9 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
               children: [
                 // Header Bar
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
+                    Expanded(
+                      child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
@@ -49,63 +60,42 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                           child: const Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
                         ),
                         const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Clinical Alerts & Notifications',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                            ),
-                            Text(
-                              '${repo.unreadCount} unread alert${repo.unreadCount == 1 ? '' : 's'}',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Clinical Alerts & Notifications',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                              ),
+                              Text(
+                                '${allNotifications.length} alert${allNotifications.length == 1 ? '' : 's'}',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    if (repo.unreadCount > 0)
-                      TextButton.icon(
-                        onPressed: () => repo.markAllAsRead(),
-                        icon: const Icon(Icons.done_all_rounded, size: 16),
-                        label: const Text('Mark all read', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlue,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
 
                 // Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: ['All', 'Urgent', 'Reminders', 'Refills'].map((filter) {
-                      final isSelected = _selectedFilter == filter;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(filter),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) setState(() => _selectedFilter = filter);
-                          },
-                          selectedColor: AppTheme.primaryBlue,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : AppTheme.textPrimary,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          side: BorderSide(
-                            color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor,
-                          ),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final filter in ['All', 'Urgent', 'Reminders', 'Refills'])
+                        FilterPill(
+                          label: filter,
+                          selected: _selectedFilter == filter,
+                          onSelected: () => setState(() => _selectedFilter = filter),
                         ),
-                      );
-                    }).toList(),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -138,7 +128,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'There are no unread clinical alerts matching this filter.',
+                          'There are no clinical alerts matching this filter.',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
@@ -153,7 +143,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                     separatorBuilder: (context, index) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
                       final n = filteredNotifications[idx];
-                      return _buildNotificationCard(n, repo);
+                      return _buildNotificationCard(n);
                     },
                   ),
               ],
@@ -164,35 +154,16 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
     );
   }
 
-  Widget _buildNotificationCard(ClinicalNotification n, ClinicalNotificationRepository repo) {
-    Color badgeColor;
-    IconData badgeIcon;
-
-    switch (n.severity) {
-      case NotificationSeverity.urgent:
-        badgeColor = const Color(0xFFEF4444);
-        badgeIcon = Icons.warning_amber_rounded;
-        break;
-      case NotificationSeverity.warning:
-        badgeColor = const Color(0xFFF59E0B);
-        badgeIcon = Icons.error_outline_rounded;
-        break;
-      case NotificationSeverity.info:
-        badgeColor = AppTheme.primaryBlue;
-        badgeIcon = Icons.info_outline_rounded;
-        break;
-    }
-
-    final formattedTime = _formatTimeAgo(n.timestamp);
-
+  // Every notification looks the same: category and urgency are told apart by the
+  // label and the filter pills, not by colour or icons.
+  Widget _buildNotificationCard(ClinicalNotification n) {
     return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: n.isRead ? Colors.white : badgeColor.withValues(alpha: 0.04),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: n.isRead ? AppTheme.borderColor : badgeColor.withValues(alpha: 0.3),
-          width: n.isRead ? 1 : 1.5,
-        ),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -201,134 +172,55 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => repo.markAsRead(n.id),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(badgeIcon, color: badgeColor, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: badgeColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  n.category.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: badgeColor,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                formattedTime,
-                                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                              ),
-                              if (!n.isRead) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: badgeColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            n.title,
-                            style: TextStyle(
-                              fontWeight: n.isRead ? FontWeight.w600 : FontWeight.bold,
-                              fontSize: 14,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  n.message,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
-                ),
-                if (n.patientName != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.account_circle_outlined, size: 14, color: AppTheme.primaryBlue),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${n.patientName} (${n.patientId ?? ''})',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                      ),
-                    ],
+                child: Text(
+                  n.category.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryBlue,
+                    letterSpacing: 0.5,
                   ),
-                ],
-                const Divider(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (!n.isRead)
-                      TextButton.icon(
-                        onPressed: () => repo.markAsRead(n.id),
-                        icon: const Icon(Icons.check, size: 14),
-                        label: const Text('Mark Read', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.primaryBlue,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    TextButton.icon(
-                      onPressed: () => repo.dismissNotification(n.id),
-                      icon: const Icon(Icons.close, size: 14),
-                      label: const Text('Dismiss', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.textSecondary,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ],
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              Text(
+                _formatTimeAgo(n.timestamp),
+                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            n.title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            n.message,
+            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+          ),
+          if (n.patientName != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${n.patientName} (${n.patientId ?? ''})',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+            ),
+          ],
+        ],
       ),
     );
   }
-
   String _formatTimeAgo(DateTime dateTime) {
     final diff = DateTime.now().difference(dateTime);
     if (diff.inMinutes < 1) return 'Just now';

@@ -44,6 +44,62 @@ String formatClinicalDate(String dateStr) {
   return dateStr;
 }
 
+/// Parses the date-of-birth formats the app stores: "1985-06-15", "Jun 15, 1985" and
+/// "6/15/1985" (month first). Returns null for anything else or for an impossible
+/// date such as Feb 30.
+DateTime? parseDateOfBirth(String text, {DateTime? now}) {
+  final value = text.trim();
+  if (value.isEmpty) return null;
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+  int? year, month, day;
+  final iso = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})$').firstMatch(value);
+  final named = RegExp(r'^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$').firstMatch(value);
+  final slashed = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})$').firstMatch(value);
+  if (iso != null) {
+    year = int.parse(iso.group(1)!);
+    month = int.parse(iso.group(2)!);
+    day = int.parse(iso.group(3)!);
+  } else if (named != null) {
+    final index = months.indexOf(named.group(1)!.substring(0, 3).toLowerCase());
+    if (index == -1) return null;
+    month = index + 1;
+    day = int.parse(named.group(2)!);
+    year = int.parse(named.group(3)!);
+  } else if (slashed != null) {
+    month = int.parse(slashed.group(1)!);
+    day = int.parse(slashed.group(2)!);
+    year = int.parse(slashed.group(3)!);
+    if (year < 100) {
+      // Two-digit years: the latest century that is not in the future.
+      final currentYear = (now ?? DateTime.now()).year;
+      year += (2000 + year > currentYear) ? 1900 : 2000;
+    }
+  } else {
+    return null;
+  }
+
+  final date = DateTime(year, month, day);
+  return date.year == year && date.month == month && date.day == day ? date : null;
+}
+
+/// The age at [now] for a date of birth, in the largest fitting unit: "41 years",
+/// "1 year", "8 months" or "12 days". Null when the date is unreadable or in the future.
+String? formatAge(String dateOfBirth, {DateTime? now}) {
+  final dob = parseDateOfBirth(dateOfBirth, now: now);
+  if (dob == null) return null;
+  final today = now ?? DateTime.now();
+  final todayDate = DateTime(today.year, today.month, today.day);
+  if (dob.isAfter(todayDate)) return null;
+
+  String plural(int n, String unit) => '$n $unit${n == 1 ? '' : 's'}';
+  var months = (todayDate.year - dob.year) * 12 + todayDate.month - dob.month;
+  if (todayDate.day < dob.day) months--;
+  if (months >= 12) return plural(months ~/ 12, 'year');
+  if (months >= 1) return plural(months, 'month');
+  return plural(todayDate.difference(dob).inDays, 'day');
+}
+
 class TodayPatientQueue {
   final Patient patient;
   final String time;
@@ -70,6 +126,9 @@ class Patient {
   final String occupation;
   final String phicNumber;
   final String? referringDoctor;
+
+  /// General free-text notes about the patient (not tied to a visit).
+  final String notes;
   final List<String> medicalHistory;
   final List<String> allergies;
   final List<String> previousDiagnoses;
@@ -91,6 +150,7 @@ class Patient {
     this.occupation = 'Civil Servant',
     this.phicNumber = '19-02581024-8',
     this.referringDoctor,
+    this.notes = '',
     required this.medicalHistory,
     required this.allergies,
     this.previousDiagnoses = const [],
@@ -102,7 +162,9 @@ class Patient {
   });
 
   int get age {
-    final dob = DateTime.tryParse(dateOfBirth);
+    // "Jun 15, 1985" (what the registration form stores) is not an ISO date, so it used
+    // to fall through to the year-only guess below and ignore the birthday.
+    final dob = parseDateOfBirth(dateOfBirth) ?? DateTime.tryParse(dateOfBirth);
     if (dob == null) {
       final parts = dateOfBirth.split(RegExp(r'[,/\s]+'));
       if (parts.length >= 3) {
@@ -133,6 +195,7 @@ class Patient {
         'occupation': occupation,
         'phicNumber': phicNumber,
         'referringDoctor': referringDoctor,
+        'notes': notes,
         'medicalHistory': medicalHistory,
         'allergies': allergies,
         'previousDiagnoses': previousDiagnoses,
@@ -175,6 +238,7 @@ class Patient {
     requireLength('Occupation', occupation, AppLimits.maxShortTextLength);
     requireLength('PHIC number', phicNumber, AppLimits.maxShortTextLength);
     if (referringDoctor != null) requireLength('Referring doctor', referringDoctor!, AppLimits.maxShortTextLength);
+    requireLength('Notes', notes, AppLimits.maxNotesLength);
 
     return {
       'id': id,
@@ -188,6 +252,9 @@ class Patient {
       'occupation': occupation,
       'phicNumber': phicNumber,
       'referringDoctor': referringDoctor,
+      // Only sent when there is something to say, so a patient without notes is written
+      // exactly as before (rules published before this field existed still accept it).
+      if (notes.isNotEmpty) 'notes': notes,
       'medicalHistory': requireList('Medical history', medicalHistory),
       'allergies': requireList('Allergies', allergies),
       'previousDiagnoses': requireList(
@@ -221,6 +288,7 @@ class Patient {
         occupation: occupation,
         phicNumber: phicNumber,
         referringDoctor: referringDoctor,
+        notes: notes,
         medicalHistory: medicalHistory,
         allergies: allergies,
         previousDiagnoses: previousDiagnoses ?? this.previousDiagnoses,
@@ -274,6 +342,7 @@ class Patient {
     final occupation = extractString(['occupation'], 'Civil Servant');
     final phicNumber = extractString(['phicNumber', 'phic'], '19-02581024-8');
     final referringDoctor = json['referringDoctor']?.toString() ?? json['doctor']?.toString();
+    final notes = extractString(['notes'], '');
 
     final medicalHistory = extractStringList(['medicalHistory', 'medical_history']);
     final allergies = extractStringList(['allergies']);
@@ -317,6 +386,7 @@ class Patient {
       occupation: occupation,
       phicNumber: phicNumber,
       referringDoctor: referringDoctor,
+      notes: notes,
       medicalHistory: medicalHistory,
       allergies: allergies,
       previousDiagnoses: previousDiagnoses,

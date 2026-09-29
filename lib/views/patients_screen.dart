@@ -1,8 +1,11 @@
+import '../widgets/clinic_dialogs.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/filter_pill.dart';
+import '../widgets/page_header.dart';
 import 'new_patient_modal.dart';
 
 class PatientsScreen extends StatefulWidget {
@@ -45,7 +48,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
     });
   }
 
-  void _openNewPatientModal() {
+  Future<void> _openNewPatientModal() async {
+    if (!await ensureClinic(context) || !mounted) return;
     showDialog(
       context: context,
       builder: (dialogCtx) => NewPatientModal(
@@ -332,35 +336,17 @@ class _PatientsScreenState extends State<PatientsScreen> {
             final isMobile = constraints.maxWidth < 768;
 
         return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 12 : 24),
+          padding: const EdgeInsets.all(PageHeader.pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Title & New Action Dropdown CTA
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Patient Directory',
-                        style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.bold, color: AppTheme.textPrimary, letterSpacing: -0.5),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Search and manage clinical patient records with modern patient cards.',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                  if (isMobile) const SizedBox(height: 12),
-                  _buildNewActionsDropdownButton(width: isMobile ? double.infinity : 260.0),
-                ],
+              PageHeader(
+                title: 'Patient Directory',
+                subtitle: 'Search and manage clinical patient records with modern patient cards.',
+                stackBelow: 768,
+                action: _buildNewActionsDropdownButton(width: isMobile ? double.infinity : 260.0),
               ),
-              const SizedBox(height: 20),
 
           // Search, Filter & Layout View Toggle Card
           Card(
@@ -377,34 +363,55 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   Row(
                     children: [
                       Expanded(
+                        // Same search bar as the dashboard. The input is explicitly unfilled:
+                        // the app theme fills text fields, which drew a grey box inside the pill.
                         child: Container(
-                          height: 48,
+                          height: 54,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: AppTheme.borderColor),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: _onSearchChanged,
-                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'Search patient by name, patient ID (MRN), phone, or DOB...',
-                              hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                              prefixIcon: const Icon(Icons.search, color: AppTheme.primaryBlue, size: 20),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _onSearchChanged('');
-                                      },
-                                    )
-                                  : null,
-                            ),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: _onSearchChanged,
+                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search patient by name, phone, or DOB...',
+                                    hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                ),
+                              ),
+                              if (_searchController.text.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                                  tooltip: 'Clear search',
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _onSearchChanged('');
+                                  },
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -545,37 +552,39 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   ],
                   const SizedBox(height: 12),
 
-                  // Filter Chips
-                  Row(
-                    children: [
-                      const Text('Quick Filters:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-                      const SizedBox(width: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: ['All', 'Glaucoma', 'Diabetic Retinopathy', 'Cataract'].map((filter) {
+                  // Filter Chips. A single Wrap, so on a narrow screen the pills drop to the
+                  // next line instead of running past the card's edge. Full width so it
+                  // stays left-aligned (the card's Column centres its children).
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 4),
+                          child: Text('Quick Filters:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                        ),
+                        ...['All', 'Glaucoma', 'Diabetic Retinopathy', 'Cataract'].map((filter) {
                           final isSelected = _selectedFilter == filter;
-                          return ChoiceChip(
-                            label: Text(filter, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                          return FilterPill(
+                            label: filter,
                             selected: isSelected,
-                            selectedColor: AppTheme.primaryBlue,
-                            backgroundColor: const Color(0xFFF8FAFC),
-                            side: BorderSide(color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor),
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() {
-                                  _selectedFilter = filter;
-                                  if (filter == 'All') {
-                                    _patients = PatientRepository.getAllPatients();
-                                  } else {
-                                    _patients = PatientRepository.searchPatients(filter);
-                                  }
-                                });
-                              }
+                            onSelected: () {
+                              setState(() {
+                                _selectedFilter = filter;
+                                if (filter == 'All') {
+                                  _patients = PatientRepository.getAllPatients();
+                                } else {
+                                  _patients = PatientRepository.searchPatients(filter);
+                                }
+                              });
                             },
                           );
-                        }).toList(),
-                      ),
-                    ],
+                        }),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -604,7 +613,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           SizedBox(height: 4),
-                          Text('Try searching with a different name, MRN, or phone number.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                          Text('Try searching with a different name or phone number.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
                         ],
                       ),
                     ),

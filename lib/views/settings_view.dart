@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/profile_store.dart';
+import '../services/reminder_settings_store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/field_label.dart';
+import '../widgets/filter_pill.dart';
 import '../widgets/rx_pad_widget.dart';
 
 /// SettingsView - Complete Settings & Workstation Configuration UI/UX for DOCRS
@@ -16,22 +21,10 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   // Navigation State
-  String _activeSection = 'doctor_profile';
+  String _activeSection = 'prescription_settings';
 
-  // 1. Doctor Profile Controllers & State
-  final _doctorNameController = TextEditingController(text: 'Dr. Sigrid Robillos, MD');
-  final _doctorEmailController = TextEditingController(text: 'dr.jenkins@metroeye.com');
-  final _doctorPhoneController = TextEditingController(text: '+63 917 555 0192');
-  final _doctorTitleController = TextEditingController(text: 'Attending Ophthalmologist');
-  final _specializationController = TextEditingController(text: 'Cornea & Anterior Segment Specialist');
-  final _licenseController = TextEditingController(text: 'PRC Lic. No. 091823');
-
-  // 2. Clinic Information Controllers & State
-  final _clinicNameController = TextEditingController(text: 'Metro Eye Center & Refractive Surgery');
-  final _clinicAddressController = TextEditingController(text: 'Suite 402, Medical Arts Tower, Quezon City, Metro Manila');
-  final _clinicPhoneController = TextEditingController(text: '+63 2 8920 1100');
-  final _clinicEmailController = TextEditingController(text: 'info@metroeyecenter.com');
-  final _clinicWebsiteController = TextEditingController(text: 'www.metroeyecenter.com');
+  // Doctor profile and clinic details are edited on the Profile page.
+  final _profile = ProfileStore.instance;
 
   // 3. Prescription Settings State
   bool _hasSignature = true;
@@ -213,7 +206,7 @@ class _SettingsViewState extends State<SettingsView> {
               // Page Header
               const Text('System Settings & Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
               const SizedBox(height: 4),
-              const Text('Manage your physician profile, clinic details, Rx layout, security, and local backups.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+              const Text('Manage your Rx layout, security, preferences, and local backups.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
               const SizedBox(height: 24),
 
               if (isDesktop)
@@ -257,8 +250,6 @@ class _SettingsViewState extends State<SettingsView> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            _buildMobileNavItem('doctor_profile', 'Doctor Profile', Icons.person_outline),
-            _buildMobileNavItem('clinic_info', 'Clinic Info', Icons.local_hospital_outlined),
             _buildMobileNavItem('prescription_settings', 'Prescription', Icons.description_outlined),
             _buildMobileNavItem('security', 'Security', Icons.security_outlined),
             _buildMobileNavItem('backup_data', 'Backup & Data', Icons.backup_outlined),
@@ -300,8 +291,6 @@ class _SettingsViewState extends State<SettingsView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildNavCategoryHeader('General'),
-            _buildNavItem('doctor_profile', 'Doctor Profile', Icons.person_outline_rounded, Icons.person_rounded),
-            _buildNavItem('clinic_info', 'Clinic Information', Icons.local_hospital_outlined, Icons.local_hospital_rounded),
             _buildNavItem('prescription_settings', 'Prescription Settings', Icons.description_outlined, Icons.description_rounded),
             
             const Padding(
@@ -371,10 +360,6 @@ class _SettingsViewState extends State<SettingsView> {
   // Right Content Router
   Widget _buildActiveContentSection() {
     switch (_activeSection) {
-      case 'doctor_profile':
-        return _buildDoctorProfileSection();
-      case 'clinic_info':
-        return _buildClinicInfoSection();
       case 'prescription_settings':
         return _buildPrescriptionSettingsSection();
       case 'security':
@@ -384,227 +369,8 @@ class _SettingsViewState extends State<SettingsView> {
       case 'system_preferences':
         return _buildSystemPreferencesSection();
       default:
-        return _buildDoctorProfileSection();
+        return _buildPrescriptionSettingsSection();
     }
-  }
-
-  // ==========================================
-  // SECTION 1: DOCTOR PROFILE
-  // ==========================================
-  Widget _buildDoctorProfileSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Doctor Profile', 'Manage your personal and professional information.'),
-        const SizedBox(height: 20),
-
-        // Profile Photo Card
-        _buildCardContainer(
-          title: 'Profile Photo',
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 36,
-                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                child: const Text('SJ', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
-              ),
-              const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.upload, size: 16),
-                        label: const Text('Change Photo'),
-                        onPressed: () {
-                          _showSaveFeedback('Photo updated successfully.');
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      OutlinedButton(
-                        onPressed: () {},
-                        child: const Text('Remove'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text('JPG, PNG or GIF. Max file size 2MB.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Personal Information Card
-        _buildCardContainer(
-          title: 'Personal Information',
-          child: Column(
-            children: [
-              _buildResponsiveRow(context, [
-                _buildFormField('Full Name', _doctorNameController, Icons.person_outline),
-                const SizedBox(width: 16),
-                _buildFormField('Email Address', _doctorEmailController, Icons.email_outlined),
-              ]),
-              const SizedBox(height: 12),
-              _buildResponsiveRow(context, [
-                _buildFormField('Contact Number', _doctorPhoneController, Icons.phone_outlined),
-              ]),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Professional Information Card
-        _buildCardContainer(
-          title: 'Professional Information',
-          child: Column(
-            children: [
-              _buildResponsiveRow(context, [
-                _buildFormField('Professional Title', _doctorTitleController, Icons.badge_outlined),
-                const SizedBox(width: 16),
-                _buildFormField('Specialization', _specializationController, Icons.medical_services_outlined),
-              ]),
-              const SizedBox(height: 12),
-              _buildResponsiveRow(context, [
-                _buildFormField('License Number', _licenseController, Icons.assignment_ind_outlined),
-              ]),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // Primary Action Buttons
-        _buildActionButtons(onSave: () => _showSaveFeedback('Doctor profile changes saved successfully.')),
-      ],
-    );
-  }
-
-  // ==========================================
-  // SECTION 2: CLINIC INFORMATION
-  // ==========================================
-  Widget _buildClinicInfoSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Clinic Information', 'Manage the clinic details displayed on prescriptions and documents.'),
-        const SizedBox(height: 20),
-
-        // Clinic Branding Card
-        _buildCardContainer(
-          title: 'Clinic Branding',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
-                    ),
-                    child: const Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
-                  ),
-                  const SizedBox(width: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.cloud_upload_outlined, size: 16),
-                        label: const Text('Upload Logo'),
-                        onPressed: () {
-                          _showSaveFeedback('Clinic logo uploaded.');
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      const Text('Recommended: 300x300 PNG with transparent background.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildFormField('Clinic Name', _clinicNameController, Icons.local_hospital_outlined),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Contact Information Card
-        _buildCardContainer(
-          title: 'Contact Information',
-          child: Column(
-            children: [
-              _buildFormField('Clinic Address', _clinicAddressController, Icons.location_on_outlined),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFormField('Contact Number', _clinicPhoneController, Icons.phone_outlined),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildFormField('Email Address', _clinicEmailController, Icons.email_outlined),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Optional Information Card
-        _buildCardContainer(
-          title: 'Optional Information',
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildFormField('Clinic Website', _clinicWebsiteController, Icons.language_outlined),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(child: SizedBox()),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Prescription Header Preview Card
-        _buildCardContainer(
-          title: 'Prescription Header Live Preview',
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_clinicNameController.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryBlue)),
-                      const SizedBox(height: 2),
-                      Text(_clinicAddressController.text, style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
-                      Text('Tel: ${_clinicPhoneController.text} • Email: ${_clinicEmailController.text}', style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        _buildActionButtons(onSave: () => _showSaveFeedback('Clinic information updated successfully.')),
-      ],
-    );
   }
 
   // ==========================================
@@ -634,8 +400,8 @@ class _SettingsViewState extends State<SettingsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${_doctorNameController.text} — ${_doctorTitleController.text}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                      Text('${_licenseController.text} • Specialization: ${_specializationController.text}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                      Text('${_profile.doctorName.text} — ${_profile.doctorTitle.text}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                      Text('${_profile.license.text} • Specialization: ${_profile.specialization.text}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     ],
                   ),
                 ),
@@ -679,10 +445,13 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                   ),
                   const SizedBox(width: 20),
-                  Column(
+                  Expanded(
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
                         children: [
                           ElevatedButton.icon(
                             icon: const Icon(Icons.draw, size: 16),
@@ -692,7 +461,6 @@ class _SettingsViewState extends State<SettingsView> {
                               _showSaveFeedback('Signature uploaded.');
                             },
                           ),
-                          const SizedBox(width: 10),
                           if (_hasSignature)
                             OutlinedButton(
                               onPressed: () {
@@ -706,6 +474,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(height: 6),
                       const Text('PNG with transparent background (Max 1MB). Appears on exported PDFs.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     ],
+                    ),
                   ),
                 ],
               ),
@@ -767,8 +536,8 @@ class _SettingsViewState extends State<SettingsView> {
         ),
       ],
       date: '2026-08-20',
-      doctorName: _doctorNameController.text.isNotEmpty ? _doctorNameController.text : 'Dr. Sigrid T. Robillos',
-      licenseNo: _licenseController.text.isNotEmpty ? _licenseController.text : '100064',
+      doctorName: _profile.doctorName.text.isNotEmpty ? _profile.doctorName.text : 'Dr. Sigrid T. Robillos',
+      licenseNo: _profile.license.text.isNotEmpty ? _profile.license.text : '100064',
       showBorder: true,
     );
   }
@@ -868,32 +637,17 @@ class _SettingsViewState extends State<SettingsView> {
                     const Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: ClinicalModalPickerField<String>(
+                      child: ClinicalDropdownField<String>(
                         placeholder: 'Select timeout...',
-                        displayText: _autoLockDuration,
-                        icon: Icons.timer_outlined,
-                        onTap: () async {
-                          const options = ['5 minutes', '10 minutes', '15 minutes', '30 minutes', 'Never'];
-                          final items = options.map((dur) {
-                            return ClinicalPickerItem<String>(
-                              value: dur,
-                              label: dur,
-                              icon: Icons.timer_rounded,
-                              iconColor: AppTheme.primaryBlue,
-                            );
-                          }).toList();
-
-                          final selected = await showClinicalModalPicker<String>(
-                            context: context,
-                            title: 'Select Inactivity Timeout',
-                            selectedValue: _autoLockDuration,
-                            items: items,
-                          );
-
-                          if (selected != null) {
-                            setState(() => _autoLockDuration = selected);
-                          }
-                        },
+                        value: _autoLockDuration,
+                        items: const [
+                          ClinicalPickerItem<String>(value: '5 minutes', label: '5 minutes'),
+                          ClinicalPickerItem<String>(value: '10 minutes', label: '10 minutes'),
+                          ClinicalPickerItem<String>(value: '15 minutes', label: '15 minutes'),
+                          ClinicalPickerItem<String>(value: '30 minutes', label: '30 minutes'),
+                          ClinicalPickerItem<String>(value: 'Never', label: 'Never'),
+                        ],
+                        onChanged: (v) => setState(() => _autoLockDuration = v),
                       ),
                     ),
                   ],
@@ -1309,7 +1063,8 @@ class _SettingsViewState extends State<SettingsView> {
         // Date Format Card
         _buildCardContainer(
           title: 'Date Format',
-          child: Row(
+          child: Wrap(
+            runSpacing: 8,
             children: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map((fmt) {
               final isSelected = _dateFormat == fmt;
               return Padding(
@@ -1330,7 +1085,8 @@ class _SettingsViewState extends State<SettingsView> {
         // Time Format Card
         _buildCardContainer(
           title: 'Time Format',
-          child: Row(
+          child: Wrap(
+            runSpacing: 8,
             children: ['12-hour', '24-hour'].map((fmt) {
               final isSelected = _timeFormat == fmt;
               return Padding(
@@ -1344,6 +1100,41 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
               );
             }).toList(),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Notification Reminder Alert Card. One choice for every appointment, applied
+        // when an event is scheduled (the scheduling form no longer asks).
+        _buildCardContainer(
+          title: 'Notification Reminder Alert',
+          child: ListenableBuilder(
+            listenable: ReminderSettingsStore.instance,
+            builder: (context, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'How long before an appointment its reminder alert is sent. Applies to events you schedule from now on.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option in ReminderSettingsStore.options.entries)
+                        FilterPill(
+                          label: option.value,
+                          selected: ReminderSettingsStore.instance.minutesBefore == option.key,
+                          onSelected: () => ReminderSettingsStore.instance.minutesBefore = option.key,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -1450,47 +1241,6 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildResponsiveRow(BuildContext context, List<Widget> children) {
-    final isPhone = MediaQuery.of(context).size.width < 640;
-    if (isPhone) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children
-            .where((c) => c is! SizedBox)
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: c,
-                ))
-            .toList(),
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children.map((c) {
-        if (c is SizedBox) return c;
-        return Expanded(child: c);
-      }).toList(),
-    );
-  }
-
-  Widget _buildFormField(String label, TextEditingController controller, IconData icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 18, color: AppTheme.primaryBlue),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildPasswordField(String label, TextEditingController controller, {ValueChanged<String>? onChanged}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1512,31 +1262,12 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Widget _buildDropdownField(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
-    return ClinicalModalPickerField<String>(
-      label: label,
+    return ClinicalDropdownField<String>(
+      label: FieldLabel(label, fontSize: 12),
       placeholder: 'Select option...',
-      displayText: value,
-      onTap: () async {
-        final pickerItems = items.map((item) {
-          return ClinicalPickerItem<String>(
-            value: item,
-            label: item,
-            icon: Icons.tune_rounded,
-            iconColor: AppTheme.primaryBlue,
-          );
-        }).toList();
-
-        final selected = await showClinicalModalPicker<String>(
-          context: context,
-          title: 'Select $label',
-          selectedValue: value,
-          items: pickerItems,
-        );
-
-        if (selected != null) {
-          onChanged(selected);
-        }
-      },
+      value: value,
+      items: [for (final item in items) ClinicalPickerItem<String>(value: item, label: item)],
+      onChanged: onChanged,
     );
   }
 

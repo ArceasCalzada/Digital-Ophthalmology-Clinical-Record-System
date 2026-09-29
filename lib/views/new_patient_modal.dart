@@ -1,7 +1,16 @@
+import '../config/plan_limits.dart';
+import '../widgets/paywall_dialog.dart';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import '../config/app_limits.dart';
 import '../models/patient.dart';
 import '../widgets/clinical_date_picker.dart';
+import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/field_label.dart';
+import '../widgets/required_text_form_field.dart';
+import '../widgets/shake_widget.dart';
 import '../theme/app_theme.dart';
 
 class NewPatientModal extends StatefulWidget {
@@ -16,13 +25,27 @@ class NewPatientModal extends StatefulWidget {
 class _NewPatientModalState extends State<NewPatientModal> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _mrnController = TextEditingController(text: 'PT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}');
-  final _dobController = TextEditingController(text: '1985-06-15');
+  final _dobController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _medHistoryController = TextEditingController();
   final _allergiesController = TextEditingController();
-  String _gender = 'Male';
+  final _notesController = TextEditingController();
+  final _genderShake = GlobalKey<ShakeWidgetState>();
+  String? _gender; // not assumed: the user must choose
+
+  /// The patient ID is assigned here rather than typed or shown on the form: a fresh random
+  /// "PT-######" that no loaded patient already has. (The old clock-based one repeated every
+  /// ~17 minutes, and a repeat silently replaced the earlier patient.)
+  String _newPatientId() {
+    final taken = PatientRepository.getAllPatients().map((p) => p.mrn).toSet();
+    final random = Random();
+    String candidate;
+    do {
+      candidate = 'PT-${100000 + random.nextInt(900000)}';
+    } while (taken.contains(candidate));
+    return candidate;
+  }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
@@ -39,14 +62,21 @@ class _NewPatientModalState extends State<NewPatientModal> {
 
       final newPatient = Patient(
         id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
-        mrn: _mrnController.text.trim(),
+        mrn: _newPatientId(),
         fullName: _nameController.text.trim(),
-        dateOfBirth: _dobController.text.trim(),
-        gender: _gender,
+        // Stored in one format whether it was picked or typed.
+        dateOfBirth: formatClinicalDate(
+          () {
+            final dob = parseDateOfBirth(_dobController.text)!; // validated above
+            return '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
+          }(),
+        ),
+        gender: _gender!, // validated as chosen before we get here
         phone: _phoneController.text.trim().isEmpty ? '+63 900 000 0000' : _phoneController.text.trim(),
         address: _addressController.text.trim().isEmpty ? 'Metro Manila, Philippines' : _addressController.text.trim(),
         medicalHistory: medHistory.isEmpty ? ['No Prior Medical Conditions'] : medHistory,
         allergies: allergies.isEmpty ? ['No Known Drug Allergies (NKDA)'] : allergies,
+        notes: _notesController.text.trim(),
         previousDiagnoses: [],
         previousPrescriptions: [],
         prescriptions: [],
@@ -57,8 +87,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
 
       try {
         PatientRepository.addPatient(newPatient);
-      } on PatientLimitReachedException catch (e) {
-        _showError(e.toString());
+      } on PatientLimitReachedException {
+        showPaywallDialog(context, reason: PlanLimit.patients);
         return;
       } on FormatException catch (e) {
         _showError(e.message);
@@ -124,39 +154,11 @@ class _NewPatientModalState extends State<NewPatientModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Full Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(hintText: 'e.g. Elena Rostova'),
-                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Patient ID / MRN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                          const SizedBox(height: 6),
-                          TextFormField(
-                            controller: _mrnController,
-                            decoration: const InputDecoration(hintText: 'PT-00125'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                const FieldLabel('Full Name', required: true, fontSize: 12),
+                const SizedBox(height: 6),
+                RequiredTextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(hintText: 'e.g. Elena Rostova'),
                 ),
                 const SizedBox(height: 14),
 
@@ -166,10 +168,11 @@ class _NewPatientModalState extends State<NewPatientModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Date of Birth *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          const FieldLabel('Date of Birth', required: true, fontSize: 12),
                           const SizedBox(height: 6),
-                          TextFormField(
+                          RequiredTextFormField(
                             controller: _dobController,
+                            onChanged: (_) => setState(() {}), // keeps the age line below current
                             decoration: InputDecoration(
                               hintText: 'Jun 15, 1985',
                               suffixIcon: IconButton(
@@ -178,8 +181,22 @@ class _NewPatientModalState extends State<NewPatientModal> {
                                 onPressed: _selectDob,
                               ),
                             ),
-                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                            // Empty shakes; a filled-in but wrong date shakes and says why.
+                            invalidMessage: (text) {
+                              if (parseDateOfBirth(text) == null) return 'Enter a valid date, e.g. Jun 15, 1985';
+                              if (formatAge(text) == null) return 'Date is in the future';
+                              return null;
+                            },
                           ),
+                          // The age that goes with the birthday, so a wrong date is easy to spot.
+                          if (formatAge(_dobController.text) != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6, left: 2),
+                              child: Text(
+                                'Age: ${formatAge(_dobController.text)}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -188,26 +205,31 @@ class _NewPatientModalState extends State<NewPatientModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Sex / Gender', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          const FieldLabel('Sex / Gender', required: true, fontSize: 12),
                           const SizedBox(height: 6),
-                          ClinicalModalPickerField<String>(
-                            placeholder: 'Select Gender',
-                            displayText: _gender,
-                            onTap: () async {
-                              final selected = await showClinicalModalPicker<String>(
-                                context: context,
-                                title: 'Select Gender',
-                                selectedValue: _gender,
+                          ShakeWidget(
+                            key: _genderShake,
+                            child: FormField<String>(
+                              validator: (_) {
+                                if (_gender != null) return null;
+                                _genderShake.currentState?.shake();
+                                return ''; // no text: the field shakes and turns red
+                              },
+                              builder: (field) => ClinicalDropdownField<String>(
+                                placeholder: 'Select gender',
+                                value: _gender,
+                                invalid: field.hasError,
                                 items: const [
-                                  ClinicalPickerItem(value: 'Male', label: 'Male', icon: Icons.male_rounded, iconColor: AppTheme.primaryBlue),
-                                  ClinicalPickerItem(value: 'Female', label: 'Female', icon: Icons.female_rounded, iconColor: Color(0xFFEC4899)),
-                                  ClinicalPickerItem(value: 'Other', label: 'Other', icon: Icons.person_outline_rounded, iconColor: Color(0xFF8B5CF6)),
+                                  ClinicalPickerItem(value: 'Male', label: 'Male'),
+                                  ClinicalPickerItem(value: 'Female', label: 'Female'),
+                                  ClinicalPickerItem(value: 'Other', label: 'Other'),
                                 ],
-                              );
-                              if (selected != null) {
-                                setState(() => _gender = selected);
-                              }
-                            },
+                                onChanged: (selected) {
+                                  setState(() => _gender = selected);
+                                  field.didChange(selected);
+                                },
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -245,6 +267,17 @@ class _NewPatientModalState extends State<NewPatientModal> {
                 TextFormField(
                   controller: _allergiesController,
                   decoration: const InputDecoration(hintText: 'e.g. Sulfa, Latex, Penicillin'),
+                ),
+                const SizedBox(height: 14),
+
+                const FieldLabel('Notes', fontSize: 12),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _notesController,
+                  minLines: 3,
+                  maxLines: 5,
+                  maxLength: AppLimits.maxNotesLength,
+                  decoration: const InputDecoration(hintText: 'Anything else worth knowing about this patient'),
                 ),
               ],
             ),

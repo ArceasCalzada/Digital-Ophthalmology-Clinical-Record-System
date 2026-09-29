@@ -6,7 +6,11 @@ import '../theme/app_theme.dart';
 class SyncStatusIndicator extends StatelessWidget {
   final bool compact;
 
-  const SyncStatusIndicator({super.key, this.compact = false});
+  /// Show only the status icon (the wording stays in the tooltip). Used in the
+  /// collapsed sidebar, which is too narrow for the label.
+  final bool iconOnly;
+
+  const SyncStatusIndicator({super.key, this.compact = false, this.iconOnly = false});
 
   String _formatTimestamp(DateTime? dt) {
     if (dt == null) return 'Never synced';
@@ -304,15 +308,17 @@ class SyncStatusIndicator extends StatelessWidget {
                     )
                   else
                     Icon(badgeIcon, size: 14, color: badgeColor),
-                  const SizedBox(width: 5),
-                  Text(
-                    statusLabel,
-                    style: TextStyle(
-                      fontSize: compact ? 10 : 11,
-                      fontWeight: FontWeight.bold,
-                      color: badgeColor,
+                  if (!iconOnly) ...[
+                    const SizedBox(width: 5),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.bold,
+                        color: badgeColor,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

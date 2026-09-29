@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/page_header.dart';
 import '../widgets/rx_pad_widget.dart';
 
 class PrescriptionView extends StatefulWidget {
@@ -171,35 +173,25 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     final allPatients = PatientRepository.getAllPatients();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(PageHeader.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Banner
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Prescriptions Workspace', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                  SizedBox(height: 4),
-                  Text('Create, preview, and print clinical eye prescriptions.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                ],
+          PageHeader(
+            title: 'Prescriptions Workspace',
+            subtitle: 'Create, preview, and print clinical eye prescriptions.',
+            action: ElevatedButton.icon(
+              onPressed: _medications.isEmpty ? null : _savePrescription,
+              icon: const Icon(Icons.picture_as_pdf, size: 18),
+              label: const Text('Generate Printable PDF'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               ),
-              ElevatedButton.icon(
-                onPressed: _medications.isEmpty ? null : _savePrescription,
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Generate Printable PDF'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 24),
 
           // Patient Selector Bar
           Card(
@@ -218,34 +210,21 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   const Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ClinicalModalPickerField<Patient>(
+                    child: ClinicalDropdownField<Patient>(
                       placeholder: 'Search & select patient...',
-                      displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : '',
-                      icon: Icons.person_rounded,
-                      onTap: () async {
-                        final items = allPatients.map((p) {
-                          return ClinicalPickerItem<Patient>(
+                      value: _selectedPatient,
+                      displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : null,
+                      searchable: true,
+                      searchHint: 'Type patient name...',
+                      items: [
+                        for (final p in allPatients)
+                          ClinicalPickerItem<Patient>(
                             value: p,
                             label: p.fullName,
                             subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}',
-                            icon: Icons.person_rounded,
-                            iconColor: AppTheme.primaryBlue,
-                          );
-                        }).toList();
-
-                        final selected = await showClinicalModalPicker<Patient>(
-                          context: context,
-                          title: 'Select Patient for Prescription',
-                          searchHint: 'Type patient name or MRN...',
-                          enableSearch: true,
-                          selectedValue: _selectedPatient,
-                          items: items,
-                        );
-
-                        if (selected != null) {
-                          setState(() => _selectedPatient = selected);
-                        }
-                      },
+                          ),
+                      ],
+                      onChanged: (patient) => setState(() => _selectedPatient = patient),
                     ),
                   ),
                 ],

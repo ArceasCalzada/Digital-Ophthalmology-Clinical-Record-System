@@ -7,6 +7,8 @@ import 'config/app_limits.dart';
 import 'firebase_options.dart';
 import 'models/patient.dart';
 import 'services/auth_service.dart';
+import 'services/clinic_store.dart';
+import 'services/dev_auth_backend.dart';
 import 'services/draft_manager_service.dart';
 import 'services/offline_sync_service.dart';
 import 'theme/app_theme.dart';
@@ -18,9 +20,18 @@ import 'widgets/inactivity_guard.dart';
 /// `flutter build web --dart-define=DOCRS_RECAPTCHA_SITE_KEY=<key>`
 const String _recaptchaSiteKey = String.fromEnvironment('DOCRS_RECAPTCHA_SITE_KEY');
 
+/// UI-only mode: no Firebase, no real data, any login works. See [DevAuthBackend].
+/// Run with `--dart-define=DOCRS_UI_DEV=true`.
+const bool _uiDevFlag = bool.fromEnvironment('DOCRS_UI_DEV');
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initFirebase();
+  if (DevAuthBackend.isEnabled(flag: _uiDevFlag, isWeb: kIsWeb, webHost: Uri.base.host)) {
+    debugPrint('DOCRS UI dev mode: Firebase is NOT connected; data is in memory only.');
+    await AuthService.instance.attach(DevAuthBackend());
+  } else {
+    await _initFirebase();
+  }
 
   await PatientRepository.init();
   runApp(const OphthalmologyApp());
@@ -108,6 +119,8 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
   }
 
   void _onSignedIn() {
+    final uid = AuthService.instance.user?.uid;
+    if (uid != null) ClinicStore.instance.load(uid);
     PatientRepository.connect();
     final sync = OfflineSyncService();
     sync.startAutoSyncTimer();
@@ -115,6 +128,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
   }
 
   void _onSignedOut() {
+    ClinicStore.instance.unload();
     PatientRepository.disconnect();
     OfflineSyncService().stopAutoSyncTimer();
     DraftManagerService().clearAllDrafts();

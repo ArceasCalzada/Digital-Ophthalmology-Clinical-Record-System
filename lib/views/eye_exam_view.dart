@@ -6,6 +6,7 @@ import '../models/drawing_stroke.dart';
 import '../widgets/drawing/paper_sheet_canvas.dart';
 import '../widgets/pdf_exam_preview_dialog.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_header.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
 
@@ -406,25 +407,22 @@ class _EyeExamViewState extends State<EyeExamView> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        title: Row(
+        // Same title/subtitle sizes as every other page header (see PageHeader).
+        toolbarHeight: 76,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.draw, color: AppTheme.primaryBlue, size: 20),
+            Text(
+              _activePatient.fullName.isNotEmpty ? _activePatient.fullName : 'New Patient',
+              style: PageHeader.titleStyle,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _activePatient.fullName.isNotEmpty
-                    ? '${_activePatient.fullName} • Clinical Consultation Record'
-                    : 'New Patient Consultation Record',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
-                overflow: TextOverflow.ellipsis,
-              ),
+            const SizedBox(height: 4),
+            const Text(
+              'Clinical Consultation Record',
+              style: PageHeader.subtitleStyle,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

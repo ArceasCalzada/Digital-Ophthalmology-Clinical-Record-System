@@ -280,12 +280,19 @@ describe('patient document validation', () => {
     await assertSucceeds(createPatientBatch(as('staff1'), 'pmax', {
       mrn: long, fullName: long, middleName: long, dateOfBirth: long, gender: long, phone: long,
       address: long, occupation: long, phicNumber: long, referringDoctor: long, lastVisitDate: long,
+      notes: 'n'.repeat(1000),
       medicalHistory: Array(15).fill('m'.repeat(300)),
       allergies: Array(15).fill('a'.repeat(300)),
       previousDiagnoses: Array(10).fill('d'.repeat(300)),
       previousPrescriptions: Array(10).fill('r'.repeat(300)),
       totalVisits: 100000,
     }));
+  });
+
+  test('general notes: accepted up to 1000 characters, refused when longer or not text', async () => {
+    await assertSucceeds(createPatientBatch(as('staff1'), 'pn1', { notes: 'n'.repeat(1000) }));
+    await assertFails(createPatientBatch(as('staff1'), 'pn2', { notes: 'n'.repeat(1001) }));
+    await assertFails(createPatientBatch(as('staff1'), 'pn3', { notes: 42 }));
   });
 
   test('rejects too many list entries', async () => {

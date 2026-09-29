@@ -3,15 +3,25 @@ import 'package:flutter/material.dart';
 import '../models/calendar_event.dart';
 import '../models/clinical_notification.dart';
 import '../models/patient.dart';
+import '../services/event_options_store.dart';
+import '../services/reminder_settings_store.dart';
 import '../theme/app_theme.dart';
+import 'clinical_date_picker.dart';
+import 'clinical_dropdown_field.dart';
 import 'clinical_modal_picker.dart';
+import 'clinical_time_picker.dart';
+import 'required_text_form_field.dart';
+import 'field_label.dart';
 
 class AddEventModal extends StatefulWidget {
   final DateTime? initialDate;
 
-  const AddEventModal({super.key, this.initialDate});
+  /// When set, the modal edits this event instead of creating a new one.
+  final CalendarEvent? event;
 
-  static Future<void> show(BuildContext context, {DateTime? initialDate}) async {
+  const AddEventModal({super.key, this.initialDate, this.event});
+
+  static Future<void> show(BuildContext context, {DateTime? initialDate, CalendarEvent? event}) async {
     final isMobile = MediaQuery.of(context).size.width < 600;
     if (isMobile) {
       await showModalBottomSheet(
@@ -22,7 +32,7 @@ class AddEventModal extends StatefulWidget {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
-          child: AddEventModal(initialDate: initialDate),
+          child: AddEventModal(initialDate: initialDate, event: event),
         ),
       );
     } else {
@@ -32,7 +42,7 @@ class AddEventModal extends StatefulWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: AddEventModal(initialDate: initialDate),
+            child: AddEventModal(initialDate: initialDate, event: event),
           ),
         ),
       );
@@ -50,42 +60,36 @@ class _AddEventModalState extends State<AddEventModal> {
 
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
-  String _selectedEventType = 'Checkup';
-  String _selectedLocation = 'Davao';
-  int _selectedReminderMinutes = 30;
+  // Not assumed: the user picks these, and both are optional.
+  String? _selectedEventType;
+  String? _selectedLocation;
   Patient? _selectedPatient;
 
-  final List<String> _eventTypes = [
-    'Checkup',
-    'Surgery',
-    'Follow-up',
-    'IOP Check',
-    'Emergency',
-    'Laser Procedure',
-  ];
+  final _options = EventOptionsStore.instance;
 
-  final List<String> _locations = [
-    'Davao',
-    'Bukidnon',
-    'General Santos',
-    'OR Suite 3',
-    'Exam Room 1',
-    'Exam Room 2',
-  ];
-
-  final List<Map<String, dynamic>> _reminderOptions = [
-    {'label': '15 minutes before', 'value': 15},
-    {'label': '30 minutes before', 'value': 30},
-    {'label': '1 hour before', 'value': 60},
-    {'label': '1 day before', 'value': 1440},
-  ];
 
   @override
   void initState() {
     super.initState();
+    final editing = widget.event;
+    final patients = PatientRepository.getAllPatients();
+    if (editing != null) {
+      _titleController.text = editing.title;
+      _notesController.text = editing.notes;
+      _selectedDate = editing.dateTime;
+      _selectedTime = TimeOfDay.fromDateTime(editing.dateTime);
+      _selectedEventType = editing.eventType.isEmpty ? null : editing.eventType;
+      _selectedLocation = editing.location.isEmpty ? null : editing.location;
+      for (final p in patients) {
+        if (p.mrn == editing.patientId) {
+          _selectedPatient = p;
+          break;
+        }
+      }
+      return;
+    }
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 1)));
-    final patients = PatientRepository.getAllPatients();
     if (patients.isNotEmpty) {
       _selectedPatient = patients.first;
     }
@@ -98,25 +102,31 @@ class _AddEventModalState extends State<AddEventModal> {
     super.dispose();
   }
 
+  /// "None" (always offered, so an optional choice can be cleared) plus the clinic's list.
+  /// An event saved with a name that has since been deleted still shows it when edited.
+  List<ClinicalPickerItem<String>> _choices(List<String> saved, String? selected) {
+    return [
+      const ClinicalPickerItem<String>(value: '', label: 'None', removable: false),
+      for (final name in saved) ClinicalPickerItem<String>(value: name, label: name),
+      if (selected != null && !saved.contains(selected))
+        ClinicalPickerItem<String>(value: selected, label: selected, removable: false),
+    ];
+  }
+
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    // Widen the range so an existing event outside the default window can still be edited.
+    final now = DateTime.now();
+    var firstDate = DateTime(now.year - 5, 1, 1);
+    var lastDate = DateTime(now.year + 10, 12, 31);
+    if (_selectedDate.isBefore(firstDate)) firstDate = _selectedDate;
+    if (_selectedDate.isAfter(lastDate)) lastDate = _selectedDate;
+
+    // The app-wide date picker, so event dates look like every other date selection.
+    final picked = await showClinicalDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppTheme.primaryBlue,
-              onPrimary: Colors.white,
-              surface: AppTheme.cardBg,
-              onSurface: AppTheme.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -124,23 +134,8 @@ class _AddEventModalState extends State<AddEventModal> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppTheme.primaryBlue,
-              onPrimary: Colors.white,
-              surface: AppTheme.cardBg,
-              onSurface: AppTheme.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+    // The app-wide time picker, so event times look like every other time selection.
+    final picked = await showClinicalTimePicker(context: context, initialTime: _selectedTime);
     if (picked != null) {
       setState(() => _selectedTime = picked);
     }
@@ -157,19 +152,46 @@ class _AddEventModalState extends State<AddEventModal> {
         _selectedTime.minute,
       );
 
+      final editing = widget.event;
       final newEvent = CalendarEvent(
-        id: 'evt-${DateTime.now().millisecondsSinceEpoch}',
-        title: title.isEmpty
-            ? '$_selectedEventType — ${_selectedPatient?.fullName ?? 'Patient'}'
-            : title,
-        eventType: _selectedEventType,
-        location: _selectedLocation,
+        id: editing?.id ?? 'evt-${DateTime.now().millisecondsSinceEpoch}',
+        title: title,
+        eventType: _selectedEventType ?? '',
+        location: _selectedLocation ?? '',
         dateTime: dt,
-        patientName: _selectedPatient?.fullName ?? 'Scheduled Patient',
-        patientId: _selectedPatient?.mrn,
-        reminderMinutes: _selectedReminderMinutes,
+        patientName: _selectedPatient?.fullName ?? editing?.patientName ?? 'Scheduled Patient',
+        patientId: _selectedPatient?.mrn ?? editing?.patientId,
+        // Not asked per event: a new one takes the reminder time chosen in Settings,
+        // and an edited one keeps the time it was saved with.
+        reminderMinutes: editing?.reminderMinutes ?? ReminderSettingsStore.instance.minutesBefore,
         notes: _notesController.text.trim(),
+        isCompleted: editing?.isCompleted ?? false,
       );
+
+      if (editing != null) {
+        CalendarEventRepository().updateEvent(newEvent);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Event "${newEvent.title}" updated successfully!',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+        return;
+      }
 
       CalendarEventRepository().addEvent(newEvent);
 
@@ -252,26 +274,13 @@ class _AddEventModalState extends State<AddEventModal> {
                   Expanded(
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.calendar_month_rounded,
-                            color: AppTheme.primaryBlue,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Add Clinical Event',
-                                style: TextStyle(
+                                widget.event != null ? 'Edit Clinical Event' : 'Add Clinical Event',
+                                style: const TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.textPrimary,
@@ -279,8 +288,10 @@ class _AddEventModalState extends State<AddEventModal> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                'Schedule appointment or procedure',
-                                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                widget.event != null
+                                    ? 'Modify appointment or procedure'
+                                    : 'Schedule appointment or procedure',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -298,115 +309,70 @@ class _AddEventModalState extends State<AddEventModal> {
               const SizedBox(height: 20),
 
               // Event Title Field
-              const Text(
-                'Event Title',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
+              const FieldLabel('Event Title', required: true),
               const SizedBox(height: 6),
-              TextFormField(
+              RequiredTextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
                   hintText: 'e.g. Glaucoma Consultation & IOP Check',
-                  prefixIcon: Icon(Icons.event_note, color: AppTheme.primaryBlue, size: 20),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Select Patient Dropdown
-              // Select Patient Modal Field
-              ClinicalModalPickerField<Patient>(
-                label: 'Patient Name',
+              // Patient: a dropdown with a search box (there can be hundreds of patients)
+              ClinicalDropdownField<Patient>(
+                label: const FieldLabel('Patient Name'),
                 placeholder: 'Select patient...',
-                displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : '',
-                icon: Icons.person_rounded,
-                onTap: () async {
-                  final items = allPatients.map((p) {
-                    return ClinicalPickerItem<Patient>(
+                value: _selectedPatient,
+                displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : null,
+                searchable: true,
+                searchHint: 'Search patient by name...',
+                items: [
+                  for (final p in allPatients)
+                    ClinicalPickerItem<Patient>(
                       value: p,
                       label: p.fullName,
                       subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs',
-                      icon: Icons.person_rounded,
-                      iconColor: AppTheme.primaryBlue,
-                    );
-                  }).toList();
-
-                  final selected = await showClinicalModalPicker<Patient>(
-                    context: context,
-                    title: 'Select Patient for Appointment',
-                    enableSearch: true,
-                    searchHint: 'Search patient by name or MRN...',
-                    selectedValue: _selectedPatient,
-                    items: items,
-                  );
-
-                  if (selected != null) {
-                    setState(() => _selectedPatient = selected);
-                  }
-                },
+                    ),
+                ],
+                onChanged: (patient) => setState(() => _selectedPatient = patient),
               ),
               const SizedBox(height: 16),
 
               // Event Type & Location (Row on wider screens, stacked on narrow mobile)
-              LayoutBuilder(
+              ListenableBuilder(
+                listenable: _options,
+                builder: (context, _) => LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 360;
-                  final typeField = ClinicalModalPickerField<String>(
-                    label: 'Event Type',
-                    placeholder: 'Select event type',
-                    displayText: _selectedEventType,
-                    icon: Icons.event_rounded,
-                    onTap: () async {
-                      final items = _eventTypes.map((t) {
-                        return ClinicalPickerItem<String>(
-                          value: t,
-                          label: t,
-                          icon: Icons.calendar_month_rounded,
-                          iconColor: AppTheme.primaryBlue,
-                        );
-                      }).toList();
-
-                      final selected = await showClinicalModalPicker<String>(
-                        context: context,
-                        title: 'Select Event Type',
-                        selectedValue: _selectedEventType,
-                        items: items,
-                      );
-
-                      if (selected != null) {
-                        setState(() => _selectedEventType = selected);
-                      }
+                  // The clinic's own lists can be added to and deleted from right in the dropdown.
+                  final typeField = ClinicalDropdownField<String>(
+                    label: const FieldLabel('Event Type'),
+                    placeholder: 'None',
+                    value: _selectedEventType,
+                    items: _choices(_options.types, _selectedEventType),
+                    onChanged: (v) => setState(() => _selectedEventType = v.isEmpty ? null : v),
+                    itemNoun: 'event type',
+                    maxNameLength: EventOptionsStore.maxNameLength,
+                    onAdd: _options.addType,
+                    onRemove: (v) {
+                      _options.removeType(v);
+                      if (_selectedEventType == v) setState(() => _selectedEventType = null);
                     },
                   );
 
-                  final locationField = ClinicalModalPickerField<String>(
-                    label: 'Location',
-                    placeholder: 'Select location',
-                    displayText: _selectedLocation,
-                    icon: Icons.location_on_rounded,
-                    onTap: () async {
-                      final items = _locations.map((loc) {
-                        return ClinicalPickerItem<String>(
-                          value: loc,
-                          label: loc,
-                          icon: Icons.local_hospital_rounded,
-                          iconColor: const Color(0xFF10B981),
-                        );
-                      }).toList();
-
-                      final selected = await showClinicalModalPicker<String>(
-                        context: context,
-                        title: 'Select Location / Room',
-                        selectedValue: _selectedLocation,
-                        items: items,
-                      );
-
-                      if (selected != null) {
-                        setState(() => _selectedLocation = selected);
-                      }
+                  final locationField = ClinicalDropdownField<String>(
+                    label: const FieldLabel('Location'),
+                    placeholder: 'None',
+                    value: _selectedLocation,
+                    items: _choices(_options.locations, _selectedLocation),
+                    onChanged: (v) => setState(() => _selectedLocation = v.isEmpty ? null : v),
+                    itemNoun: 'location',
+                    maxNameLength: EventOptionsStore.maxNameLength,
+                    onAdd: _options.addLocation,
+                    onRemove: (v) {
+                      _options.removeLocation(v);
+                      if (_selectedLocation == v) setState(() => _selectedLocation = null);
                     },
                   );
 
@@ -421,6 +387,7 @@ class _AddEventModalState extends State<AddEventModal> {
                   }
 
                   return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: typeField),
                       const SizedBox(width: 12),
@@ -428,18 +395,12 @@ class _AddEventModalState extends State<AddEventModal> {
                     ],
                   );
                 },
+                ),
               ),
               const SizedBox(height: 16),
 
               // Date & Time Touch Pickers
-              const Text(
-                'Schedule Date & Time',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
+              const FieldLabel('Schedule Date & Time', required: true),
               const SizedBox(height: 6),
               Row(
                 children: [
@@ -508,35 +469,6 @@ class _AddEventModalState extends State<AddEventModal> {
               ),
               const SizedBox(height: 16),
 
-              // Reminder Alert Modal Field
-              ClinicalModalPickerField<int>(
-                label: 'Notification Reminder Alert',
-                placeholder: 'Select reminder time',
-                displayText: _reminderOptions.firstWhere((r) => r['value'] == _selectedReminderMinutes)['label'] as String,
-                icon: Icons.notifications_active_rounded,
-                onTap: () async {
-                  final items = _reminderOptions.map((r) {
-                    return ClinicalPickerItem<int>(
-                      value: r['value'] as int,
-                      label: r['label'] as String,
-                      icon: Icons.alarm_rounded,
-                      iconColor: const Color(0xFFD97706),
-                    );
-                  }).toList();
-
-                  final selected = await showClinicalModalPicker<int>(
-                    context: context,
-                    title: 'Select Notification Reminder',
-                    selectedValue: _selectedReminderMinutes,
-                    items: items,
-                  );
-
-                  if (selected != null) {
-                    setState(() => _selectedReminderMinutes = selected);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
 
               // Notes Input
               const Text(
@@ -563,9 +495,9 @@ class _AddEventModalState extends State<AddEventModal> {
                 child: ElevatedButton.icon(
                   onPressed: _saveEvent,
                   icon: const Icon(Icons.check_rounded, size: 22),
-                  label: const Text(
-                    'Confirm & Save Event',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    widget.event != null ? 'Save Changes' : 'Confirm & Save Event',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,

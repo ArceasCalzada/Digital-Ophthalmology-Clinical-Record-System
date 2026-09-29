@@ -421,6 +421,12 @@ class _PatientProfileViewState extends State<PatientProfileView> {
               ),
             ],
           ),
+          if (_patient.notes.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+            const SizedBox(height: 8),
+            Text(_patient.notes, style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4)),
+          ],
           const SizedBox(height: 24),
           const Divider(color: AppTheme.borderColor),
           const SizedBox(height: 16),

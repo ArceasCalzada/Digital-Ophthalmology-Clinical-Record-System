@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/required_text_form_field.dart';
 
 class LoginView extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -171,7 +172,7 @@ class _LoginViewState extends State<LoginView> {
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
                             const SizedBox(height: 8),
-                            TextFormField(
+                            RequiredTextFormField(
                               controller: _emailController,
                               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                               decoration: InputDecoration(
@@ -180,10 +181,6 @@ class _LoginViewState extends State<LoginView> {
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                               ),
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) return 'Enter your email';
-                                return null;
-                              },
                             ),
                             const SizedBox(height: 18),
 
@@ -192,7 +189,7 @@ class _LoginViewState extends State<LoginView> {
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
                             const SizedBox(height: 8),
-                            TextFormField(
+                            RequiredTextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
@@ -212,10 +209,6 @@ class _LoginViewState extends State<LoginView> {
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                               ),
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) return 'Enter password';
-                                return null;
-                              },
                             ),
                             const SizedBox(height: 10),
 

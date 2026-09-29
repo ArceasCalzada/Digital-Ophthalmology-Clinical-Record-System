@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
+import '../widgets/account_menu.dart';
+import '../widgets/clinic_dialogs.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/sync_status_indicator.dart';
 import 'calendar_page_view.dart';
@@ -11,6 +13,8 @@ import 'notification_center_view.dart';
 import 'patient_profile_view.dart';
 import 'patients_screen.dart';
 import 'prescription_view.dart';
+import 'profile_view.dart';
+import 'teams_view.dart';
 import 'settings_view.dart';
 
 class MainLayout extends StatefulWidget {
@@ -28,6 +32,7 @@ class _MainLayoutState extends State<MainLayout> {
   Patient? _selectedPatient;
   bool _isExamMode = false;
   bool _isSidebarCollapsed = false;
+  DateTime? _calendarStartDate; // day picked on the dashboard calendar, if any
   final _searchController = TextEditingController();
 
   void _navigateToPatientProfile(Patient patient) {
@@ -39,11 +44,14 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  void _startExamForPatient(Patient? patient, {bool isMobileScreen = false}) {
+  Future<void> _startExamForPatient(Patient? patient, {bool isMobileScreen = false}) async {
     if (isMobileScreen) {
       _showMobileExamNotice();
       return;
     }
+    // An exam with no patient chosen starts a new record, which needs a clinic to go in.
+    if (patient == null && !await ensureClinic(context)) return;
+    if (!mounted) return;
     setState(() {
       _selectedPatient = patient;
       _isExamMode = true;
@@ -130,7 +138,7 @@ class _MainLayoutState extends State<MainLayout> {
             }
           },
           decoration: const InputDecoration(
-            hintText: 'Enter patient name, MRN, or phone...',
+            hintText: 'Enter patient name or phone...',
             prefixIcon: Icon(Icons.search, color: AppTheme.primaryBlue),
           ),
         ),
@@ -210,10 +218,19 @@ class _MainLayoutState extends State<MainLayout> {
           onSelectPatient: _navigateToPatientProfile,
           onStartExam: (p) => _startExamForPatient(p, isMobileScreen: false),
           onOpenPrescription: (p) => _openPrescriptionForPatient(p, isMobileScreen: false),
+          onOpenCalendar: (date) => setState(() {
+            _calendarStartDate = date;
+            _selectedIndex = 1;
+          }),
         );
       case 1:
+        // The page reads this only when it opens, so it is used up right away and
+        // reaching the calendar from the sidebar later starts on today again.
+        final startDate = _calendarStartDate;
+        _calendarStartDate = null;
         return CalendarPageView(
           onSelectPatient: _navigateToPatientProfile,
+          initialDate: startDate,
         );
       case 2:
         if (_selectedPatient != null) {
@@ -247,6 +264,10 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case 5:
         return const SettingsView();
+      case 6:
+        return const ProfileView();
+      case 7:
+        return const TeamsView();
       default:
         return DashboardScreen(
           onSelectPatient: _navigateToPatientProfile,
@@ -468,7 +489,9 @@ class _MainLayoutState extends State<MainLayout> {
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryBlue),
                       tooltip: 'Add Event',
-                      onPressed: () => AddEventModal.show(context),
+                      onPressed: () async {
+                        if (await ensureClinic(context) && context.mounted) AddEventModal.show(context);
+                      },
                     ),
                     IconButton(
                       icon: const Icon(Icons.search, color: AppTheme.textPrimary),
@@ -494,7 +517,25 @@ class _MainLayoutState extends State<MainLayout> {
                             color: AppTheme.cardBg,
                             border: Border(right: BorderSide(color: AppTheme.borderColor)),
                           ),
-                          child: _buildSidebarContent(isDrawer: false),
+                          // While the width animates, keep the expanded layout at its full 240px and
+                          // let the shrinking box clip it. Squeezing it into the in-between widths
+                          // wrapped the labels ("Notificatio ns"). The icon-only layout is used only
+                          // once the sidebar has actually reached its collapsed width.
+                          child: LayoutBuilder(
+                            builder: (context, sidebar) {
+                              if (_isSidebarCollapsed && sidebar.maxWidth <= 72.5) {
+                                return _buildSidebarContent(isDrawer: false, collapsed: true);
+                              }
+                              return ClipRect(
+                                child: OverflowBox(
+                                  alignment: Alignment.centerLeft,
+                                  minWidth: 240,
+                                  maxWidth: 240,
+                                  child: _buildSidebarContent(isDrawer: false),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                         Expanded(
                           child: SizedBox(
@@ -586,14 +627,14 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildSidebarContent({bool isDrawer = false}) {
-    final collapsed = isDrawer ? false : _isSidebarCollapsed;
-
+  Widget _buildSidebarContent({bool isDrawer = false, bool collapsed = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.all(collapsed ? 12 : 16),
+          // Same height in both layouts (so nothing jumps when they swap); the collapsed rail
+          // is 72px wide minus a 1px border, so its logo needs the narrower side padding.
+          padding: EdgeInsets.symmetric(horizontal: collapsed ? 12 : 16, vertical: 16),
           child: Row(
             mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
@@ -632,18 +673,20 @@ class _MainLayoutState extends State<MainLayout> {
         else
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
-            child: Center(child: SyncStatusIndicator(compact: true)),
+            child: Center(child: SyncStatusIndicator(compact: true, iconOnly: true)),
           ),
         const SizedBox(height: 6),
         const Divider(height: 1, color: AppTheme.borderColor),
         Expanded(
-          child: SingleChildScrollView(
+          child: _ScrollEdgeShadow(
+            builder: (controller) => SingleChildScrollView(
+            controller: controller,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-                _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isDrawer: isDrawer),
-                _buildNavItem(1, Icons.calendar_month_outlined, Icons.calendar_month, 'Calendar', isDrawer: isDrawer),
+                _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isDrawer: isDrawer, collapsed: collapsed),
+                _buildNavItem(1, Icons.calendar_month_outlined, Icons.calendar_month, 'Calendar', isDrawer: isDrawer, collapsed: collapsed),
                 const SizedBox(height: 14),
                 if (!collapsed)
                   const Padding(
@@ -664,9 +707,9 @@ class _MainLayoutState extends State<MainLayout> {
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Divider(height: 1, color: AppTheme.borderColor),
                   ),
-                _buildNavItem(2, Icons.folder_shared_outlined, Icons.folder_shared, 'Records', isDrawer: isDrawer),
-                _buildNavItem(3, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer),
-                _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer),
+                _buildNavItem(2, Icons.folder_shared_outlined, Icons.folder_shared, 'Records', isDrawer: isDrawer, collapsed: collapsed),
+                _buildNavItem(3, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer, collapsed: collapsed),
+                _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer, collapsed: collapsed),
                 if (_selectedPatient != null && !collapsed)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -708,6 +751,7 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ),
@@ -768,19 +812,6 @@ class _MainLayoutState extends State<MainLayout> {
                       fontSize: 14,
                     ),
                   ),
-                  trailing: unread > 0
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$unread NEW',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        )
-                      : null,
                   onTap: () => _showNotificationCenterModal(context),
                 ),
               ),
@@ -788,49 +819,28 @@ class _MainLayoutState extends State<MainLayout> {
           },
         ),
         const Divider(height: 1, color: AppTheme.borderColor),
-        const SizedBox(height: 4),
-        _buildNavItem(5, Icons.settings_outlined, Icons.settings, 'Settings', isDrawer: isDrawer),
-        const SizedBox(height: 4),
-        const Divider(height: 1, color: AppTheme.borderColor),
-        Padding(
-          padding: EdgeInsets.all(collapsed ? 10 : 12),
-          child: Row(
-            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                child: const Text('SR', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
-              ),
-              if (!collapsed) ...[
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Dr. Sigrid Robillos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary), overflow: TextOverflow.ellipsis),
-                      Text('Ophthalmologist', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                    ],
-                  ),
-                ),
-                Tooltip(
-                  message: 'Sign Out of Workstation',
-                  child: IconButton(
-                    icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFE11D48)),
-                    onPressed: widget.onLogout,
-                  ),
-                ),
-              ],
-            ],
-          ),
+        AccountMenuTrigger(
+          collapsed: collapsed,
+          onOpenProfile: () {
+            setState(() => _selectedIndex = 6);
+            if (isDrawer) Navigator.pop(context);
+          },
+          onOpenTeams: () {
+            setState(() => _selectedIndex = 7);
+            if (isDrawer) Navigator.pop(context);
+          },
+          onOpenSettings: () {
+            setState(() => _selectedIndex = 5);
+            if (isDrawer) Navigator.pop(context);
+          },
+          onLogout: widget.onLogout,
         ),
       ],
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String title, {bool isDrawer = false}) {
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String title, {bool isDrawer = false, bool collapsed = false}) {
     final isSelected = _selectedIndex == index;
-    final collapsed = isDrawer ? false : _isSidebarCollapsed;
 
     if (collapsed) {
       return Padding(
@@ -893,6 +903,90 @@ class _MainLayoutState extends State<MainLayout> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Wraps a scrollable and draws a soft gray shadow along its bottom edge while more
+/// content is hidden below, so items don't look abruptly cut off by whatever sits under it.
+class _ScrollEdgeShadow extends StatefulWidget {
+  final Widget Function(ScrollController controller) builder;
+
+  const _ScrollEdgeShadow({required this.builder});
+
+  @override
+  State<_ScrollEdgeShadow> createState() => _ScrollEdgeShadowState();
+}
+
+class _ScrollEdgeShadowState extends State<_ScrollEdgeShadow> {
+  final ScrollController _controller = ScrollController();
+  bool _moreBelow = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_update);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _update() {
+    if (!mounted || !_controller.hasClients) return;
+    _setMoreBelow(_controller.position);
+  }
+
+  void _setMoreBelow(ScrollMetrics metrics) {
+    final moreBelow = metrics.maxScrollExtent - metrics.pixels > 1;
+    if (moreBelow != _moreBelow) {
+      setState(() => _moreBelow = moreBelow);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Window resizes or the patient card appearing change the overflow without scrolling.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+
+    return Stack(
+      children: [
+        // Fires when the scrollable's size or content changes (e.g. the sidebar
+        // animating open or closed), which scrolling alone does not report.
+        NotificationListener<ScrollMetricsNotification>(
+          onNotification: (notification) {
+            _setMoreBelow(notification.metrics);
+            return false;
+          },
+          child: widget.builder(_controller),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 22,
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: _moreBelow ? 1 : 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0),
+                      Colors.black.withValues(alpha: 0.12),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

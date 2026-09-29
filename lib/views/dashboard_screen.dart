@@ -1,21 +1,27 @@
+import '../widgets/clinic_dialogs.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../models/calendar_event.dart';
 import '../models/patient.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/page_header.dart';
 import 'new_patient_modal.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(Patient)? onSelectPatient;
   final Function(Patient?)? onStartExam;
   final Function(Patient)? onOpenPrescription;
+  /// Opens the calendar page. [date] is the day to select, or null to open it as-is.
+  final ValueChanged<DateTime?>? onOpenCalendar;
 
   const DashboardScreen({
     super.key,
     this.onSelectPatient,
     this.onStartExam,
     this.onOpenPrescription,
+    this.onOpenCalendar,
   });
 
   @override
@@ -57,14 +63,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  String _getMonthName(int month) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
-  }
-
   void _loadDashboardData() {
     setState(() {
       _allPatients = PatientRepository.getAllPatients();
@@ -83,7 +81,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  void _openNewPatientModal() {
+  Future<void> _openNewPatientModal() async {
+    if (!await ensureClinic(context) || !mounted) return;
     showDialog(
       context: context,
       builder: (context) => NewPatientModal(
@@ -178,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       autofocus: true,
                       onChanged: (val) => setModalState(() => filterText = val),
                       decoration: InputDecoration(
-                        hintText: 'Search by patient name, MRN, or phone...',
+                        hintText: 'Search by patient name or phone...',
                         hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                         prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.primaryBlue),
                         border: OutlineInputBorder(
@@ -227,7 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                   title: Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  subtitle: Text('${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}', style: const TextStyle(fontSize: 12)),
+                                  subtitle: Text('${p.mrn} â€¢ ${p.gender}, ${p.age} yrs â€¢ ${p.phone}', style: const TextStyle(fontSize: 12)),
                                   trailing: ElevatedButton(
                                     onPressed: () {
                                       Navigator.pop(dialogCtx);
@@ -355,51 +354,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(PageHeader.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Doctor Greeting Header
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Good morning, Dr. Sigrid Robillos, MD',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary, letterSpacing: -0.5),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Manage patient records, review examination history, and create digital prescriptions.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-              ),
-            ],
+          const PageHeader(
+            title: 'Good morning, Dr. Sigrid Robillos, MD',
+            subtitle: 'Manage patient records, review examination history, and create digital prescriptions.',
           ),
-          const SizedBox(height: 20),
 
           // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 960;
-              if (isNarrow) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTodayQueueCard(isNarrow: true),
-                    const SizedBox(height: 16),
-                    _buildMiniCalendarCard(isNarrow: true),
-                  ],
-                );
-              }
+          // Both cards read the calendar's events, so they refresh when one is added or changed.
+          ListenableBuilder(
+            listenable: CalendarEventRepository(),
+            builder: (context, _) => LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 960;
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTodayQueueCard(isNarrow: true),
+                      const SizedBox(height: 16),
+                      _buildMiniCalendarCard(isNarrow: true),
+                    ],
+                  );
+                }
 
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildTodayQueueCard(isNarrow: false)),
-                  const SizedBox(width: 20),
-                  _buildMiniCalendarCard(isNarrow: false),
-                ],
-              );
-            },
+                // Wide: the queue card is as tall as the calendar and its list scrolls
+                // inside, so a long queue never stretches the calendar.
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildTodayQueueCard(isNarrow: false)),
+                      const SizedBox(width: 20),
+                      _buildMiniCalendarCard(isNarrow: false),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 28),
 
@@ -439,7 +435,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onChanged: _onSearchChanged,
                             style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                             decoration: const InputDecoration(
-                              hintText: 'Search patient by name, patient ID (MRN)...',
+                              hintText: 'Search patient by name or phone...',
                               hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                               filled: false,
                               fillColor: Colors.transparent,
@@ -593,7 +589,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            '${patient.mrn} • ${patient.gender}, ${patient.age} yrs • ${patient.phone}',
+                                            '${patient.mrn} â€¢ ${patient.gender}, ${patient.age} yrs â€¢ ${patient.phone}',
                                             style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                           ),
                                         ],
@@ -628,19 +624,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 24),
 
           // 4. Patient Records Grid Header (Always visible and intact)
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                'Clinical Patient Records (${_allPatients.length})',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-              ),
-              const Text(
-                'Access clinical history or launch digital eye examination',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-              ),
-            ],
+          const Text(
+            'Clinical Patient Records',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
           const SizedBox(height: 16),
 
@@ -707,7 +693,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                '${patient.mrn} • ${patient.gender}, ${patient.age}y',
+                                '${patient.mrn} â€¢ ${patient.gender}, ${patient.age}y',
                                 style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                               ),
                             ],
@@ -809,7 +795,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         showClinicalActionModal(
           context: context,
           title: 'Action for ${patient.fullName}',
-          subtitle: 'MRN: ${patient.mrn} • ${patient.age} yrs, ${patient.gender}',
+          subtitle: 'MRN: ${patient.mrn} â€¢ ${patient.age} yrs, ${patient.gender}',
           actions: [
             ClinicalActionItem(
               id: 'exam',
@@ -865,15 +851,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // =========================================================================
-  // CLINICAL MINI-CALENDAR CARD (NON-INTERACTIVE OVERVIEW)
+  // CLINICAL MINI-CALENDAR CARD (TAP TO OPEN THE CALENDAR PAGE)
   // =========================================================================
   Widget _buildMiniCalendarCard({bool isNarrow = false}) {
+    final onOpenCalendar = widget.onOpenCalendar;
     final now = DateTime.now();
-    final currentMonthName = _getMonthName(now.month);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final firstWeekday = DateTime(now.year, now.month, 1).weekday % 7; // 0 for Sun
 
+    // Days of this month that have at least one calendar event.
+    final daysWithEvents = {
+      for (final e in CalendarEventRepository().events)
+        if (e.dateTime.year == now.year && e.dateTime.month == now.month) e.dateTime.day,
+    };
+
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    // Time and date share one style in the calendar header.
+    const headerTextStyle = TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13);
 
     final weekRows = <Widget>[];
     for (int week = 0; week < 5; week++) {
@@ -885,41 +879,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
           dayCells.add(const Expanded(child: SizedBox(height: 28)));
         } else {
           final isToday = dayNumber == now.day;
-          final hasAppointments = [2, 10, 21, 24, 30].contains(dayNumber);
+          final hasAppointments = daysWithEvents.contains(dayNumber);
+          final date = DateTime(now.year, now.month, dayNumber);
 
           dayCells.add(
             Expanded(
-              child: Container(
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isToday ? AppTheme.primaryBlue : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      '$dayNumber',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
-                        color: isToday ? Colors.white : AppTheme.textPrimary,
+              child: Center(
+                child: SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: Material(
+                    color: isToday ? AppTheme.primaryBlue : Colors.transparent,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      key: Key('dashboard_calendar_day_$dayNumber'),
+                      customBorder: const CircleBorder(),
+                      hoverColor: AppTheme.primaryBlue.withValues(alpha: isToday ? 0.25 : 0.12),
+                      onTap: onOpenCalendar == null ? null : () => onOpenCalendar(date),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            '$dayNumber',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                              color: isToday ? Colors.white : AppTheme.textPrimary,
+                            ),
+                          ),
+                          // Blue dot under the number when the day has an event or reminder.
+                          if (hasAppointments)
+                            Positioned(
+                              bottom: 3,
+                              child: Container(
+                                key: const Key('dashboard_calendar_dot'),
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: isToday ? Colors.white : AppTheme.primaryBlue,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    if (hasAppointments && !isToday)
-                      Positioned(
-                        bottom: 1,
-                        child: Container(
-                          width: 4,
-                          height: 4,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primaryBlue,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -937,7 +943,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    return Container(
+    // Clicking the header opens the calendar as-is; clicking a day opens it on that day.
+    final header = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      // No fill of its own: the Material below paints it, so the hover ripple shows.
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(
+              formatClinicalDate(now.toString().substring(0, 10)),
+              style: headerTextStyle,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
+            style: headerTextStyle,
+          ),
+        ],
+      ),
+    );
+    const headerShape = RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16)));
+    final headerButton = Material(
+      color: const Color(0xFFF8FAFC),
+      shape: headerShape,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const Key('dashboard_mini_calendar_header'),
+        onTap: onOpenCalendar == null ? null : () => onOpenCalendar(null),
+        child: header,
+      ),
+    );
+
+    final card = Container(
+      key: const Key('dashboard_mini_calendar_body'),
       width: isNarrow ? double.infinity : 360,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -955,57 +999,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // STACKED DATE & TIME HEADER (Right on top of the Calendar)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-              border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.access_time_filled_rounded, color: AppTheme.primaryBlue, size: 18),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.calendar_today_rounded, color: AppTheme.primaryBlue, size: 12),
-                      const SizedBox(width: 4),
-                      Text(
-                        formatClinicalDate(now.toString().substring(0, 10)),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          if (onOpenCalendar == null)
+            headerButton
+          else
+            Tooltip(message: 'Open calendar', child: headerButton),
 
           // CALENDAR BODY
           Padding(
@@ -1013,25 +1010,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '$currentMonthName ${now.year}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Clinic Calendar',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
                 // Weekday headers
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1060,13 +1038,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+
+    return card;
   }
 
   // =========================================================================
   // TODAY'S PATIENT SCHEDULE / QUEUE CARD
   // =========================================================================
   Widget _buildTodayQueueCard({bool isNarrow = false}) {
-    final queue = PatientRepository.getTodayQueue();
+    final queue = CalendarEventRepository().getEventsForDay(DateTime.now());
+    final queueItems = _buildQueueItems(queue);
     return Container(
       width: isNarrow ? double.infinity : null,
       padding: const EdgeInsets.all(16),
@@ -1085,100 +1066,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Row(
-                  children: [
-                    Icon(Icons.people_alt_rounded, color: AppTheme.primaryBlue, size: 18),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Today's Patient Queue & Consultations",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${queue.length} Scheduled',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
-                ),
-              ),
-            ],
+          // Named "Schedules" (not "Patient Queue") because it will hold more than patient visits.
+          const Text(
+            'Schedules',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
-          ...queue.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Row(
+          if (isNarrow)
+            ...queueItems
+          else
+            // The Stack + Positioned.fill contributes no height of its own, so the
+            // card takes the calendar's height and the list scrolls within it.
+            Expanded(
+              child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      item.time,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.patient.fullName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
-                        ),
-                        Text(
-                          '${item.visitType} • ${item.patient.gender}, ${item.patient.age}y',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      if (widget.onStartExam != null) {
-                        widget.onStartExam!(item.patient);
-                      } else if (widget.onSelectPatient != null) {
-                        widget.onSelectPatient!(item.patient);
-                      }
-                    },
-                    icon: const Icon(Icons.draw, size: 12),
-                    label: const Text('Start Exam', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      side: const BorderSide(color: AppTheme.primaryBlue),
-                      foregroundColor: AppTheme.primaryBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    ),
+                  Positioned.fill(
+                    child: queue.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Nothing scheduled for today',
+                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                            ),
+                          )
+                        : ListView(padding: EdgeInsets.zero, children: queueItems),
                   ),
                 ],
               ),
-            );
-          }),
+            ),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildQueueItems(List<CalendarEvent> events) {
+    return [
+      for (final event in events)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: const Color(0xFFF8FAFC),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            child: InkWell(
+              key: Key('schedule_event_${event.id}'),
+              borderRadius: BorderRadius.circular(10),
+              onTap: widget.onOpenCalendar == null ? null : () => widget.onOpenCalendar!(event.dateTime),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        TimeOfDay.fromDateTime(event.dateTime).format(context),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            event.patientName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: AppTheme.textPrimary,
+                              decoration: event.isCompleted ? TextDecoration.lineThrough : null,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${event.title} • ${event.location}',
+                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (event.isCompleted)
+                      const Icon(Icons.check_circle, size: 16, color: Color(0xFF10B981)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+    ];
   }
 }

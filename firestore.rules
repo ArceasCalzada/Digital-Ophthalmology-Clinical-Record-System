@@ -94,7 +94,7 @@ service cloud.firestore {
     function validPatient(d, pid) {
       return d.keys().hasOnly([
           'id', 'mrn', 'fullName', 'middleName', 'dateOfBirth', 'gender', 'phone',
-          'address', 'occupation', 'phicNumber', 'referringDoctor', 'medicalHistory',
+          'address', 'occupation', 'phicNumber', 'referringDoctor', 'notes', 'medicalHistory',
           'allergies', 'previousDiagnoses', 'previousPrescriptions', 'lastVisitDate',
           'totalVisits', 'lastModified'])
         && d.keys().hasAll(['id', 'mrn', 'fullName', 'dateOfBirth', 'gender', 'phone', 'address'])
@@ -102,7 +102,7 @@ service cloud.firestore {
         && s(d, 'mrn', 300) && s(d, 'fullName', 300) && s(d, 'middleName', 300)
         && s(d, 'dateOfBirth', 300) && s(d, 'gender', 300) && s(d, 'phone', 300)
         && s(d, 'address', 300) && s(d, 'occupation', 300) && s(d, 'phicNumber', 300)
-        && sn(d, 'referringDoctor', 300) && s(d, 'lastVisitDate', 300)
+        && sn(d, 'referringDoctor', 300) && s(d, 'notes', 1000) && s(d, 'lastVisitDate', 300)
         && s(d, 'lastModified', 64)
         && optInt(d, 'totalVisits', 0, 100000)
         && strList(d.get('medicalHistory', []), 15, 4600)

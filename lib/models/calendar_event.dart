@@ -100,6 +100,31 @@ class CalendarEventRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateEvent(CalendarEvent updated) {
+    final idx = _events.indexWhere((e) => e.id == updated.id);
+    if (idx == -1) return;
+    _events[idx] = updated;
+    OfflineSyncService().enqueueMutation(
+      id: updated.id,
+      entityType: 'CalendarEvent',
+      action: 'UPDATE',
+      payload: {
+        'id': updated.id,
+        'title': updated.title,
+        'eventType': updated.eventType,
+        'location': updated.location,
+        'dateTime': updated.dateTime.toIso8601String(),
+        'patientName': updated.patientName,
+        'patientId': updated.patientId,
+        'notes': updated.notes,
+        'reminderMinutes': updated.reminderMinutes,
+        'isCompleted': updated.isCompleted,
+        'lastModified': DateTime.now().toIso8601String(),
+      },
+    );
+    notifyListeners();
+  }
+
   void toggleEventStatus(String id) {
     final idx = _events.indexWhere((e) => e.id == id);
     if (idx != -1) {
