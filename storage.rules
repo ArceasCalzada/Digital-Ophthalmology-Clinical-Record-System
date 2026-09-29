@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// DOCRS does not use Cloud Storage: drawings are stored as compact vector bytes
+// inside Firestore. Everything is denied so the bucket cannot be used to store
+// or serve files (which would cost storage and bandwidth).
+//
+// If a feature ever needs files, add a narrow rule here first: signed-in role
+// holders only, a `request.resource.size` limit, and a `contentType` allow-list.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

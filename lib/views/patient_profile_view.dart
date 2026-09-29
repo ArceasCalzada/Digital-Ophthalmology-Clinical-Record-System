@@ -26,6 +26,33 @@ class PatientProfileView extends StatefulWidget {
 }
 
 class _PatientProfileViewState extends State<PatientProfileView> {
+  @override
+  void initState() {
+    super.initState();
+    // Visits and prescriptions are not part of the patient directory; stream them
+    // for the patient being viewed.
+    PatientRepository.loadPatientDetails(widget.patientId);
+    PatientRepository.changeNotifier.addListener(_onRepositoryChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant PatientProfileView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.patientId != widget.patientId) {
+      PatientRepository.loadPatientDetails(widget.patientId);
+    }
+  }
+
+  @override
+  void dispose() {
+    PatientRepository.changeNotifier.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
+
+  void _onRepositoryChanged() {
+    if (mounted) setState(() {});
+  }
+
   Patient? get _patientNullable => PatientRepository.getPatientById(widget.patientId);
   Patient get _patient => _patientNullable!;
 

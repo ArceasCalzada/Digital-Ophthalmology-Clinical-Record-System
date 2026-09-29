@@ -7,6 +7,7 @@ import '../widgets/drawing/paper_sheet_canvas.dart';
 import '../widgets/pdf_exam_preview_dialog.dart';
 import '../theme/app_theme.dart';
 import 'prescription_view.dart';
+import '../services/drawing_codec.dart';
 
 class EyeExamView extends StatefulWidget {
   final Patient? patient;
@@ -290,7 +291,15 @@ class _EyeExamViewState extends State<EyeExamView> {
       if (v) medHist.add(k);
     });
 
-    PatientRepository.addEncounter(_activePatient.id, tempEncounter);
+    try {
+      PatientRepository.addEncounter(_activePatient.id, tempEncounter);
+    } on FormatException catch (e) {
+      _showSaveError(e.message);
+      return;
+    } on DrawingTooLargeException catch (e) {
+      _showSaveError(e.toString());
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -312,6 +321,17 @@ class _EyeExamViewState extends State<EyeExamView> {
       final updated = PatientRepository.getPatientById(_activePatient.id) ?? _activePatient;
       widget.onExamComplete!(updated);
     }
+  }
+
+  void _showSaveError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Not saved: $message'),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 7),
+      ),
+    );
   }
 
   void _showPdfPreview() {

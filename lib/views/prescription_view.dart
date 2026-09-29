@@ -85,7 +85,18 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       items: List.from(_medications),
     );
 
-    PatientRepository.addPrescription(_selectedPatient!.id, newRx);
+    try {
+      PatientRepository.addPrescription(_selectedPatient!.id, newRx);
+    } on FormatException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Not saved: ${e.message}'),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     _showPdfPreviewModal(newRx);
   }
 

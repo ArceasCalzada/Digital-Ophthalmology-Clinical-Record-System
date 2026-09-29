@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_limits.dart';
+import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
+import '../services/storage_optimization_service.dart';
 import 'encounter.dart';
 import 'prescription.dart';
 
@@ -141,6 +143,94 @@ class Patient {
         'totalVisits': totalVisits,
       };
 
+  /// Document stored at `patients/{id}`: demographics and a small visit summary
+  /// only. Encounters and prescriptions live in subcollections so this document
+  /// stays small no matter how many visits a patient has.
+  ///
+  /// Throws [FormatException] when a field is over its limit.
+  Map<String, dynamic> toFirestore() {
+    void requireLength(String label, String value, int max) {
+      if (value.length > max) {
+        throw FormatException('$label is too long (${value.length} characters, limit $max).');
+      }
+    }
+
+    List<String> requireList(String label, List<String> items, [int maxItems = AppLimits.maxListItems]) {
+      if (items.length > maxItems) {
+        throw FormatException('$label has too many entries (${items.length}, limit $maxItems).');
+      }
+      for (final item in items) {
+        requireLength(label, item, AppLimits.maxShortTextLength);
+      }
+      return items;
+    }
+
+    requireLength('Full name', fullName, AppLimits.maxShortTextLength);
+    requireLength('Middle name', middleName, AppLimits.maxShortTextLength);
+    requireLength('MRN', mrn, AppLimits.maxShortTextLength);
+    requireLength('Date of birth', dateOfBirth, AppLimits.maxShortTextLength);
+    requireLength('Gender', gender, AppLimits.maxShortTextLength);
+    requireLength('Phone', phone, AppLimits.maxShortTextLength);
+    requireLength('Address', address, AppLimits.maxShortTextLength);
+    requireLength('Occupation', occupation, AppLimits.maxShortTextLength);
+    requireLength('PHIC number', phicNumber, AppLimits.maxShortTextLength);
+    if (referringDoctor != null) requireLength('Referring doctor', referringDoctor!, AppLimits.maxShortTextLength);
+
+    return {
+      'id': id,
+      'mrn': mrn,
+      'fullName': fullName,
+      'middleName': middleName,
+      'dateOfBirth': dateOfBirth,
+      'gender': gender,
+      'phone': phone,
+      'address': address,
+      'occupation': occupation,
+      'phicNumber': phicNumber,
+      'referringDoctor': referringDoctor,
+      'medicalHistory': requireList('Medical history', medicalHistory),
+      'allergies': requireList('Allergies', allergies),
+      'previousDiagnoses': requireList(
+        'Previous diagnoses',
+        previousDiagnoses.take(AppLimits.maxDiagnosisSummary).toList(),
+        AppLimits.maxSummaryListItems,
+      ),
+      'previousPrescriptions': requireList('Previous prescriptions', previousPrescriptions, AppLimits.maxSummaryListItems),
+      'lastVisitDate': lastVisitDate,
+      'totalVisits': totalVisits,
+      'lastModified': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Patient copyWith({
+    List<String>? previousDiagnoses,
+    List<Prescription>? prescriptions,
+    List<Encounter>? encounters,
+    String? lastVisitDate,
+    int? totalVisits,
+  }) =>
+      Patient(
+        id: id,
+        mrn: mrn,
+        fullName: fullName,
+        middleName: middleName,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
+        phone: phone,
+        address: address,
+        occupation: occupation,
+        phicNumber: phicNumber,
+        referringDoctor: referringDoctor,
+        medicalHistory: medicalHistory,
+        allergies: allergies,
+        previousDiagnoses: previousDiagnoses ?? this.previousDiagnoses,
+        previousPrescriptions: previousPrescriptions,
+        prescriptions: prescriptions ?? this.prescriptions,
+        encounters: encounters ?? this.encounters,
+        lastVisitDate: lastVisitDate ?? this.lastVisitDate,
+        totalVisits: totalVisits ?? this.totalVisits,
+      );
+
   factory Patient.fromJson(Map<String, dynamic> json) {
     String extractString(List<String> keys, String defaultValue) {
       for (final key in keys) {
@@ -239,82 +329,166 @@ class Patient {
   }
 }
 
+/// Thrown when adding a patient would exceed [AppLimits.maxPatients].
+class PatientLimitReachedException implements Exception {
+  final int limit;
+  const PatientLimitReachedException(this.limit);
+
+  @override
+  String toString() =>
+      'The clinic has reached its limit of $limit stored patient records. Ask an administrator to archive old records before adding new patients.';
+}
+
+/// In-memory view of the clinic's patients, backed by Cloud Firestore.
+///
+/// * `patients/{id}` holds demographics only and is streamed for the directory
+///   (at most [AppLimits.maxPatients] documents).
+/// * Encounters and prescriptions are loaded per patient on demand with
+///   [loadPatientDetails] from `patients/{id}/encounters` and `.../prescriptions`.
+/// * Nothing is written to on-device key/value storage; offline persistence is
+///   handled (and bounded) by Firestore itself.
+/// * Without Firebase (unit tests) it works purely in memory.
 class PatientRepository {
-  static const String _storageKey = 'docrs_patients_v1';
+  static const int maxPatients = AppLimits.maxPatients;
+  static const int maxEncountersPerPatient = AppLimits.maxEncountersPerPatient;
+
   static final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
   static final List<Patient> _patients = [];
-  static StreamSubscription? _firestoreSubscription;
 
+  /// Patients created on this device that the cloud snapshot has not shown yet.
+  static final Map<String, Patient> _pendingPatients = {};
+
+  static StreamSubscription? _patientsSub;
+  static StreamSubscription? _encountersSub;
+  static StreamSubscription? _prescriptionsSub;
+  static String? _detailPatientId;
+
+  /// Removes patient data that older versions stored unencrypted in local
+  /// key/value storage (`localStorage` on web).
   static Future<void> init() async {
-    // 1. Load locally persisted patients from SharedPreferences first (offline fallback & fast load)
-    await _loadFromLocalStorage();
-
-    // 2. Connect to live Cloud Firestore 'patients' collection for real-time sync
-    _connectFirestore();
-  }
-
-  static void _connectFirestore() {
     try {
-      final options = FirebaseFirestore.instance.app.options;
-      if (!options.apiKey.contains('Placeholder')) {
-        _firestoreSubscription?.cancel();
-        _firestoreSubscription = FirebaseFirestore.instance
-            .collection('patients')
-            .snapshots()
-            .listen((snapshot) {
-          if (snapshot.docs.isNotEmpty) {
-            final List<Patient> firestorePatients = [];
-            for (final doc in snapshot.docs) {
-              try {
-                final data = Map<String, dynamic>.from(doc.data());
-                data['id'] = doc.id;
-                firestorePatients.add(Patient.fromJson(data));
-              } catch (e) {
-                debugPrint('Error parsing Firestore patient ${doc.id}: $e');
-              }
-            }
-            if (firestorePatients.isNotEmpty) {
-              _patients.clear();
-              _patients.addAll(firestorePatients);
-              _saveToStorage();
-            }
-          }
-        }, onError: (e) {
-          debugPrint('Firestore patients stream error: $e');
-        });
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in ['docrs_patients_v1', 'docrs_user_logged_in', 'docrs_user_email']) {
+        if (prefs.containsKey(key)) await prefs.remove(key);
       }
     } catch (e) {
-      debugPrint('PatientRepository Firestore init error: $e');
+      debugPrint('PatientRepository legacy cleanup skipped: $e');
     }
   }
 
-  static Future<void> _loadFromLocalStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_storageKey);
-      if (jsonString != null && jsonString.isNotEmpty) {
-        final List<dynamic> jsonList = jsonDecode(jsonString);
-        final loaded = jsonList.map((j) => Patient.fromJson(j as Map<String, dynamic>)).toList();
-        if (loaded.isNotEmpty) {
-          _patients.clear();
-          _patients.addAll(loaded);
-          changeNotifier.value++;
+  /// Starts streaming the patient directory. Call after the user has signed in.
+  static void connect() {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) return;
+    _patientsSub?.cancel();
+    _patientsSub = firestore
+        .collection('patients')
+        .limit(AppLimits.patientListLimit)
+        .snapshots()
+        .listen(_onPatientsSnapshot, onError: (Object e) {
+      debugPrint('Firestore patients stream error: $e');
+    });
+  }
+
+  /// Stops all listeners and drops patient data from memory (sign-out).
+  static void disconnect() {
+    _patientsSub?.cancel();
+    _patientsSub = null;
+    _cancelDetails();
+    _patients.clear();
+    _pendingPatients.clear();
+    changeNotifier.value++;
+  }
+
+  static void _cancelDetails() {
+    _encountersSub?.cancel();
+    _prescriptionsSub?.cancel();
+    _encountersSub = null;
+    _prescriptionsSub = null;
+    _detailPatientId = null;
+  }
+
+  static void _onPatientsSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    final previousById = {for (final p in _patients) p.id: p};
+    final fromCloud = <Patient>[];
+    for (final doc in snapshot.docs) {
+      try {
+        final data = FirebaseGate.decode(doc.data());
+        data['id'] = doc.id;
+        var patient = Patient.fromJson(data);
+        final known = previousById[patient.id];
+        if (known != null) {
+          // Keep already-loaded visits and prescriptions; the directory document has none.
+          patient = patient.copyWith(encounters: known.encounters, prescriptions: known.prescriptions);
+        }
+        _pendingPatients.remove(patient.id);
+        fromCloud.add(patient);
+      } catch (e) {
+        debugPrint('Error parsing Firestore patient ${doc.id}: $e');
+      }
+    }
+    _patients
+      ..clear()
+      ..addAll(_pendingPatients.values)
+      ..addAll(fromCloud);
+    changeNotifier.value++;
+  }
+
+  /// Loads (and keeps live) the visits and prescriptions of one patient.
+  /// Only one patient's details are streamed at a time.
+  static void loadPatientDetails(String patientId) {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null || _detailPatientId == patientId) return;
+    _cancelDetails();
+    _detailPatientId = patientId;
+    final base = firestore.collection('patients').doc(patientId);
+
+    _encountersSub = base
+        .collection('encounters')
+        .orderBy('lastModified', descending: true)
+        .limit(AppLimits.subcollectionListLimit)
+        .snapshots()
+        .listen((snapshot) {
+      final encounters = <Encounter>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final data = FirebaseGate.decode(doc.data());
+          data['id'] = doc.id;
+          data['patientId'] = patientId;
+          encounters.add(Encounter.fromFirestore(data));
+        } catch (e) {
+          debugPrint('Error parsing encounter ${doc.id}: $e');
         }
       }
-    } catch (e) {
-      debugPrint('PatientRepository local load error: $e');
-    }
+      _replaceDetails(patientId, encounters: encounters);
+    }, onError: (Object e) => debugPrint('Encounters stream error: $e'));
+
+    _prescriptionsSub = base
+        .collection('prescriptions')
+        .orderBy('lastModified', descending: true)
+        .limit(AppLimits.subcollectionListLimit)
+        .snapshots()
+        .listen((snapshot) {
+      final prescriptions = <Prescription>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final data = FirebaseGate.decode(doc.data());
+          data['id'] = doc.id;
+          data['patientId'] = patientId;
+          prescriptions.add(Prescription.fromJson(data));
+        } catch (e) {
+          debugPrint('Error parsing prescription ${doc.id}: $e');
+        }
+      }
+      _replaceDetails(patientId, prescriptions: prescriptions);
+    }, onError: (Object e) => debugPrint('Prescriptions stream error: $e'));
   }
 
-  static Future<void> _saveToStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonList = _patients.map((p) => p.toJson()).toList();
-      await prefs.setString(_storageKey, jsonEncode(jsonList));
-      changeNotifier.value++;
-    } catch (e) {
-      debugPrint('PatientRepository save error: $e');
-    }
+  static void _replaceDetails(String patientId, {List<Encounter>? encounters, List<Prescription>? prescriptions}) {
+    final idx = _patients.indexWhere((p) => p.id == patientId);
+    if (idx == -1) return;
+    _patients[idx] = _patients[idx].copyWith(encounters: encounters, prescriptions: prescriptions);
+    changeNotifier.value++;
   }
 
   static List<Patient> getAllPatients() => List.unmodifiable(_patients);
@@ -348,60 +522,113 @@ class PatientRepository {
     }).toList();
   }
 
+  /// Adds a patient (or replaces the one with the same id / MRN).
+  ///
+  /// Throws [PatientLimitReachedException] when the clinic is full, and
+  /// [FormatException] when a field is over its length limit.
   static void addPatient(Patient newPatient) {
     final existingIdx = _patients.indexWhere((p) => p.id == newPatient.id || p.mrn == newPatient.mrn);
-    if (existingIdx != -1) {
-      _patients[existingIdx] = newPatient;
-    } else {
-      _patients.insert(0, newPatient);
+    final isNew = existingIdx == -1;
+    if (isNew && _patients.length >= maxPatients) {
+      throw const PatientLimitReachedException(maxPatients);
     }
-    _saveToStorage();
+
+    final data = newPatient.toFirestore();
+    StorageOptimizationService.auditAndOptimizePayload(
+      data,
+      maxDocBytes: AppLimits.maxPatientDocBytes,
+      docPath: 'patients/${newPatient.id}',
+    );
+
+    if (isNew) {
+      _patients.insert(0, newPatient);
+      _pendingPatients[newPatient.id] = newPatient;
+    } else {
+      final old = _patients[existingIdx];
+      _patients[existingIdx] = newPatient.encounters.isEmpty && newPatient.prescriptions.isEmpty
+          ? newPatient.copyWith(encounters: old.encounters, prescriptions: old.prescriptions)
+          : newPatient;
+    }
+    changeNotifier.value++;
+
     OfflineSyncService().enqueueMutation(
       id: newPatient.id,
       entityType: 'Patient',
       action: 'CREATE',
-      payload: newPatient.toJson(),
+      payload: data,
+      ops: [
+        SyncOp.set('patients/${newPatient.id}', data),
+        if (isNew) const SyncOp.increment('meta/counters', {'patientCount': 1}),
+      ],
+      onRejected: (_) {
+        if (isNew) {
+          _pendingPatients.remove(newPatient.id);
+          _patients.removeWhere((p) => p.id == newPatient.id);
+          changeNotifier.value++;
+        }
+      },
     );
   }
 
+  /// Saves a prescription under its patient.
+  ///
+  /// Throws [FormatException] when a field is over its length limit.
   static void addPrescription(String patientId, Prescription prescription) {
     final idx = _patients.indexWhere((p) => p.id == patientId);
-    if (idx != -1) {
-      final p = _patients[idx];
-      final updatedRx = [prescription, ...p.prescriptions];
-      _patients[idx] = Patient(
-        id: p.id,
-        mrn: p.mrn,
-        fullName: p.fullName,
-        middleName: p.middleName,
-        dateOfBirth: p.dateOfBirth,
-        gender: p.gender,
-        phone: p.phone,
-        address: p.address,
-        referringDoctor: p.referringDoctor,
-        medicalHistory: p.medicalHistory,
-        allergies: p.allergies,
-        previousDiagnoses: p.previousDiagnoses,
-        previousPrescriptions: p.previousPrescriptions,
-        prescriptions: updatedRx,
-        encounters: p.encounters,
-        lastVisitDate: p.lastVisitDate,
-        totalVisits: p.totalVisits,
-      );
-      _saveToStorage();
+    if (idx == -1) return;
 
-      OfflineSyncService().enqueueMutation(
-        id: prescription.id,
-        entityType: 'Prescription',
-        action: 'CREATE',
-        payload: {
-          'id': prescription.id,
-          'patientId': patientId,
-          'doctorName': prescription.doctorName,
-          'date': prescription.date,
-        },
-      );
+    if (prescription.items.length > AppLimits.maxPrescriptionItems) {
+      throw const FormatException('A prescription can list at most ${AppLimits.maxPrescriptionItems} medications.');
     }
+    void requireLength(String label, String value, int max) {
+      if (value.length > max) {
+        throw FormatException('$label is too long (${value.length} characters, limit $max).');
+      }
+    }
+
+    requireLength('Prescription notes', prescription.notes, AppLimits.maxNotesLength);
+    requireLength('Doctor name', prescription.doctorName, AppLimits.maxShortTextLength);
+    for (final item in prescription.items) {
+      requireLength('Medication name', item.medicationName, 200);
+      requireLength('Strength', item.strength, 200);
+      requireLength('Dosage', item.dosage, 200);
+      requireLength('Frequency', item.frequency, 200);
+      requireLength('Duration', item.duration, 200);
+      requireLength('Instructions', item.instructions, AppLimits.maxShortTextLength);
+    }
+
+    final data = prescription.toJson()
+      ..['patientId'] = patientId
+      ..['lastModified'] = DateTime.now().toIso8601String();
+    final rxPath = 'patients/$patientId/prescriptions/${prescription.id}';
+    StorageOptimizationService.auditAndOptimizePayload(
+      data,
+      maxDocBytes: AppLimits.maxPrescriptionDocBytes,
+      docPath: rxPath,
+    );
+
+    final p = _patients[idx];
+    _patients[idx] = p.copyWith(prescriptions: [prescription, ...p.prescriptions]);
+    changeNotifier.value++;
+
+    OfflineSyncService().enqueueMutation(
+      id: prescription.id,
+      entityType: 'Prescription',
+      action: 'CREATE',
+      payload: data,
+      ops: [
+        SyncOp.set(rxPath, data),
+        const SyncOp.increment('meta/counters', {'prescriptionCount': 1}),
+      ],
+      onRejected: (_) {
+        final i = _patients.indexWhere((x) => x.id == patientId);
+        if (i == -1) return;
+        _patients[i] = _patients[i].copyWith(
+          prescriptions: _patients[i].prescriptions.where((r) => r.id != prescription.id).toList(),
+        );
+        changeNotifier.value++;
+      },
+    );
   }
 
   static List<TodayPatientQueue> getTodayQueue() {
@@ -437,45 +664,77 @@ class PatientRepository {
     return queue;
   }
 
+  /// Saves a visit (with its drawings) under its patient and updates the
+  /// patient's visit summary, in one atomic write.
+  ///
+  /// Throws [FormatException] for over-long text or too many visits, and
+  /// `DrawingTooLargeException` when a drawing cannot be stored.
   static void addEncounter(String patientId, Encounter encounter) {
     final patientIndex = _patients.indexWhere((p) => p.id == patientId);
-    if (patientIndex != -1) {
-      final existing = _patients[patientIndex];
-      final updatedEncounters = [encounter, ...existing.encounters];
-      _patients[patientIndex] = Patient(
-        id: existing.id,
-        mrn: existing.mrn,
-        fullName: existing.fullName,
-        middleName: existing.middleName,
-        dateOfBirth: existing.dateOfBirth,
-        gender: existing.gender,
-        phone: existing.phone,
-        address: existing.address,
-        occupation: existing.occupation,
-        phicNumber: existing.phicNumber,
-        referringDoctor: existing.referringDoctor,
-        medicalHistory: existing.medicalHistory,
-        allergies: existing.allergies,
-        previousDiagnoses: [encounter.diagnosis, ...existing.previousDiagnoses],
-        previousPrescriptions: existing.previousPrescriptions,
-        prescriptions: existing.prescriptions,
-        encounters: updatedEncounters,
-        lastVisitDate: encounter.date,
-        totalVisits: existing.totalVisits + 1,
-      );
-      _saveToStorage();
+    if (patientIndex == -1) return;
+    final existing = _patients[patientIndex];
 
-      OfflineSyncService().enqueueMutation(
-        id: encounter.id,
-        entityType: 'Encounter',
-        action: 'CREATE',
-        payload: {
-          'id': encounter.id,
-          'patientId': patientId,
-          'diagnosis': encounter.diagnosis,
-          'date': encounter.date,
-        },
+    if (existing.encounters.length >= maxEncountersPerPatient) {
+      throw const FormatException(
+        'This patient has reached the maximum of ${AppLimits.maxEncountersPerPatient} stored visits.',
       );
     }
+
+    final encounterPath = 'patients/$patientId/encounters/${encounter.id}';
+    final encounterData = encounter.toFirestore();
+    StorageOptimizationService.auditAndOptimizePayload(
+      encounterData,
+      maxDocBytes: AppLimits.maxEncounterDocBytes,
+      docPath: encounterPath,
+    );
+
+    final updated = existing.copyWith(
+      previousDiagnoses: [encounter.diagnosis, ...existing.previousDiagnoses]
+          .take(AppLimits.maxDiagnosisSummary)
+          .toList(),
+      encounters: [encounter, ...existing.encounters],
+      lastVisitDate: encounter.date,
+      totalVisits: existing.totalVisits + 1,
+    );
+    final summary = updated.toFirestore();
+    _patients[patientIndex] = updated;
+    changeNotifier.value++;
+
+    OfflineSyncService().enqueueMutation(
+      id: encounter.id,
+      entityType: 'Encounter',
+      action: 'CREATE',
+      payload: encounterData,
+      ops: [
+        SyncOp.set(encounterPath, encounterData),
+        SyncOp.set('patients/$patientId', {
+          'previousDiagnoses': summary['previousDiagnoses'],
+          'lastVisitDate': summary['lastVisitDate'],
+          'totalVisits': summary['totalVisits'],
+          'lastModified': summary['lastModified'],
+        }),
+        const SyncOp.increment('meta/counters', {'encounterCount': 1}),
+      ],
+      onRejected: (_) {
+        final i = _patients.indexWhere((p) => p.id == patientId);
+        if (i == -1) return;
+        final current = _patients[i];
+        _patients[i] = current.copyWith(
+          encounters: current.encounters.where((e) => e.id != encounter.id).toList(),
+          totalVisits: current.totalVisits > 0 ? current.totalVisits - 1 : 0,
+        );
+        changeNotifier.value++;
+      },
+    );
+  }
+
+  @visibleForTesting
+  static void clearForTesting() {
+    _cancelDetails();
+    _patientsSub?.cancel();
+    _patientsSub = null;
+    _patients.clear();
+    _pendingPatients.clear();
+    changeNotifier.value++;
   }
 }

@@ -11,6 +11,15 @@ An advanced, responsive, cross-platform Electronic Health Record (EHR) & Clinica
 
 ---
 
+## 🔐 Security, limits & web deployment
+
+DOCRS signs users in with Firebase Authentication, restricts data with Firestore security rules,
+and caps storage at **1,000 patients**. Setup steps (accounts, roles, rules, App Check, billing alerts,
+web hosting) are in [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md). Run the rules tests with
+`cd firebase-rules-tests && npm install && npm test` (needs Java for the emulator).
+
+---
+
 ## 🌟 Key Features
 
 ### 👁️ Interactive Ophthalmic Drawing Canvas

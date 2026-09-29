@@ -1,7 +1,43 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+
+import '../config/app_limits.dart';
+import '../services/drawing_codec.dart';
 import 'eye_exam.dart';
 
 enum DrawingTool { pen, highlighter, eraser, symbol, text }
+
+List<PackedStroke> _toPacked(List<VectorStroke> strokes) => [
+      for (final s in strokes)
+        PackedStroke(
+          tool: s.tool.index,
+          color: s.color.toARGB32(),
+          size: s.size,
+          symbolType: s.symbolType,
+          labelText: s.labelText,
+          xy: [
+            for (final p in s.points) ...[p.dx, p.dy],
+          ],
+        ),
+    ];
+
+List<VectorStroke> _fromPacked(List<PackedStroke> packed, String idPrefix) => [
+      for (var i = 0; i < packed.length; i++)
+        VectorStroke(
+          id: '$idPrefix-$i',
+          tool: packed[i].tool >= 0 && packed[i].tool < DrawingTool.values.length
+              ? DrawingTool.values[packed[i].tool]
+              : DrawingTool.pen,
+          color: Color(packed[i].color),
+          size: packed[i].size,
+          symbolType: packed[i].symbolType,
+          labelText: packed[i].labelText,
+          points: [
+            for (var k = 0; k + 1 < packed[i].xy.length; k += 2) Offset(packed[i].xy[k], packed[i].xy[k + 1]),
+          ],
+        ),
+    ];
 
 class VectorStroke {
   final String id;
@@ -77,6 +113,27 @@ class PaperSheetDrawingData {
     };
   }
 
+  /// Compact binary form stored in Firestore (see [DrawingCodec]).
+  Uint8List toPacked() => DrawingCodec.pack(
+        PackedDrawing(meta: [updatedAt], strokes: _toPacked(strokes)),
+        maxBytes: AppLimits.maxPaperSheetDrawingBytes,
+      );
+
+  factory PaperSheetDrawingData.fromPacked(
+    Uint8List data, {
+    required String encounterId,
+    required String patientId,
+  }) {
+    final d = DrawingCodec.unpack(data);
+    return PaperSheetDrawingData(
+      id: 'drw-$encounterId',
+      encounterId: encounterId,
+      patientId: patientId,
+      strokes: _fromPacked(d.strokes, 'stk'),
+      updatedAt: d.meta.isNotEmpty ? d.meta[0] : DateTime.now().toIso8601String(),
+    );
+  }
+
   factory PaperSheetDrawingData.fromJson(Map<String, dynamic> json) {
     return PaperSheetDrawingData(
       id: json['id'] as String,
@@ -123,6 +180,35 @@ class EyeDrawingData {
       'cdRatio': cdRatio,
       'updatedAt': updatedAt,
     };
+  }
+
+  /// Compact binary form stored in Firestore (see [DrawingCodec]).
+  Uint8List toPacked() => DrawingCodec.pack(
+        PackedDrawing(
+          aux: (cdRatio * 100).round(),
+          meta: [diagramType, updatedAt],
+          strokes: _toPacked(strokes),
+        ),
+        maxBytes: AppLimits.maxEyeDrawingBytes,
+      );
+
+  factory EyeDrawingData.fromPacked(
+    Uint8List data, {
+    required String encounterId,
+    required String patientId,
+    required EyeType eye,
+  }) {
+    final d = DrawingCodec.unpack(data);
+    return EyeDrawingData(
+      id: 'drw-$encounterId-${eye.name}',
+      encounterId: encounterId,
+      patientId: patientId,
+      eye: eye,
+      diagramType: d.meta.isNotEmpty ? d.meta[0] : 'fundus',
+      strokes: _fromPacked(d.strokes, 'stk'),
+      cdRatio: d.aux / 100.0,
+      updatedAt: d.meta.length > 1 ? d.meta[1] : DateTime.now().toIso8601String(),
+    );
   }
 
   factory EyeDrawingData.fromJson(Map<String, dynamic> json) {

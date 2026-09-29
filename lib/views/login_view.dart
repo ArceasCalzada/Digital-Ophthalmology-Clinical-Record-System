@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
 class LoginView extends StatefulWidget {
@@ -13,53 +13,41 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'dr.jenkins@ophthalmology.clinic');
-  final _passwordController = TextEditingController(text: 'docrs2026');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _rememberMe = true;
-  int _selectedTab = 0; // 0: Form Login, 1: Quick Physician Access
+  bool _rememberMe = false;
+  String? _errorMessage;
 
-  final List<Map<String, String>> _quickPhysicians = [
-    {
-      'name': 'Dr. Sigrid Robillos, MD',
-      'role': 'Senior Ophthalmologist & Medical Director',
-      'email': 'dr.robillos@ophthalmology.clinic',
-      'initials': 'SR',
-    },
-    {
-      'name': 'Dr. Arceas Calzada, MD',
-      'role': 'Cornea & Refractive Surgery Specialist',
-      'email': 'dr.calzada@ophthalmology.clinic',
-      'initials': 'AC',
-    },
-    {
-      'name': 'Dr. Jenkins, MD',
-      'role': 'Glaucoma & Vitreoretinal Consultant',
-      'email': 'dr.jenkins@ophthalmology.clinic',
-      'initials': 'DJ',
-    },
-  ];
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-  Future<void> _handleSignIn([String? presetEmail]) async {
-    if (presetEmail != null) {
-      _emailController.text = presetEmail;
-    }
-    if (_selectedTab == 1 || (_formKey.currentState != null && _formKey.currentState!.validate())) {
-      setState(() => _isLoading = true);
+  Future<void> _handleSignIn() async {
+    if (_formKey.currentState == null || !_formKey.currentState!.validate()) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('docrs_user_logged_in', _rememberMe);
-        final emailToSave = presetEmail ?? _emailController.text.trim();
-        await prefs.setString('docrs_user_email', emailToSave);
-      } catch (_) {}
-
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        setState(() => _isLoading = false);
-        widget.onLoginSuccess();
-      }
+    try {
+      await AuthService.instance.signIn(
+        _emailController.text,
+        _passwordController.text,
+        remember: _rememberMe,
+      );
+      _passwordController.clear();
+      if (mounted) widget.onLoginSuccess();
+    } on AuthFailure catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = 'Sign-in failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -171,72 +159,7 @@ class _LoginViewState extends State<LoginView> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Mode Switcher Tabs
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderColor),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setState(() => _selectedTab = 0),
-                              borderRadius: BorderRadius.circular(9),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: _selectedTab == 0 ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9),
-                                  boxShadow: _selectedTab == 0
-                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'Physician Login',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _selectedTab == 0 ? FontWeight.bold : FontWeight.w500,
-                                    color: _selectedTab == 0 ? AppTheme.primaryBlue : AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setState(() => _selectedTab = 1),
-                              borderRadius: BorderRadius.circular(9),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: _selectedTab == 1 ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9),
-                                  boxShadow: _selectedTab == 1
-                                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
-                                      : null,
-                                ),
-                                child: Text(
-                                  'Quick Access',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _selectedTab == 1 ? FontWeight.bold : FontWeight.w500,
-                                    color: _selectedTab == 1 ? AppTheme.primaryBlue : AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    if (_selectedTab == 0) ...[
+                    ...[
                       // Credentials Form
                       Form(
                         key: _formKey,
@@ -244,7 +167,7 @@ class _LoginViewState extends State<LoginView> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const Text(
-                              'Physician Email / Workstation ID',
+                              'Physician Email',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
                             const SizedBox(height: 8),
@@ -252,13 +175,13 @@ class _LoginViewState extends State<LoginView> {
                               controller: _emailController,
                               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                               decoration: InputDecoration(
-                                hintText: 'dr.jenkins@ophthalmology.clinic',
+                                hintText: 'name@clinic.example',
                                 prefixIcon: const Icon(Icons.badge_outlined, color: AppTheme.primaryBlue, size: 20),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                               ),
                               validator: (val) {
-                                if (val == null || val.trim().isEmpty) return 'Enter your physician email or ID';
+                                if (val == null || val.trim().isEmpty) return 'Enter your email';
                                 return null;
                               },
                             ),
@@ -316,7 +239,7 @@ class _LoginViewState extends State<LoginView> {
                                       const SizedBox(width: 6),
                                       const Flexible(
                                         child: Text(
-                                          'Remember workstation',
+                                          'Keep me signed in',
                                           style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -338,12 +261,34 @@ class _LoginViewState extends State<LoginView> {
                                 ),
                               ],
                             ),
+                            if (_errorMessage != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF2F2),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 20),
 
                             SizedBox(
                               height: 48,
                               child: ElevatedButton(
-                                onPressed: _isLoading ? null : () => _handleSignIn(),
+                                onPressed: _isLoading ? null : _handleSignIn,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.primaryBlue,
                                   foregroundColor: Colors.white,
@@ -369,44 +314,6 @@ class _LoginViewState extends State<LoginView> {
                           ],
                         ),
                       ),
-                    ] else ...[
-                      // Quick Access Accounts List
-                      const Text(
-                        'Select Active Clinic Physician:',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._quickPhysicians.map((physician) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppTheme.borderColor),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                            leading: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                              child: Text(
-                                physician['initials']!,
-                                style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                            title: Text(
-                              physician['name']!,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                            ),
-                            subtitle: Text(
-                              physician['role']!,
-                              style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                            ),
-                            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.primaryBlue),
-                            onTap: _isLoading ? null : () => _handleSignIn(physician['email']),
-                          ),
-                        );
-                      }),
                     ],
 
                     const SizedBox(height: 28),
@@ -426,7 +333,7 @@ class _LoginViewState extends State<LoginView> {
                           SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              'HIPAA Compliant • Encrypted Local Vault',
+                              'Authorised clinic staff only',
                               style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
                             ),

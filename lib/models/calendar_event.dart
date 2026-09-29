@@ -90,6 +90,11 @@ class CalendarEventRepository extends ChangeNotifier {
         'location': event.location,
         'dateTime': event.dateTime.toIso8601String(),
         'patientName': event.patientName,
+        'patientId': event.patientId,
+        'notes': event.notes,
+        'reminderMinutes': event.reminderMinutes,
+        'isCompleted': event.isCompleted,
+        'lastModified': DateTime.now().toIso8601String(),
       },
     );
     notifyListeners();

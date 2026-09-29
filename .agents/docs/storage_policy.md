@@ -5,6 +5,16 @@ This document establishes strict storage guidelines for all future feature addit
 
 ---
 
+## 0. Enforced limits (single source of truth)
+The numbers below are enforced in code (`lib/config/app_limits.dart`) **and** on the server
+(`firestore.rules`, tested in `firebase-rules-tests/`). Change both together. See `docs/FIREBASE_SETUP.md`.
+
+- **1,000 stored patients**, 20,000 visits, 20,000 prescriptions (server-side counters in `meta/counters`).
+- `patients/{id}` = demographics only (≤ 8 KB). Visits and prescriptions live in the `encounters` and
+  `prescriptions` subcollections; never embed them in the patient document.
+- Drawings are stored as packed bytes via `DrawingCodec` (≤ 20 KB sheet, ≤ 8 KB per eye) — never as point arrays.
+- Every list query must use `.limit(...)`; nothing is deleted from the app.
+
 ## 1. Strict Data Schema Audits
 - **Minimal Field Sets**: Store only essential clinical findings. Avoid caching computed or redundant UI states in primary database documents.
 - **Strict Typing**: All payload fields must be strongly typed (`String`, `double`, `int`, `DateTime`) with explicit validation.
@@ -32,3 +42,5 @@ This document establishes strict storage guidelines for all future feature addit
 - [ ] Verified zero base64 images or raw binary strings stored in database fields.
 - [ ] All new fields strictly typed and validated.
 - [ ] Tested with `StorageOptimizationService.auditAndOptimizePayload()`.
+- [ ] New Firestore fields added to `firestore.rules` (allow-list + size limit) and covered by a test in `firebase-rules-tests/`.
+- [ ] `npm test` in `firebase-rules-tests/` passes (it replays real app writes against the rules).

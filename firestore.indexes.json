@@ -1,0 +1,22 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "patients", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "encounters", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "prescriptions", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "calendarEvents", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "notifications", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "users", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "meta", "fieldPath": "*", "indexes": [] },
+    {
+      "collectionGroup": "encounters",
+      "fieldPath": "lastModified",
+      "indexes": [{ "order": "DESCENDING", "queryScope": "COLLECTION" }]
+    },
+    {
+      "collectionGroup": "prescriptions",
+      "fieldPath": "lastModified",
+      "indexes": [{ "order": "DESCENDING", "queryScope": "COLLECTION" }]
+    }
+  ]
+}

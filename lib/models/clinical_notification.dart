@@ -94,6 +94,12 @@ class ClinicalNotificationRepository extends ChangeNotifier {
         'id': notification.id,
         'title': notification.title,
         'message': notification.message,
+        'category': notification.category,
+        'severity': notification.severity.name,
+        'timestamp': notification.timestamp.toIso8601String(),
+        'patientName': notification.patientName,
+        'patientId': notification.patientId,
+        'isRead': notification.isRead,
       },
     );
     notifyListeners();

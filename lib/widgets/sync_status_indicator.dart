@@ -138,6 +138,44 @@ class SyncStatusIndicator extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (syncService.failedMutations.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${syncService.failedMutations.length} change(s) were NOT saved to the cloud',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            syncService.lastError ?? 'The server rejected the change.',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: syncService.retryFailed,
+                                child: const Text('Retry'),
+                              ),
+                              TextButton(
+                                onPressed: syncService.discardFailed,
+                                child: const Text('Discard'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   const Text(
@@ -220,6 +258,10 @@ class SyncStatusIndicator extends StatelessWidget {
           badgeColor = AppTheme.primaryBlue;
           badgeIcon = Icons.sync_rounded;
           statusLabel = 'Syncing...';
+        } else if (syncService.failedMutations.isNotEmpty) {
+          badgeColor = const Color(0xFFDC2626);
+          badgeIcon = Icons.error_outline_rounded;
+          statusLabel = 'Not saved (${syncService.failedMutations.length})';
         } else if (isOffline) {
           badgeColor = const Color(0xFFD97706);
           badgeIcon = Icons.wifi_off_rounded;
@@ -230,7 +272,9 @@ class SyncStatusIndicator extends StatelessWidget {
           statusLabel = 'Up to date';
         }
 
-        final tooltipText = isOffline
+        final tooltipText = syncService.failedMutations.isNotEmpty
+            ? 'Some changes were rejected by the server and are not saved. Tap for details.'
+            : isOffline
             ? 'Offline mode: Changes saved locally. Pending: $pendingCount'
             : (isSyncing ? 'Synchronizing payload with cloud...' : 'Up to date. Last synced: $lastSyncedText');
 

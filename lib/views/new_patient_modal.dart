@@ -55,10 +55,29 @@ class _NewPatientModalState extends State<NewPatientModal> {
         totalVisits: 1,
       );
 
-      PatientRepository.addPatient(newPatient);
+      try {
+        PatientRepository.addPatient(newPatient);
+      } on PatientLimitReachedException catch (e) {
+        _showError(e.toString());
+        return;
+      } on FormatException catch (e) {
+        _showError(e.message);
+        return;
+      }
       Navigator.pop(context);
       widget.onPatientCreated(newPatient);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 6),
+      ),
+    );
   }
 
   Future<void> _selectDob() async {

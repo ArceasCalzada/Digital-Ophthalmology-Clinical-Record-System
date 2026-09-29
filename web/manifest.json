@@ -1,12 +1,12 @@
 {
-    "name": "ophthalmology_clinical_record_system",
-    "short_name": "ophthalmology_clinical_record_system",
+    "name": "DOCRS — Digital Ophthalmology Clinical Record System",
+    "short_name": "DOCRS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "Digital Ophthalmology Clinical Record System. Authorised clinic staff only.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

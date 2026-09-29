@@ -899,7 +899,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('${patient.encounters.length} Visits', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: Text('${patient.totalVisits} Visits', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11)),
                       ),
                     ),
                     DataCell(

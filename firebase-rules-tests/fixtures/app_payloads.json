@@ -1,0 +1,267 @@
+[
+  {
+    "entityType": "Patient",
+    "action": "CREATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "patients/pat-1790593390272",
+        "data": {
+          "id": "pat-1790593390272",
+          "mrn": "PT-004521",
+          "fullName": "Maria Clara Dela Cruz",
+          "middleName": "Santos",
+          "dateOfBirth": "Mar 12, 1958",
+          "gender": "Female",
+          "phone": "+63 917 123 4567",
+          "address": "Blk 5 Lot 12, Sampaguita St., Barangay Talomo, Davao City",
+          "occupation": "Civil Servant",
+          "phicNumber": "19-02581024-8",
+          "referringDoctor": null,
+          "medicalHistory": [
+            "Hypertension",
+            "Type 2 Diabetes Mellitus"
+          ],
+          "allergies": [
+            "Penicillin"
+          ],
+          "previousDiagnoses": [],
+          "previousPrescriptions": [],
+          "lastVisitDate": "2026-08-14",
+          "totalVisits": 1,
+          "lastModified": "2026-09-29T13:42:24.333735"
+        }
+      },
+      {
+        "kind": "increment",
+        "path": "meta/counters",
+        "data": {
+          "patientCount": 1
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "Encounter",
+    "action": "CREATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "patients/pat-1790593390272/encounters/enc-1790593399999",
+        "data": {
+          "id": "enc-1790593399999",
+          "patientId": "pat-1790593390272",
+          "date": "Aug 14, 2026",
+          "doctorName": "Dr. Sigrid Robillos, MD",
+          "chiefComplaint": "Blurring of vision OU, gradual, for 3 months. Difficulty reading small print.",
+          "examOD": {
+            "acuity": {
+              "uncorrected": "20/40",
+              "bestCorrected": "20/25",
+              "pinhole": "20/20",
+              "oldCc": "-2.25 -0.50 x 180",
+              "ar": "-2.50 -0.75 x 175",
+              "ak": "43.25/44.00 @ 90"
+            },
+            "refraction": {
+              "sph": "-2.25",
+              "cyl": "-0.50",
+              "axis": "180",
+              "add": null
+            },
+            "color": "Normal",
+            "iop": "15",
+            "iopMethod": "Goldmann",
+            "anglesGonioscopy": "Open",
+            "cdrOn": "0.3",
+            "confrontationPeripheral": "WNL",
+            "vanHerick": "G4 Wide",
+            "slitLampNotes": "Lids/lashes: mild MGD. Conjunctiva quiet. Cornea clear. AC deep and quiet. Lens: early NS 1+.",
+            "fundoscopyNotes": "Disc pink, sharp margins, C/D 0.3. Macula flat. Vessels normal. Periphery attached."
+          },
+          "examOS": {
+            "acuity": {
+              "uncorrected": "20/40",
+              "bestCorrected": "20/25",
+              "pinhole": "20/20",
+              "oldCc": "-2.25 -0.50 x 180",
+              "ar": "-2.50 -0.75 x 175",
+              "ak": "43.25/44.00 @ 90"
+            },
+            "refraction": {
+              "sph": "-2.25",
+              "cyl": "-0.50",
+              "axis": "180",
+              "add": null
+            },
+            "color": "Normal",
+            "iop": "15",
+            "iopMethod": "Goldmann",
+            "anglesGonioscopy": "Open",
+            "cdrOn": "0.3",
+            "confrontationPeripheral": "WNL",
+            "vanHerick": "G4 Wide",
+            "slitLampNotes": "Lids/lashes: mild MGD. Conjunctiva quiet. Cornea clear. AC deep and quiet. Lens: early NS 1+.",
+            "fundoscopyNotes": "Disc pink, sharp margins, C/D 0.3. Macula flat. Vessels normal. Periphery attached."
+          },
+          "diagnosis": "H25.13 Age-related nuclear cataract, bilateral; H52.4 Presbyopia",
+          "treatmentPlan": "Continue artificial tears QID OU. Update spectacle Rx. Return in 6 months for IOP and dilated fundus exam.",
+          "status": "completed",
+          "paperSheet": {
+            "$bytes": "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"
+          },
+          "drawOD": {
+            "$bytes": "ASgCBmZ1bmR1cxoyMDI2LTA5LTI5VDEzOjQyOjI0LjM0Mzc5NgwA/9MvLxkAC/4j+CARHSMfQRsvIV1bP0c1Lx8PWR87AQD/0y8vGQAI3hmuFy2IAQKCARNqBDwSRhQsXmwA/9MvLxkACtgY7BY8OSgbKCtGcTJdDi0SjwEBFxU1AP/TLy8ZAAf8BugJRgouDHhQWCq6ASqIAUoA/9MvLxkAB9wUthEtCIMBPFlgXUg9OGuQAQD/0y8vGQAKghSGGhoZQCEaF16XATZBGjMeTwZRCUcA/9MvLxkACZ4h1CA7dUVhVZsBN08fIzklFQsjBQD/0y8vGQAIrAi4Bwk5FSsjcSNXGSeDAZsBZVEA/9MvLxkACKAH1g94CyQCiAEqPABIJzAligGTAQD/0y8vGQAHrA+IDCdvBUcVdU3hATVpCyEA/9MvLxkACZwZ3BROWSQfUGcKIQBfHosBIFkUHQD/0y8vGQAJrh6IHAYXCYEBN5EBBS8MXSZ9ABcVXQ=="
+          },
+          "lastModified": "2026-09-29T13:42:24.358437"
+        }
+      },
+      {
+        "kind": "set",
+        "path": "patients/pat-1790593390272",
+        "data": {
+          "previousDiagnoses": [
+            "H25.13 Age-related nuclear cataract, bilateral; H52.4 Presbyopia"
+          ],
+          "lastVisitDate": "Aug 14, 2026",
+          "totalVisits": 2,
+          "lastModified": "2026-09-29T13:42:24.360457"
+        }
+      },
+      {
+        "kind": "increment",
+        "path": "meta/counters",
+        "data": {
+          "encounterCount": 1
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "Prescription",
+    "action": "CREATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "patients/pat-1790593390272/prescriptions/rx-1790593399998",
+        "data": {
+          "id": "rx-1790593399998",
+          "patientId": "pat-1790593390272",
+          "encounterId": "enc-1790593399999",
+          "doctorName": "Dr. Sigrid Robillos, MD",
+          "date": "2026-08-14",
+          "items": [
+            {
+              "id": "it-0",
+              "medicationName": "Latanoprost 0.005% Ophthalmic Solution",
+              "strength": "0.005%",
+              "dosage": "1 drop",
+              "frequency": "Once daily at bedtime",
+              "duration": "30 days",
+              "instructions": "Instill in both eyes. Do not touch dropper tip to eye."
+            },
+            {
+              "id": "it-1",
+              "medicationName": "Latanoprost 0.005% Ophthalmic Solution",
+              "strength": "0.005%",
+              "dosage": "1 drop",
+              "frequency": "Once daily at bedtime",
+              "duration": "30 days",
+              "instructions": "Instill in both eyes. Do not touch dropper tip to eye."
+            },
+            {
+              "id": "it-2",
+              "medicationName": "Latanoprost 0.005% Ophthalmic Solution",
+              "strength": "0.005%",
+              "dosage": "1 drop",
+              "frequency": "Once daily at bedtime",
+              "duration": "30 days",
+              "instructions": "Instill in both eyes. Do not touch dropper tip to eye."
+            }
+          ],
+          "notes": "",
+          "lastModified": "2026-09-29T13:42:24.361461"
+        }
+      },
+      {
+        "kind": "increment",
+        "path": "meta/counters",
+        "data": {
+          "prescriptionCount": 1
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "CalendarEvent",
+    "action": "CREATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "calendarEvents/evt-1790593400000",
+        "data": {
+          "id": "evt-1790593400000",
+          "title": "Cataract post-op check",
+          "eventType": "Follow-up",
+          "location": "Exam Room 1",
+          "dateTime": "2026-09-01T09:30:00.000",
+          "patientName": "Maria Clara Dela Cruz",
+          "patientId": "pat-1790593390272",
+          "notes": "Bring current glasses.",
+          "reminderMinutes": 30,
+          "isCompleted": false,
+          "lastModified": "2026-09-29T13:42:24.364598"
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "CalendarEvent",
+    "action": "UPDATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "calendarEvents/evt-1790593400000",
+        "data": {
+          "id": "evt-1790593400000",
+          "isCompleted": true
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "Notification",
+    "action": "CREATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "notifications/notif-1790593400001",
+        "data": {
+          "id": "notif-1790593400001",
+          "title": "Prescription Refill Request",
+          "message": "Latanoprost refill requested for Maria Clara Dela Cruz.",
+          "category": "Refill",
+          "severity": "warning",
+          "timestamp": "2026-09-01T08:00:00.000",
+          "patientName": "Maria Clara Dela Cruz",
+          "patientId": "pat-1790593390272",
+          "isRead": false
+        }
+      }
+    ]
+  },
+  {
+    "entityType": "Notification",
+    "action": "UPDATE",
+    "ops": [
+      {
+        "kind": "set",
+        "path": "notifications/notif-1790593400001",
+        "data": {
+          "id": "notif-1790593400001",
+          "isRead": true
+        }
+      }
+    ]
+  }
+]
