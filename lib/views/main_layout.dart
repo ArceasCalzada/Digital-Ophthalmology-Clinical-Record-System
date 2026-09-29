@@ -793,7 +793,7 @@ class _MainLayoutState extends State<MainLayout> {
         const SizedBox(height: 4),
         const Divider(height: 1, color: AppTheme.borderColor),
         Padding(
-          padding: EdgeInsets.all(collapsed ? 10 : 16),
+          padding: EdgeInsets.all(collapsed ? 10 : 12),
           child: Row(
             mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
@@ -811,6 +811,13 @@ class _MainLayoutState extends State<MainLayout> {
                       Text('Dr. Sigrid Robillos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary), overflow: TextOverflow.ellipsis),
                       Text('Ophthalmologist', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
                     ],
+                  ),
+                ),
+                Tooltip(
+                  message: 'Sign Out of Workstation',
+                  child: IconButton(
+                    icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFE11D48)),
+                    onPressed: widget.onLogout,
                   ),
                 ),
               ],
