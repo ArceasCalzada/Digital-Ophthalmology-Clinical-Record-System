@@ -51,6 +51,12 @@ class DevAuthBackend implements AuthBackend {
   Future<void> sendEmailVerification() async {}
 
   @override
+  Future<String> sendEmailOtp(String email) async => '123456';
+
+  @override
+  Future<bool> verifyEmailOtp(String email, String otp) async => otp.trim() == '123456';
+
+  @override
   Future<AuthUser?> reloadUser() async => _current;
 
   @override

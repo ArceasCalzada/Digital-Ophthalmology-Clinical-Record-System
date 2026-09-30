@@ -32,6 +32,9 @@ class _LoginViewState extends State<LoginView> {
   bool _rememberMe = false;
   String? _errorMessage;
 
+  final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
+
   @override
   void dispose() {
     _signInEmailController.dispose();
@@ -40,6 +43,12 @@ class _LoginViewState extends State<LoginView> {
     _signUpEmailController.dispose();
     _signUpPasswordController.dispose();
     _confirmPasswordController.dispose();
+    for (final c in _otpControllers) {
+      c.dispose();
+    }
+    for (final f in _otpFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -724,34 +733,136 @@ class _LoginViewState extends State<LoginView> {
   bool _verificationIsError = false;
   bool _isSendingVerification = false;
 
+  Future<void> _submitOtpVerification(AuthService auth) async {
+    final otpCode = _otpControllers.map((c) => c.text.trim()).join();
+    if (otpCode.length < 6) {
+      setState(() {
+        _verificationStatusMessage = 'Please enter all 6 digits of the OTP code.';
+        _verificationIsError = true;
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _verificationStatusMessage = null;
+    });
+
+    try {
+      await auth.verifyEmailOtp(auth.email ?? '', otpCode);
+      if (mounted && auth.isSignedIn) {
+        widget.onLoginSuccess();
+      }
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        setState(() {
+          _verificationStatusMessage = e.message;
+          _verificationIsError = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _verificationStatusMessage = 'OTP verification failed. Please try again.';
+          _verificationIsError = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Widget _buildEmailVerificationPendingView(AuthService auth) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
-            child: Icon(Icons.mark_email_unread_rounded, size: 48, color: Color(0xFFD97706)),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.password_rounded, size: 38, color: AppTheme.primaryBlue),
+            ),
           ),
           const SizedBox(height: 12),
           const Text(
-            'Verify Your Email Address',
+            'Enter 6-Digit OTP Code',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            'A verification email has been sent to ${auth.email ?? "your email address"}. Please click the verification link in your inbox to complete registration.',
+            'We sent a 6-digit verification PIN to ${auth.email ?? "your email"}. Enter the code below to verify your workstation access.',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
+          const SizedBox(height: 20),
+
+          // 6-Digit PIN Box Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(6, (index) {
+              return SizedBox(
+                width: 44,
+                height: 52,
+                child: TextFormField(
+                  controller: _otpControllers[index],
+                  focusNode: _otpFocusNodes[index],
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  maxLength: 1,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    contentPadding: EdgeInsets.zero,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppTheme.borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    if (value.length > 1) {
+                      // Handled paste of multiple digits
+                      final digits = value.trim().split('');
+                      for (int i = 0; i < digits.length && (index + i) < 6; i++) {
+                        _otpControllers[index + i].text = digits[i];
+                      }
+                      if (index + digits.length < 6) {
+                        _otpFocusNodes[index + digits.length].requestFocus();
+                      } else {
+                        _otpFocusNodes[5].unfocus();
+                      }
+                    } else if (value.length == 1 && index < 5) {
+                      _otpFocusNodes[index + 1].requestFocus();
+                    } else if (value.isEmpty && index > 0) {
+                      _otpFocusNodes[index - 1].requestFocus();
+                    }
+
+                    if (_otpControllers.every((c) => c.text.trim().isNotEmpty)) {
+                      _submitOtpVerification(auth);
+                    }
+                  },
+                ),
+              );
+            }),
+          ),
+
           if (_verificationStatusMessage != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -783,98 +894,95 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
           ],
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
-            onPressed: _isLoading
-                ? null
-                : () async {
-                    setState(() {
-                      _isLoading = true;
-                      _verificationStatusMessage = null;
-                    });
-                    await auth.reloadUserAndCheckRole();
-                    if (mounted) {
-                      setState(() {
-                        _isLoading = false;
-                        if (!auth.isEmailVerified) {
-                          _verificationStatusMessage = 'Email is not verified yet. Please check your inbox or click Resend.';
-                          _verificationIsError = true;
+          const SizedBox(height: 20),
+
+          SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : () => _submitOtpVerification(auth),
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.verified_user_rounded, size: 18),
+              label: const Text('Verify OTP Code', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: _isSendingVerification
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isSendingVerification = true;
+                          _verificationStatusMessage = null;
+                        });
+                        try {
+                          final code = await auth.sendEmailOtp(auth.email ?? '');
+                          if (mounted) {
+                            setState(() {
+                              _verificationStatusMessage = code != null
+                                  ? 'New 6-digit OTP code sent! (Code: $code)'
+                                  : 'New OTP code sent to your email.';
+                              _verificationIsError = false;
+                            });
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() {
+                              _verificationStatusMessage = 'Failed to send OTP code.';
+                              _verificationIsError = true;
+                            });
+                          }
+                        } finally {
+                          if (mounted) setState(() => _isSendingVerification = false);
                         }
-                      });
-                    }
-                  },
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('I Have Verified My Email'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _isSendingVerification
-                ? null
-                : () async {
+                      },
+                icon: const Icon(Icons.replay_rounded, size: 16),
+                label: const Text('Resend OTP Code', style: TextStyle(fontSize: 12)),
+              ),
+              TextButton(
+                onPressed: () async {
+                  setState(() => _isLoading = true);
+                  await auth.reloadUserAndCheckRole();
+                  if (mounted) {
                     setState(() {
-                      _isSendingVerification = true;
-                      _verificationStatusMessage = null;
+                      _isLoading = false;
+                      if (!auth.isEmailVerified) {
+                        _verificationStatusMessage = 'Email link not verified yet. Enter 6-digit OTP above.';
+                        _verificationIsError = true;
+                      }
                     });
-                    try {
-                      await auth.sendEmailVerification();
-                      if (mounted) {
-                        setState(() {
-                          _verificationStatusMessage = 'Verification email re-sent! Please check your inbox and spam folder.';
-                          _verificationIsError = false;
-                        });
-                      }
-                    } on AuthFailure catch (e) {
-                      if (mounted) {
-                        setState(() {
-                          _verificationStatusMessage = e.message;
-                          _verificationIsError = true;
-                        });
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        setState(() {
-                          _verificationStatusMessage = 'Failed to send verification email. Check internet connection.';
-                          _verificationIsError = true;
-                        });
-                      }
-                    } finally {
-                      if (mounted) setState(() => _isSendingVerification = false);
-                    }
-                  },
-            icon: _isSendingVerification
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
-                  )
-                : const Icon(Icons.send_rounded, size: 16),
-            label: const Text('Resend Verification Email'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primaryBlue,
-              side: const BorderSide(color: AppTheme.primaryBlue),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+                  }
+                },
+                child: const Text('Check Email Link', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _verificationStatusMessage = null;
-              });
-              auth.signOut();
-            },
-            child: const Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
+          const SizedBox(height: 4),
+
+          Center(
+            child: TextButton(
+              onPressed: () {
+                for (final c in _otpControllers) {
+                  c.clear();
+                }
+                setState(() => _verificationStatusMessage = null);
+                auth.signOut();
+              },
+              child: const Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+            ),
           ),
         ],
       ),

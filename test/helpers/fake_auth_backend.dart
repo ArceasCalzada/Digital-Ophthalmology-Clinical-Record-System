@@ -69,6 +69,17 @@ class FakeAuthBackend implements AuthBackend {
   }
 
   @override
+  Future<String> sendEmailOtp(String email) async {
+    verificationEmailCalls++;
+    return '123456';
+  }
+
+  @override
+  Future<bool> verifyEmailOtp(String email, String otp) async {
+    return otp.trim() == '123456';
+  }
+
+  @override
   Future<AuthUser?> reloadUser() async => _current;
 
   @override
