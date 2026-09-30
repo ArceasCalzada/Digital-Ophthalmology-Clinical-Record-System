@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
 
 class CalendarEvent {
@@ -28,6 +30,24 @@ class CalendarEvent {
     this.isCompleted = false,
     this.notificationTriggered = false,
   });
+
+  factory CalendarEvent.fromJson(Map<String, dynamic> json) {
+    return CalendarEvent(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      eventType: json['eventType'] as String? ?? 'Checkup',
+      location: json['location'] as String? ?? '',
+      dateTime: json['dateTime'] != null
+          ? DateTime.tryParse(json['dateTime'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      patientName: json['patientName'] as String? ?? '',
+      patientId: json['patientId'] as String?,
+      notes: json['notes'] as String? ?? '',
+      reminderMinutes: json['reminderMinutes'] as int? ?? 30,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      notificationTriggered: json['notificationTriggered'] as bool? ?? false,
+    );
+  }
 }
 
 class CalendarEventRepository extends ChangeNotifier {
@@ -35,9 +55,38 @@ class CalendarEventRepository extends ChangeNotifier {
   factory CalendarEventRepository() => _instance;
 
   final List<CalendarEvent> _events = [];
+  StreamSubscription? _eventsSub;
 
   CalendarEventRepository._internal() {
     _initSeedData();
+  }
+
+  void connect() {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) return;
+    _eventsSub?.cancel();
+    _eventsSub = firestore.collection('calendarEvents').snapshots().listen((snapshot) {
+      _events.clear();
+      for (final doc in snapshot.docs) {
+        try {
+          final data = FirebaseGate.decode(doc.data());
+          data['id'] = doc.id;
+          _events.add(CalendarEvent.fromJson(data));
+        } catch (e) {
+          debugPrint('Error parsing calendar event ${doc.id}: $e');
+        }
+      }
+      notifyListeners();
+    }, onError: (Object e) {
+      debugPrint('Firestore calendar events stream error: $e');
+    });
+  }
+
+  void disconnect() {
+    _eventsSub?.cancel();
+    _eventsSub = null;
+    _events.clear();
+    notifyListeners();
   }
 
   List<CalendarEvent> get events => List.unmodifiable(_events);

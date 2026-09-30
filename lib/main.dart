@@ -5,6 +5,8 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'config/app_limits.dart';
 import 'firebase_options.dart';
+import 'models/calendar_event.dart';
+import 'models/clinical_notification.dart';
 import 'models/patient.dart';
 import 'services/auth_service.dart';
 import 'services/clinic_store.dart';
@@ -122,6 +124,8 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     final uid = AuthService.instance.user?.uid;
     if (uid != null) ClinicStore.instance.load(uid);
     PatientRepository.connect();
+    CalendarEventRepository().connect();
+    ClinicalNotificationRepository().connect();
     final sync = OfflineSyncService();
     sync.startAutoSyncTimer();
     sync.syncNow(); // flush anything queued while signed out
@@ -130,6 +134,8 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
   void _onSignedOut() {
     ClinicStore.instance.unload();
     PatientRepository.disconnect();
+    CalendarEventRepository().disconnect();
+    ClinicalNotificationRepository().disconnect();
     OfflineSyncService().stopAutoSyncTimer();
     DraftManagerService().clearAllDrafts();
   }

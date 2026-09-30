@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
 
 enum NotificationSeverity { urgent, warning, info }
@@ -26,6 +28,25 @@ class ClinicalNotification {
     this.patientId,
     this.isRead = false,
   });
+
+  factory ClinicalNotification.fromJson(Map<String, dynamic> json) {
+    return ClinicalNotification(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      category: json['category'] as String? ?? 'Reminder',
+      severity: NotificationSeverity.values.firstWhere(
+        (s) => s.name == json['severity'],
+        orElse: () => NotificationSeverity.info,
+      ),
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      patientName: json['patientName'] as String?,
+      patientId: json['patientId'] as String?,
+      isRead: json['isRead'] as bool? ?? false,
+    );
+  }
 }
 
 class ClinicalNotificationRepository extends ChangeNotifier {
@@ -33,9 +54,38 @@ class ClinicalNotificationRepository extends ChangeNotifier {
   factory ClinicalNotificationRepository() => _instance;
 
   final List<ClinicalNotification> _notifications = [];
+  StreamSubscription? _notifSub;
 
   ClinicalNotificationRepository._internal() {
     _initSeedData();
+  }
+
+  void connect() {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) return;
+    _notifSub?.cancel();
+    _notifSub = firestore.collection('notifications').snapshots().listen((snapshot) {
+      _notifications.clear();
+      for (final doc in snapshot.docs) {
+        try {
+          final data = FirebaseGate.decode(doc.data());
+          data['id'] = doc.id;
+          _notifications.add(ClinicalNotification.fromJson(data));
+        } catch (e) {
+          debugPrint('Error parsing notification ${doc.id}: $e');
+        }
+      }
+      notifyListeners();
+    }, onError: (Object e) {
+      debugPrint('Firestore notifications stream error: $e');
+    });
+  }
+
+  void disconnect() {
+    _notifSub?.cancel();
+    _notifSub = null;
+    _notifications.clear();
+    notifyListeners();
   }
 
   List<ClinicalNotification> get notifications => List.unmodifiable(_notifications);

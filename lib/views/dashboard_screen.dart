@@ -41,6 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _loadDashboardData();
     _updateClock();
+    PatientRepository.changeNotifier.addListener(_loadDashboardData);
+    CalendarEventRepository().addListener(_loadDashboardData);
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) _updateClock();
     });
@@ -48,6 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    PatientRepository.changeNotifier.removeListener(_loadDashboardData);
+    CalendarEventRepository().removeListener(_loadDashboardData);
     _clockTimer?.cancel();
     _searchController.dispose();
     super.dispose();
