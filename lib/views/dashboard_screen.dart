@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
 import 'new_patient_modal.dart';
+import 'patient_profile_view.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(Patient)? onSelectPatient;
@@ -773,6 +774,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onPressed: () {
                               if (widget.onSelectPatient != null) {
                                 widget.onSelectPatient!(patient);
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PatientProfileView(patientId: patient.id),
+                                  ),
+                                );
                               }
                             },
                             style: OutlinedButton.styleFrom(

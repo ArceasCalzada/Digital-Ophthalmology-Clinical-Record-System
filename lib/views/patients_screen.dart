@@ -749,7 +749,9 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         Expanded(
                           flex: 5,
                           child: OutlinedButton(
-                            onPressed: () => widget.onSelectPatient(patient),
+                            onPressed: () {
+                              widget.onSelectPatient(patient);
+                            },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.primaryBlue,
                               side: const BorderSide(color: AppTheme.borderColor),
@@ -913,7 +915,9 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     ),
                     DataCell(
                       ElevatedButton(
-                        onPressed: () => widget.onSelectPatient(patient),
+                        onPressed: () {
+                          widget.onSelectPatient(patient);
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryBlue,
                           foregroundColor: Colors.white,
