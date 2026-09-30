@@ -720,6 +720,10 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
+  String? _verificationStatusMessage;
+  bool _verificationIsError = false;
+  bool _isSendingVerification = false;
+
   Widget _buildEmailVerificationPendingView(AuthService auth) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -746,14 +750,66 @@ class _LoginViewState extends State<LoginView> {
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
+          if (_verificationStatusMessage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _verificationIsError ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _verificationIsError ? const Color(0xFFFCA5A5) : const Color(0xFFA7F3D0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _verificationIsError ? Icons.error_outline : Icons.check_circle_outline,
+                    size: 18,
+                    color: _verificationIsError ? const Color(0xFFB91C1C) : const Color(0xFF047857),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _verificationStatusMessage!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _verificationIsError ? const Color(0xFFB91C1C) : const Color(0xFF047857),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           ElevatedButton.icon(
-            onPressed: () async {
-              setState(() => _isLoading = true);
-              await auth.reloadUserAndCheckRole();
-              if (mounted) setState(() => _isLoading = false);
-            },
-            icon: const Icon(Icons.refresh_rounded, size: 18),
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    setState(() {
+                      _isLoading = true;
+                      _verificationStatusMessage = null;
+                    });
+                    await auth.reloadUserAndCheckRole();
+                    if (mounted) {
+                      setState(() {
+                        _isLoading = false;
+                        if (!auth.isEmailVerified) {
+                          _verificationStatusMessage = 'Email is not verified yet. Please check your inbox or click Resend.';
+                          _verificationIsError = true;
+                        }
+                      });
+                    }
+                  },
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('I Have Verified My Email'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
@@ -763,15 +819,46 @@ class _LoginViewState extends State<LoginView> {
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () async {
-              await auth.sendEmailVerification();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Verification email re-sent.')),
-                );
-              }
-            },
-            icon: const Icon(Icons.send_rounded, size: 16),
+            onPressed: _isSendingVerification
+                ? null
+                : () async {
+                    setState(() {
+                      _isSendingVerification = true;
+                      _verificationStatusMessage = null;
+                    });
+                    try {
+                      await auth.sendEmailVerification();
+                      if (mounted) {
+                        setState(() {
+                          _verificationStatusMessage = 'Verification email re-sent! Please check your inbox and spam folder.';
+                          _verificationIsError = false;
+                        });
+                      }
+                    } on AuthFailure catch (e) {
+                      if (mounted) {
+                        setState(() {
+                          _verificationStatusMessage = e.message;
+                          _verificationIsError = true;
+                        });
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        setState(() {
+                          _verificationStatusMessage = 'Failed to send verification email. Check internet connection.';
+                          _verificationIsError = true;
+                        });
+                      }
+                    } finally {
+                      if (mounted) setState(() => _isSendingVerification = false);
+                    }
+                  },
+            icon: _isSendingVerification
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                  )
+                : const Icon(Icons.send_rounded, size: 16),
             label: const Text('Resend Verification Email'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.primaryBlue,
@@ -781,7 +868,12 @@ class _LoginViewState extends State<LoginView> {
           ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => auth.signOut(),
+            onPressed: () {
+              setState(() {
+                _verificationStatusMessage = null;
+              });
+              auth.signOut();
+            },
             child: const Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
           ),
         ],

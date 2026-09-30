@@ -104,6 +104,8 @@ class FirebaseAuthBackend implements AuthBackend {
       }
       try {
         await user.sendEmailVerification();
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Email verification trigger failed: ${e.code} ${e.message}');
       } catch (e) {
         debugPrint('Email verification trigger failed: $e');
       }
@@ -131,11 +133,14 @@ class FirebaseAuthBackend implements AuthBackend {
   Future<void> sendEmailVerification() async {
     try {
       final u = _auth.currentUser;
-      if (u != null && !u.emailVerified) {
-        await u.sendEmailVerification();
+      if (u == null) {
+        throw const AuthFailure('No active session found. Please sign in again.');
       }
+      await u.sendEmailVerification();
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_messageFor(e.code));
+    } catch (e) {
+      throw AuthFailure('Failed to send verification email: $e');
     }
   }
 
