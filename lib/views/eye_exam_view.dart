@@ -226,7 +226,12 @@ class _EyeExamViewState extends State<EyeExamView> {
     }
   }
 
-  void _saveConsultationRecord() {
+  bool _isSaving = false;
+
+  void _saveConsultationRecord() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
     final examOD = EyeExamData(
       acuity: VisualAcuity(
         uncorrected: _vaODController.text.isNotEmpty ? _vaODController.text : 'HM',
@@ -296,28 +301,67 @@ class _EyeExamViewState extends State<EyeExamView> {
     try {
       PatientRepository.addEncounter(_activePatient.id, tempEncounter);
     } on FormatException catch (e) {
+      if (mounted) setState(() => _isSaving = false);
       _showSaveError(e.message);
       return;
     } on DrawingTooLargeException catch (e) {
+      if (mounted) setState(() => _isSaving = false);
+      _showSaveError(e.toString());
+      return;
+    } catch (e) {
+      if (mounted) setState(() => _isSaving = false);
       _showSaveError(e.toString());
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Text('Consultation encounter saved successfully for ${_activePatient.fullName}!'),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Consultation Saved Successfully',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+            ),
           ],
         ),
-        backgroundColor: const Color(0xFF059669),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
+        content: Text(
+          'The consultation encounter for ${_activePatient.fullName} has been saved successfully.',
+          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.4),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          ),
+        ],
       ),
     );
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
 
     if (widget.onExamComplete != null) {
       final updated = PatientRepository.getPatientById(_activePatient.id) ?? _activePatient;
@@ -456,9 +500,11 @@ class _EyeExamViewState extends State<EyeExamView> {
 
           // Save Record
           ElevatedButton.icon(
-            onPressed: _saveConsultationRecord,
-            icon: const Icon(Icons.save, size: 16),
-            label: const Text('Save Record', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            onPressed: _isSaving ? null : _saveConsultationRecord,
+            icon: _isSaving
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.save, size: 16),
+            label: Text(_isSaving ? 'Saving...' : 'Save Record', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
@@ -483,7 +529,7 @@ class _EyeExamViewState extends State<EyeExamView> {
         onStrokesChanged: (updatedStrokes) {
           _paperStrokes = updatedStrokes;
         },
-        onSave: _saveConsultationRecord,
+        onSave: _isSaving ? null : _saveConsultationRecord,
         onPrint: _showPdfPreview,
       ),
     );

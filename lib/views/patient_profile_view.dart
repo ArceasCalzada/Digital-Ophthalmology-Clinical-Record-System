@@ -11,12 +11,14 @@ import 'prescription_view.dart';
 
 class PatientProfileView extends StatefulWidget {
   final String patientId;
+  final Patient? patient;
   final VoidCallback? onBack;
   final VoidCallback? onStartNewExam;
 
   const PatientProfileView({
     super.key,
     required this.patientId,
+    this.patient,
     this.onBack,
     this.onStartNewExam,
   });
@@ -53,7 +55,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     if (mounted) setState(() {});
   }
 
-  Patient? get _patientNullable => PatientRepository.getPatientById(widget.patientId);
+  Patient? get _patientNullable => PatientRepository.getPatientById(widget.patientId) ?? widget.patient;
   Patient get _patient => _patientNullable!;
 
   void _startNewExamination() async {
@@ -214,13 +216,10 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(isMobile ? 14 : 20),
-                    child: Column(
-                      children: [
-                        Flex(
-                          direction: isMobile ? Axis.vertical : Axis.horizontal,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-                          children: [
+                    child: isMobile
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                             Row(
                               children: [
                                 if (widget.onBack != null) ...[
@@ -308,9 +307,101 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                               ],
                             ),
                           ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  if (widget.onBack != null) ...[
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                                      onPressed: widget.onBack,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  CircleAvatar(
+                                    radius: 26,
+                                    backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                    child: Text(
+                                      _patient.fullName.isNotEmpty ? _patient.fullName.substring(0, 1) : 'P',
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Wrap(
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          spacing: 8,
+                                          runSpacing: 4,
+                                          children: [
+                                            Text(_patient.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                _patient.mrn,
+                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontFamily: 'monospace'),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${_patient.gender}, ${_patient.age}y  •  DOB: ${formatClinicalDate(_patient.dateOfBirth)}',
+                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Row(
+                              children: [
+                                if (_patient.encounters.length >= 2) ...[
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => HistoricalComparisonView(patient: _patient),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.compare, size: 14),
+                                    label: const Text('Compare', style: TextStyle(fontSize: 12)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.primaryBlue,
+                                      side: const BorderSide(color: AppTheme.borderColor),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                ],
+                                ElevatedButton.icon(
+                                  onPressed: _startNewExamination,
+                                  icon: const Icon(Icons.draw, size: 14),
+                                  label: const Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryBlue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -363,7 +454,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
   }
 
   Widget _buildOverviewTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,29 +484,33 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   children: [
                     const Text('Medical History & Allergies', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
                     const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _patient.medicalHistory.map((item) {
-                        return Chip(
-                          label: Text(item, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          side: BorderSide.none,
-                        );
-                      }).toList(),
-                    ),
+                    _patient.medicalHistory.isEmpty
+                        ? const Text('No prior medical history recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _patient.medicalHistory.map((item) {
+                              return Chip(
+                                label: Text(item, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                                backgroundColor: const Color(0xFFF1F5F9),
+                                side: BorderSide.none,
+                              );
+                            }).toList(),
+                          ),
                     const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _patient.allergies.map((item) {
-                        return Chip(
-                          label: Text(item, style: const TextStyle(fontSize: 12, color: Colors.redAccent)),
-                          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-                          side: const BorderSide(color: Colors.redAccent),
-                        );
-                      }).toList(),
-                    ),
+                    _patient.allergies.isEmpty
+                        ? const Text('No known allergies recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _patient.allergies.map((item) {
+                              return Chip(
+                                label: Text(item, style: const TextStyle(fontSize: 12, color: Colors.redAccent)),
+                                backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                                side: const BorderSide(color: Colors.redAccent),
+                              );
+                            }).toList(),
+                          ),
                   ],
                 ),
               ),

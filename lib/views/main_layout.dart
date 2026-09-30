@@ -236,6 +236,7 @@ class _MainLayoutState extends State<MainLayout> {
         if (_selectedPatient != null) {
           return PatientProfileView(
             patientId: _selectedPatient!.id,
+            patient: _selectedPatient,
             onBack: () => setState(() => _selectedPatient = null),
             onStartNewExam: () {
               setState(() => _isExamMode = true);
@@ -291,6 +292,7 @@ class _MainLayoutState extends State<MainLayout> {
         if (_selectedPatient != null) {
           return PatientProfileView(
             patientId: _selectedPatient!.id,
+            patient: _selectedPatient,
             onBack: () => setState(() => _selectedPatient = null),
             onStartNewExam: () => _showMobileExamNotice(),
           );
