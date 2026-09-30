@@ -32,10 +32,26 @@ class DevAuthBackend implements AuthBackend {
 
   @override
   Future<AuthUser> signIn(String email, String password, {required bool remember}) async {
-    _current = _user;
+    _current = AuthUser('dev-user', email.isEmpty ? _user.email : email, isEmailVerified: true);
     _changes.add(_current);
-    return _user;
+    return _current!;
   }
+
+  @override
+  Future<AuthUser> signUp(String email, String password, String fullName) async {
+    _current = AuthUser('dev-user', email, displayName: fullName, isEmailVerified: true);
+    _changes.add(_current);
+    return _current!;
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {}
+
+  @override
+  Future<void> sendEmailVerification() async {}
+
+  @override
+  Future<AuthUser?> reloadUser() async => _current;
 
   @override
   Future<void> signOut() async {

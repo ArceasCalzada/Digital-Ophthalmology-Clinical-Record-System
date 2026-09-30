@@ -11,7 +11,7 @@ class ProfileStore extends ChangeNotifier {
 
   // Doctor profile.
   final doctorName = TextEditingController(text: 'Dr. Sigrid Robillos, MD');
-  final doctorEmail = TextEditingController(text: 'dr.jenkins@metroeye.com');
+  final doctorEmail = TextEditingController(text: 'dr.robillos@metroeye.com');
   final doctorPhone = TextEditingController(text: '+63 917 555 0192');
   final doctorTitle = TextEditingController(text: 'Attending Ophthalmologist');
   final specialization = TextEditingController(text: 'Cornea & Anterior Segment Specialist');

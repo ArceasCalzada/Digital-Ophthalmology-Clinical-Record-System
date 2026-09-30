@@ -13,12 +13,14 @@ class RequiredTextFormField extends StatefulWidget {
   final TextStyle? style;
   final bool obscureText;
   final int? maxLines;
+  final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
 
   /// Whether surrounding spaces are ignored when deciding if the field is empty.
   final bool trim;
 
   final String? Function(String value)? invalidMessage;
+  final String? Function(String? value)? validator;
 
   const RequiredTextFormField({
     super.key,
@@ -27,9 +29,11 @@ class RequiredTextFormField extends StatefulWidget {
     this.style,
     this.obscureText = false,
     this.maxLines = 1,
+    this.keyboardType,
     this.onChanged,
     this.trim = true,
     this.invalidMessage,
+    this.validator,
   });
 
   @override
@@ -49,11 +53,20 @@ class _RequiredTextFormFieldState extends State<RequiredTextFormField> {
       _shake.currentState?.shake();
       return ''; // an empty message still puts the field in its red error state
     }
-    final message = widget.invalidMessage?.call(value);
-    if (message != null) {
-      _remember(true);
-      _shake.currentState?.shake();
-      return message;
+    if (widget.validator != null) {
+      final message = widget.validator!(raw);
+      if (message != null) {
+        _remember(true);
+        _shake.currentState?.shake();
+        return message;
+      }
+    } else if (widget.invalidMessage != null) {
+      final message = widget.invalidMessage!(value);
+      if (message != null) {
+        _remember(true);
+        _shake.currentState?.shake();
+        return message;
+      }
     }
     _remember(false);
     return null;
@@ -72,6 +85,7 @@ class _RequiredTextFormFieldState extends State<RequiredTextFormField> {
         style: widget.style,
         obscureText: widget.obscureText,
         maxLines: widget.maxLines,
+        keyboardType: widget.keyboardType,
         onChanged: widget.onChanged,
         decoration: widget.decoration.copyWith(
           // Nothing is printed for "empty"; only a real message takes up room.

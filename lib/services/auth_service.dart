@@ -24,10 +24,17 @@ UserRole? parseUserRole(Object? raw) {
 class AuthUser {
   final String uid;
   final String? email;
-  const AuthUser(this.uid, this.email);
+  final String? displayName;
+  final bool isEmailVerified;
+  const AuthUser(
+    this.uid,
+    this.email, {
+    this.displayName,
+    this.isEmailVerified = true,
+  });
 }
 
-/// Thrown by [AuthService.signIn] with a message that is safe to show the user.
+/// Thrown by [AuthService] operations with a message that is safe to show the user.
 class AuthFailure implements Exception {
   final String message;
   const AuthFailure(this.message);
@@ -41,6 +48,10 @@ abstract class AuthBackend {
   AuthUser? get currentUser;
   Stream<AuthUser?> get userChanges;
   Future<AuthUser> signIn(String email, String password, {required bool remember});
+  Future<AuthUser> signUp(String email, String password, String fullName);
+  Future<void> sendPasswordResetEmail(String email);
+  Future<void> sendEmailVerification();
+  Future<AuthUser?> reloadUser();
   Future<void> signOut();
 
   /// Reads `users/{uid}.role`. Null means the account is not authorised for DOCRS.
@@ -50,7 +61,14 @@ abstract class AuthBackend {
 class FirebaseAuthBackend implements AuthBackend {
   FirebaseAuth get _auth => FirebaseAuth.instance;
 
-  AuthUser? _map(User? u) => u == null ? null : AuthUser(u.uid, u.email);
+  AuthUser? _map(User? u) => u == null
+      ? null
+      : AuthUser(
+          u.uid,
+          u.email,
+          displayName: u.displayName,
+          isEmailVerified: u.emailVerified,
+        );
 
   @override
   AuthUser? get currentUser => _map(_auth.currentUser);
@@ -69,19 +87,83 @@ class FirebaseAuthBackend implements AuthBackend {
       final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
       final user = cred.user;
       if (user == null) throw const AuthFailure('Sign-in failed. Please try again.');
-      return AuthUser(user.uid, user.email);
+      return _map(user)!;
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_messageFor(e.code));
     }
   }
 
+  @override
+  Future<AuthUser> signUp(String email, String password, String fullName) async {
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      final user = cred.user;
+      if (user == null) throw const AuthFailure('Registration failed. Please try again.');
+      if (fullName.trim().isNotEmpty) {
+        await user.updateDisplayName(fullName.trim());
+      }
+      try {
+        await user.sendEmailVerification();
+      } catch (e) {
+        debugPrint('Email verification trigger failed: $e');
+      }
+      return AuthUser(
+        user.uid,
+        user.email,
+        displayName: fullName.trim(),
+        isEmailVerified: user.emailVerified,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(_messageFor(e.code));
+    }
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(_messageFor(e.code));
+    }
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    try {
+      final u = _auth.currentUser;
+      if (u != null && !u.emailVerified) {
+        await u.sendEmailVerification();
+      }
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(_messageFor(e.code));
+    }
+  }
+
+  @override
+  Future<AuthUser?> reloadUser() async {
+    try {
+      final u = _auth.currentUser;
+      if (u != null) {
+        await u.reload();
+        return _map(_auth.currentUser);
+      }
+      return null;
+    } catch (e) {
+      return _map(_auth.currentUser);
+    }
+  }
+
   static String _messageFor(String code) {
     switch (code) {
+      case 'email-already-in-use':
+        return 'An account with this email address already exists.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'weak-password':
+        return 'Password is too weak. Please use at least 6 characters.';
       case 'invalid-credential':
       case 'wrong-password':
       case 'user-not-found':
-      case 'invalid-email':
-        // One message for all of these so the form does not reveal which accounts exist.
         return 'Incorrect email or password.';
       case 'user-disabled':
         return 'This account has been disabled. Contact your clinic administrator.';
@@ -90,7 +172,7 @@ class FirebaseAuthBackend implements AuthBackend {
       case 'network-request-failed':
         return 'Cannot reach the server. Check your internet connection.';
       default:
-        return 'Sign-in failed. Please try again.';
+        return 'Authentication failed. Please try again.';
     }
   }
 
@@ -111,9 +193,8 @@ class FirebaseAuthBackend implements AuthBackend {
 
 /// Signed-in state for the whole app.
 ///
-/// A user only counts as signed in ([isSignedIn]) once their account has a role
-/// in `users/{uid}`. Firestore rules apply the same check, so an authenticated
-/// but unlisted account can neither open the app nor read any data.
+/// A user only counts as signed in ([isSignedIn]) once their account has verified its
+/// email AND has a role in `users/{uid}`. Firestore rules apply the same check.
 class AuthService extends ChangeNotifier {
   static final AuthService instance = AuthService._();
   AuthService._();
@@ -131,7 +212,10 @@ class AuthService extends ChangeNotifier {
   AuthUser? get user => _user;
   UserRole? get role => _role;
   String? get email => _user?.email;
-  bool get isSignedIn => _user != null && _role != null;
+  bool get isEmailVerified => _user?.isEmailVerified ?? true;
+  bool get isPendingEmailVerification => _user != null && !isEmailVerified;
+  bool get isPendingRole => _user != null && isEmailVerified && _role == null;
+  bool get isSignedIn => _user != null && _role != null && isEmailVerified;
   bool get isResolving => _resolving;
   bool get canWriteClinical => _role == UserRole.admin || _role == UserRole.physician;
   bool get canDelete => _role == UserRole.admin;
@@ -166,9 +250,11 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return Future.value();
     }
-    // signIn() and the auth stream both report the same user (often at the same
-    // moment): resolve the role once and let both callers share the result.
-    if (_user?.uid == user.uid && _role != null) return Future.value();
+    _user = user;
+    if (_user?.uid == user.uid && _role != null) {
+      notifyListeners();
+      return Future.value();
+    }
     if (_inFlight != null && _inFlightUid == user.uid) return _inFlight!;
     _inFlightUid = user.uid;
     return _inFlight = _resolve(user).whenComplete(() {
@@ -181,19 +267,14 @@ class AuthService extends ChangeNotifier {
     _resolving = true;
     notifyListeners();
     try {
-      final role = await _backend!.fetchRole(user.uid);
-      if (role == null) {
-        // Real account but not on the clinic's list: refuse and sign back out.
-        _user = null;
-        _role = null;
-        await _backend!.signOut();
+      _user = user;
+      if (user.isEmailVerified) {
+        _role = await _backend!.fetchRole(user.uid);
       } else {
-        _user = user;
-        _role = role;
+        _role = null;
       }
     } catch (e) {
       debugPrint('AuthService could not read role: $e');
-      _user = null;
       _role = null;
     } finally {
       _resolving = false;
@@ -213,8 +294,63 @@ class AuthService extends ChangeNotifier {
     }
     final signedIn = await backend.signIn(trimmed, password, remember: remember);
     await _onUserChanged(signedIn);
-    if (!isSignedIn) {
-      throw const AuthFailure('This account is not authorised for DOCRS. Contact your clinic administrator.');
+  }
+
+  /// Registers a new account.
+  Future<void> signUp(String email, String password, String fullName) async {
+    final backend = _backend;
+    if (backend == null) {
+      throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
+    }
+    final trimmedEmail = email.trim();
+    final trimmedName = fullName.trim();
+    if (trimmedName.isEmpty || trimmedEmail.isEmpty || password.isEmpty) {
+      throw const AuthFailure('Please complete all required fields.');
+    }
+    if (password.length < 6) {
+      throw const AuthFailure('Password is too weak. Please use at least 6 characters.');
+    }
+    final newUser = await backend.signUp(trimmedEmail, password, trimmedName);
+    await _onUserChanged(newUser);
+  }
+
+  /// Sends a password reset email.
+  Future<void> sendPasswordResetEmail(String email) async {
+    final backend = _backend;
+    if (backend == null) {
+      throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
+    }
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) {
+      throw const AuthFailure('Please enter your email address.');
+    }
+    await backend.sendPasswordResetEmail(trimmed);
+  }
+
+  /// Re-sends email verification message to current user.
+  Future<void> sendEmailVerification() async {
+    final backend = _backend;
+    if (backend == null) return;
+    await backend.sendEmailVerification();
+  }
+
+  /// Reloads user authentication state to check for verified status or updated role.
+  Future<void> reloadUserAndCheckRole() async {
+    final backend = _backend;
+    if (backend == null) return;
+    _resolving = true;
+    notifyListeners();
+    try {
+      final reloaded = await backend.reloadUser();
+      if (reloaded != null) {
+        _user = reloaded;
+        if (reloaded.isEmailVerified) {
+          _role = await backend.fetchRole(reloaded.uid);
+        }
+      }
+    } finally {
+      _resolving = false;
+      notifyListeners();
     }
   }
 

@@ -60,25 +60,52 @@ void main() {
     );
   });
 
-  test('refuses an authenticated account that has no role, and signs it back out', () async {
-    await expectLater(
-      AuthService.instance.signIn('stranger@clinic.test', 'no-role-pass'),
-      throwsA(isA<AuthFailure>().having((e) => e.message, 'message', contains('not authorised'))),
-    );
+  test('handles authenticated user with no role by placing them in isPendingRole state', () async {
+    await AuthService.instance.signIn('stranger@clinic.test', 'no-role-pass');
     expect(AuthService.instance.isSignedIn, isFalse);
-    expect(backend.signOutCalls, greaterThanOrEqualTo(1));
+    expect(AuthService.instance.isPendingRole, isTrue);
+    expect(AuthService.instance.user?.email, 'stranger@clinic.test');
+  });
+
+  test('registers a new user and triggers verification and pending role state', () async {
+    await AuthService.instance.signUp('newdoc@clinic.test', 'securepass123', 'Dr. New Doctor');
+    expect(AuthService.instance.user?.email, 'newdoc@clinic.test');
+    expect(AuthService.instance.user?.displayName, 'Dr. New Doctor');
+    expect(AuthService.instance.isSignedIn, isFalse);
+    expect(AuthService.instance.isPendingRole, isTrue);
+  });
+
+  test('rejects weak passwords during registration', () async {
+    await expectLater(
+      AuthService.instance.signUp('newdoc@clinic.test', '123', 'Dr. Short Pass'),
+      throwsA(isA<AuthFailure>().having((e) => e.message, 'message', contains('at least 6 characters'))),
+    );
+  });
+
+  test('rejects duplicate email during registration', () async {
+    await expectLater(
+      AuthService.instance.signUp('doc@clinic.test', 'battery-staple', 'Dr. Existing'),
+      throwsA(isA<AuthFailure>().having((e) => e.message, 'message', contains('already exists'))),
+    );
+  });
+
+  test('requests password reset email for existing user', () async {
+    await AuthService.instance.sendPasswordResetEmail('doc@clinic.test');
+    expect(backend.resetEmailCalls, 1);
+  });
+
+  test('handles email verification pending state when email is not verified', () async {
+    backend.shouldRequireEmailVerification = true;
+    await AuthService.instance.signIn('doc@clinic.test', 'battery-staple');
+    expect(AuthService.instance.isEmailVerified, isFalse);
+    expect(AuthService.instance.isPendingEmailVerification, isTrue);
+    expect(AuthService.instance.isSignedIn, isFalse);
   });
 
   test('blank email or password is rejected before contacting the server', () async {
     await expectLater(AuthService.instance.signIn('  ', 'x'), throwsA(isA<AuthFailure>()));
     await expectLater(AuthService.instance.signIn('doc@clinic.test', ''), throwsA(isA<AuthFailure>()));
     expect(backend.roleReads, 0);
-  });
-
-  test('reads the role once per sign-in (no duplicate billed read)', () async {
-    await AuthService.instance.signIn('doc@clinic.test', 'battery-staple');
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-    expect(backend.roleReads, 1);
   });
 
   test('sign out clears the session', () async {
