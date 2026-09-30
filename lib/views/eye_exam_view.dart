@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/page_header.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
+import '../services/profile_store.dart';
 
 class EyeExamView extends StatefulWidget {
   final Patient? patient;
@@ -278,7 +279,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       id: 'enc-${DateTime.now().millisecondsSinceEpoch}',
       patientId: _activePatient.id,
       date: _dateController.text.isNotEmpty ? _dateController.text : formatClinicalDate(DateTime.now().toString().substring(0, 10)),
-      doctorName: 'Dr. Sigrid Robillos, MD',
+      doctorName: ProfileStore.instance.doctorName.text.isNotEmpty ? ProfileStore.instance.doctorName.text : 'Attending Physician',
       chiefComplaint: _chiefComplaintController.text,
       examOD: examOD,
       examOS: examOS,
@@ -384,7 +385,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       id: 'enc-${DateTime.now().millisecondsSinceEpoch}',
       patientId: _activePatient.id,
       date: _dateController.text.isNotEmpty ? _dateController.text : formatClinicalDate(DateTime.now().toString().substring(0, 10)),
-      doctorName: 'Dr. Sigrid Robillos, MD',
+      doctorName: ProfileStore.instance.doctorName.text.isNotEmpty ? ProfileStore.instance.doctorName.text : 'Attending Physician',
       chiefComplaint: _chiefComplaintController.text.isNotEmpty ? _chiefComplaintController.text : 'OS BOV x 1 year\nCame in w/ silingan\nNo family',
       examOD: examOD,
       examOS: examOS,

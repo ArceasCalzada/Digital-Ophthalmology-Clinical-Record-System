@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'auth_service.dart';
 
 /// The signed-in doctor's profile and the clinic details printed on prescriptions.
 ///
@@ -23,6 +24,32 @@ class ProfileStore extends ChangeNotifier {
   final clinicPhone = TextEditingController(text: '+63 2 8920 1100');
   final clinicEmail = TextEditingController(text: 'info@metroeyecenter.com');
   final clinicWebsite = TextEditingController(text: 'www.metroeyecenter.com');
+
+  /// Updates ProfileStore fields based on the currently logged in user.
+  void syncWithUser(AuthUser? user, {String? fullName}) {
+    if (user == null) return;
+    if (user.email != null && user.email!.isNotEmpty) {
+      doctorEmail.text = user.email!;
+    }
+    final name = (fullName != null && fullName.trim().isNotEmpty)
+        ? fullName.trim()
+        : (user.displayName != null && user.displayName!.trim().isNotEmpty
+            ? user.displayName!.trim()
+            : (user.email != null && user.email!.isNotEmpty
+                ? user.email!.split('@').first
+                : ''));
+    if (name.isNotEmpty) {
+      doctorName.text = name.startsWith('Dr.') ? name : 'Dr. $name';
+    }
+    notifyListeners();
+  }
+
+  /// Resets user profile details on logout.
+  void reset() {
+    doctorName.text = 'Dr. Sigrid Robillos, MD';
+    doctorEmail.text = 'dr.robillos@metroeye.com';
+    notifyListeners();
+  }
 
   /// Tells listeners (the sidebar card) that a Save was pressed on the Profile page.
   void save() => notifyListeners();

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'email_otp_service.dart';
+import 'profile_store.dart';
 
 /// Roles stored in `users/{uid}.role`. Admins can also delete patient records.
 enum UserRole { admin, physician, staff }
@@ -288,6 +289,7 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
     try {
       _user = user;
+      ProfileStore.instance.syncWithUser(user);
       if (user.isEmailVerified) {
         _role = await _backend!.fetchRole(user.uid);
       } else {

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/calendar_event.dart';
 import '../models/patient.dart';
+import '../services/profile_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
@@ -363,9 +364,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Doctor Greeting Header
-          const PageHeader(
-            title: 'Good morning, Dr. Sigrid Robillos, MD',
-            subtitle: 'Manage patient records, review examination history, and create digital prescriptions.',
+          ListenableBuilder(
+            listenable: ProfileStore.instance,
+            builder: (context, _) {
+              final rawName = ProfileStore.instance.doctorName.text.trim();
+              final name = rawName.isNotEmpty ? rawName : 'Dr. Sigrid Robillos, MD';
+              return PageHeader(
+                title: 'Good morning, $name',
+                subtitle: 'Manage patient records, review examination history, and create digital prescriptions.',
+              );
+            },
           ),
 
           // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right)
