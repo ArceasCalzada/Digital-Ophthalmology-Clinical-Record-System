@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'email_otp_service.dart';
 
 /// Roles stored in `users/{uid}.role`. Admins can also delete patient records.
 enum UserRole { admin, physician, staff }
@@ -63,8 +64,6 @@ abstract class AuthBackend {
 class FirebaseAuthBackend implements AuthBackend {
   FirebaseAuth get _auth => FirebaseAuth.instance;
 
-  final Map<String, String> _activeOtps = {};
-
   AuthUser? _map(User? u) => u == null
       ? null
       : AuthUser(
@@ -107,11 +106,9 @@ class FirebaseAuthBackend implements AuthBackend {
         await user.updateDisplayName(fullName.trim());
       }
       try {
-        await user.sendEmailVerification();
-      } on FirebaseAuthException catch (e) {
-        debugPrint('Email verification trigger failed: ${e.code} ${e.message}');
+        await EmailOtpService.instance.generateAndSendOtp(email);
       } catch (e) {
-        debugPrint('Email verification trigger failed: $e');
+        debugPrint('Email OTP dispatch trigger failed: $e');
       }
       return AuthUser(
         user.uid,
@@ -140,7 +137,7 @@ class FirebaseAuthBackend implements AuthBackend {
       if (u == null) {
         throw const AuthFailure('No active session found. Please sign in again.');
       }
-      await u.sendEmailVerification();
+      await EmailOtpService.instance.generateAndSendOtp(u.email ?? '');
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_messageFor(e.code));
     } catch (e) {
@@ -150,40 +147,12 @@ class FirebaseAuthBackend implements AuthBackend {
 
   @override
   Future<String> sendEmailOtp(String email) async {
-    final code = (100000 + (email.hashCode.abs() % 899999)).toString();
-    _activeOtps[email.trim().toLowerCase()] = code;
-    try {
-      await sendEmailVerification();
-    } catch (_) {}
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('email_otps').doc(email.trim().toLowerCase()).set({
-          'code': code,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      debugPrint('Firestore OTP write skipped: $e');
-    }
-    debugPrint('DOCRS Email 6-Digit OTP generated for $email: $code');
-    return code;
+    return await EmailOtpService.instance.generateAndSendOtp(email);
   }
 
   @override
   Future<bool> verifyEmailOtp(String email, String otp) async {
-    final trimmedEmail = email.trim().toLowerCase();
-    final trimmedOtp = otp.trim();
-    if (trimmedOtp == '123456') return true;
-    final active = _activeOtps[trimmedEmail];
-    if (active != null && active == trimmedOtp) return true;
-
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        final doc = await FirebaseFirestore.instance.collection('email_otps').doc(trimmedEmail).get();
-        if (doc.exists && doc.data()?['code'] == trimmedOtp) return true;
-      }
-    } catch (_) {}
-    return false;
+    return await EmailOtpService.instance.verifyOtp(email, otp);
   }
 
   @override
