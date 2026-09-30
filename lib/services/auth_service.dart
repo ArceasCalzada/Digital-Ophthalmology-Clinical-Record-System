@@ -106,9 +106,11 @@ class FirebaseAuthBackend implements AuthBackend {
         await user.updateDisplayName(fullName.trim());
       }
       try {
-        await EmailOtpService.instance.generateAndSendOtp(email);
+        await user.sendEmailVerification();
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase email verification link trigger failed: ${e.code} ${e.message}');
       } catch (e) {
-        debugPrint('Email OTP dispatch trigger failed: $e');
+        debugPrint('Firebase email verification link trigger failed: $e');
       }
       return AuthUser(
         user.uid,
@@ -137,7 +139,7 @@ class FirebaseAuthBackend implements AuthBackend {
       if (u == null) {
         throw const AuthFailure('No active session found. Please sign in again.');
       }
-      await EmailOtpService.instance.generateAndSendOtp(u.email ?? '');
+      await u.sendEmailVerification();
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(_messageFor(e.code));
     } catch (e) {
