@@ -14,9 +14,10 @@ import '../services/profile_store.dart';
 
 class EyeExamView extends StatefulWidget {
   final Patient? patient;
+  final Encounter? encounter;
   final Function(Patient)? onExamComplete;
 
-  const EyeExamView({super.key, this.patient, this.onExamComplete});
+  const EyeExamView({super.key, this.patient, this.encounter, this.onExamComplete});
 
   @override
   State<EyeExamView> createState() => _EyeExamViewState();
@@ -88,44 +89,119 @@ class _EyeExamViewState extends State<EyeExamView> {
   final TextEditingController _assessmentController = TextEditingController();
   final TextEditingController _planController = TextEditingController();
 
-
-
   @override
   void initState() {
     super.initState();
-    if (widget.patient != null) {
+    if (widget.encounter != null) {
+      final p = widget.patient ?? PatientRepository.getPatientById(widget.encounter!.patientId);
+      if (p != null) {
+        _activePatient = p;
+      } else {
+        _initEmptyPatient();
+      }
+      _populateFromEncounter(widget.encounter!);
+    } else if (widget.patient != null) {
       _activePatient = widget.patient!;
-      _populateFromPatient(_activePatient);
+      if (_activePatient.encounters.isNotEmpty) {
+        _populateFromEncounter(_activePatient.encounters.first);
+      } else {
+        _populateFromPatient(_activePatient);
+      }
     } else {
-      _activePatient = Patient(
-        id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
-        mrn: 'MRN-${DateTime.now().year}-${(DateTime.now().millisecondsSinceEpoch % 10000).toString().padLeft(4, "0")}',
-        fullName: '',
-        middleName: '',
-        dateOfBirth: '',
-        gender: '',
-        phone: '',
-        address: '',
-        occupation: '',
-        phicNumber: '',
-        referringDoctor: '',
-        medicalHistory: [],
-        allergies: [],
-        previousDiagnoses: [],
-        previousPrescriptions: [],
-        prescriptions: [],
-        encounters: [],
-        lastVisitDate: '',
-        totalVisits: 0,
-      );
+      _initEmptyPatient();
       _clearAllFieldsForNewPatient();
+    }
+  }
+
+  void _initEmptyPatient() {
+    _activePatient = Patient(
+      id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
+      mrn: 'MRN-${DateTime.now().year}-${(DateTime.now().millisecondsSinceEpoch % 10000).toString().padLeft(4, "0")}',
+      fullName: '',
+      middleName: '',
+      dateOfBirth: '',
+      gender: '',
+      phone: '',
+      address: '',
+      occupation: '',
+      phicNumber: '',
+      referringDoctor: '',
+      medicalHistory: [],
+      allergies: [],
+      previousDiagnoses: [],
+      previousPrescriptions: [],
+      prescriptions: [],
+      encounters: [],
+      lastVisitDate: '',
+      totalVisits: 0,
+    );
+  }
+
+  void _populateFromEncounter(Encounter enc) {
+    _nameController.text = _activePatient.fullName;
+    _middleNameController.text = _activePatient.middleName;
+    _dateController.text = enc.date.isNotEmpty ? formatClinicalDate(enc.date) : formatClinicalDate(DateTime.now().toString().substring(0, 10));
+    _ageSexController.text = _activePatient.age > 0 ? '${_activePatient.age} / ${_activePatient.gender.isNotEmpty ? _activePatient.gender[0].toUpperCase() : ""}' : '';
+    _addressController.text = _activePatient.address;
+    _contactController.text = _activePatient.phone;
+    _occupationController.text = _activePatient.occupation;
+    _phicController.text = _activePatient.phicNumber;
+    _birthDateController.text = _activePatient.dateOfBirth.isNotEmpty ? formatClinicalDate(_activePatient.dateOfBirth) : '';
+
+    // Table 1 OD
+    _vaODController.text = enc.examOD.acuity.uncorrected;
+    _phODController.text = enc.examOD.acuity.pinhole;
+    _ccODController.text = enc.examOD.acuity.bestCorrected;
+    _oldCcODController.text = enc.examOD.acuity.oldCc;
+    _arODController.text = enc.examOD.acuity.ar;
+    _akODController.text = enc.examOD.acuity.ak;
+
+    // Table 1 OS
+    _vaOSController.text = enc.examOS.acuity.uncorrected;
+    _phOSController.text = enc.examOS.acuity.pinhole;
+    _ccOSController.text = enc.examOS.acuity.bestCorrected;
+    _oldCcOSController.text = enc.examOS.acuity.oldCc;
+    _arOSController.text = enc.examOS.acuity.ar;
+    _akOSController.text = enc.examOS.acuity.ak;
+
+    // Table 2 OD
+    _colorODController.text = enc.examOD.color;
+    _iopODController.text = enc.examOD.iop;
+    _anglesOD = enc.examOD.anglesGonioscopy.isNotEmpty ? enc.examOD.anglesGonioscopy : 'Open';
+    _cdrODController.text = enc.examOD.cdrOn;
+    _confrontationOD = enc.examOD.confrontationPeripheral.isNotEmpty ? enc.examOD.confrontationPeripheral : 'WNL';
+    _vanHerickOD = enc.examOD.vanHerick.isNotEmpty ? enc.examOD.vanHerick : 'G4 Wide';
+
+    // Table 2 OS
+    _colorOSController.text = enc.examOS.color;
+    _iopOSController.text = enc.examOS.iop;
+    _anglesOS = enc.examOS.anglesGonioscopy.isNotEmpty ? enc.examOS.anglesGonioscopy : 'Open';
+    _cdrOSController.text = enc.examOS.cdrOn;
+    _confrontationOS = enc.examOS.confrontationPeripheral.isNotEmpty ? enc.examOS.confrontationPeripheral : 'WNL';
+    _vanHerickOS = enc.examOS.vanHerick.isNotEmpty ? enc.examOS.vanHerick : 'G4 Wide';
+
+    // Notes & Diagnoses
+    _chiefComplaintController.text = enc.chiefComplaint;
+    _assessmentController.text = enc.diagnosis;
+    _planController.text = enc.treatmentPlan;
+
+    // Medical History
+    for (final k in _systemicHistory.keys) {
+      _systemicHistory[k] = _activePatient.medicalHistory.contains(k);
+    }
+
+    // Digital Vector Strokes
+    if (enc.paperSheetDrawing != null && enc.paperSheetDrawing!.strokes.isNotEmpty) {
+      _paperStrokes = List.from(enc.paperSheetDrawing!.strokes);
+    } else {
+      _paperStrokes = [];
     }
   }
 
   void _clearAllFieldsForNewPatient() {
     _nameController.text = '';
     _middleNameController.text = '';
-    _dateController.text = formatClinicalDate(DateTime.now().toString().substring(0, 10)); // The ONLY auto-fill!
+    _dateController.text = formatClinicalDate(DateTime.now().toString().substring(0, 10));
     _ageSexController.text = '';
     _addressController.text = '';
     _contactController.text = '';
@@ -133,7 +209,6 @@ class _EyeExamViewState extends State<EyeExamView> {
     _phicController.text = '';
     _birthDateController.text = '';
 
-    // Clean examination - all clinical fields start completely blank!
     _paperStrokes = [];
 
     _vaODController.text = '';
@@ -173,13 +248,16 @@ class _EyeExamViewState extends State<EyeExamView> {
     }
   }
 
-
-
   void _populateFromPatient(Patient p) {
     _activePatient = p;
+    if (p.encounters.isNotEmpty) {
+      _populateFromEncounter(p.encounters.first);
+      return;
+    }
+
     _nameController.text = p.fullName;
     _middleNameController.text = p.middleName;
-    _dateController.text = formatClinicalDate(DateTime.now().toString().substring(0, 10)); // Today's date
+    _dateController.text = formatClinicalDate(DateTime.now().toString().substring(0, 10));
     _ageSexController.text = p.age > 0 ? '${p.age} / ${p.gender.isNotEmpty ? p.gender[0].toUpperCase() : ""}' : '';
     _addressController.text = p.address;
     _contactController.text = p.phone;
@@ -187,7 +265,6 @@ class _EyeExamViewState extends State<EyeExamView> {
     _phicController.text = p.phicNumber;
     _birthDateController.text = p.dateOfBirth.isNotEmpty ? formatClinicalDate(p.dateOfBirth) : '';
 
-    // Clean examination - all clinical fields start completely blank!
     _paperStrokes = [];
 
     _vaODController.text = '';
@@ -223,7 +300,7 @@ class _EyeExamViewState extends State<EyeExamView> {
     _planController.text = '';
 
     for (final k in _systemicHistory.keys) {
-      _systemicHistory[k] = false;
+      _systemicHistory[k] = p.medicalHistory.contains(k);
     }
   }
 
@@ -282,7 +359,7 @@ class _EyeExamViewState extends State<EyeExamView> {
     );
 
     final tempEncounter = Encounter(
-      id: 'enc-${DateTime.now().millisecondsSinceEpoch}',
+      id: widget.encounter?.id ?? 'enc-${DateTime.now().millisecondsSinceEpoch}',
       patientId: _activePatient.id,
       date: _dateController.text.isNotEmpty ? _dateController.text : formatClinicalDate(DateTime.now().toString().substring(0, 10)),
       doctorName: ProfileStore.instance.doctorName.text.isNotEmpty ? ProfileStore.instance.doctorName.text : 'Attending Physician',
@@ -417,8 +494,13 @@ class _EyeExamViewState extends State<EyeExamView> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        // Same title/subtitle sizes as every other page header (see PageHeader).
         toolbarHeight: 76,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

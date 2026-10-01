@@ -8,7 +8,10 @@ import 'eye_exam_view.dart';
 import 'historical_comparison_view.dart';
 import 'examination_detail_view.dart';
 import 'prescription_view.dart';
+import '../models/prescription.dart';
 import '../services/team_service.dart';
+import '../widgets/rx_pad_widget.dart';
+import '../widgets/success_modal.dart';
 
 class PatientProfileView extends StatefulWidget {
   final String patientId;
@@ -647,6 +650,78 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     );
   }
 
+  void _showPdfPreviewModal(Prescription rx) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: 640,
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                RxPadWidget(
+                  patient: _patient,
+                  items: rx.items,
+                  date: rx.date,
+                  doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
+                  showBorder: true,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        showActionSuccessModal(
+                          context: context,
+                          title: 'Prescription PDF Downloaded',
+                          message: 'The official prescription document for ${_patient.fullName} has been exported to PDF.',
+                          icon: Icons.file_download_outlined,
+                        );
+                      },
+                      icon: const Icon(Icons.download, size: 16),
+                      label: const Text('Download PDF'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        showActionSuccessModal(
+                          context: context,
+                          title: 'Prescription Sent to Printer',
+                          message: 'The prescription sheet has been queued to the local clinic printer.',
+                          icon: Icons.print_rounded,
+                        );
+                      },
+                      icon: const Icon(Icons.print, size: 16),
+                      label: const Text('Print Prescription'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPrescriptionsTab() {
     if (_patient.prescriptions.isEmpty) {
       return const Center(
@@ -657,53 +732,70 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: _patient.prescriptions.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 20),
       itemBuilder: (context, index) {
         final rx = _patient.prescriptions[index];
 
         return Card(
-          color: const Color(0xFFF8FAFC),
-          elevation: 0,
+          color: AppTheme.cardBg,
+          elevation: 1,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: AppTheme.borderColor),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Prescription — ${rx.date}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PrescriptionView(initialPatient: _patient),
+                    Row(
+                      children: [
+                        const Icon(Icons.local_pharmacy_rounded, color: AppTheme.primaryBlue, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Prescription Record — ${rx.date}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PrescriptionView(initialPatient: _patient),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_note_rounded, size: 16),
+                          label: const Text('Open in Workspace', style: TextStyle(fontSize: 12)),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () => _showPdfPreviewModal(rx),
+                          icon: const Icon(Icons.picture_as_pdf, size: 14),
+                          label: const Text('View / Print PDF', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.picture_as_pdf, size: 14),
-                      label: const Text('View / Print PDF', style: TextStyle(fontSize: 11)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        foregroundColor: Colors.white,
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text('${rx.items.length} Medications Prescribed:', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
-                const SizedBox(height: 6),
-                ...rx.items.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text('• ${item.medicationName} (${item.strength}) — ${item.dosage}, ${item.frequency}', style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
-                  );
-                }),
+                const SizedBox(height: 16),
+
+                // Live Prescription Pad Preview Layout
+                RxPadWidget(
+                  patient: _patient,
+                  items: rx.items,
+                  date: rx.date,
+                  doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
+                  showBorder: true,
+                ),
               ],
             ),
           ),

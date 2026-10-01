@@ -35,7 +35,16 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     super.initState();
     final allPatients = PatientRepository.getAllPatients();
     _selectedPatient = widget.initialPatient ?? (allPatients.isNotEmpty ? allPatients.first : null);
-    _addInitialMedicationDraft();
+    _loadPatientPrescriptionData(_selectedPatient);
+  }
+
+  void _loadPatientPrescriptionData(Patient? patient) {
+    _medications.clear();
+    if (patient != null && patient.prescriptions.isNotEmpty) {
+      _medications.addAll(patient.prescriptions.first.items);
+    } else {
+      _addInitialMedicationDraft();
+    }
   }
 
   void _addInitialMedicationDraft() {
@@ -240,7 +249,12 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                             subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}',
                           ),
                       ],
-                      onChanged: (patient) => setState(() => _selectedPatient = patient),
+                      onChanged: (patient) {
+                        setState(() {
+                          _selectedPatient = patient;
+                          _loadPatientPrescriptionData(patient);
+                        });
+                      },
                     ),
                   ),
                 ],
