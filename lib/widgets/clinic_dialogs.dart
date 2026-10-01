@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/plan_limits.dart';
 import '../services/clinic_store.dart';
 import '../services/invite_code.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import 'field_label.dart';
 import 'paywall_dialog.dart';
@@ -12,7 +13,7 @@ import 'required_text_form_field.dart';
 /// an appointment, an exam). An account starts without one, so the first time it
 /// creates anything it is asked to name its clinic. Returns false if it declined.
 Future<bool> ensureClinic(BuildContext context) async {
-  if (ClinicStore.instance.active != null) return true;
+  if (TeamService.instance.activeTeam != null || ClinicStore.instance.active != null) return true;
   return showCreateClinicDialog(context, firstTime: true);
 }
 

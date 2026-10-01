@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../config/app_limits.dart';
 import '../models/patient.dart';
+import '../services/team_service.dart';
 import '../widgets/clinical_date_picker.dart';
 import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
@@ -82,6 +83,7 @@ class _NewPatientModalState extends State<NewPatientModal> {
         previousPrescriptions: [],
         prescriptions: [],
         encounters: [],
+        teamId: TeamService.instance.activeTeam?.id ?? '',
         lastVisitDate: DateTime.now().toString().substring(0, 10),
         totalVisits: 1,
       );

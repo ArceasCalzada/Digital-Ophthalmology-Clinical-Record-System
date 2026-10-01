@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/patient.dart';
 import '../models/team.dart';
 import 'firebase_gate.dart';
 import 'profile_store.dart';
@@ -176,6 +177,7 @@ class TeamService extends ChangeNotifier {
 
     if (_activeTeam != null) {
       await _connectActiveTeamMembers(_activeTeam!.id);
+      PatientRepository.connect(_activeTeam!.id);
     }
 
     _loading = false;
@@ -203,6 +205,7 @@ class TeamService extends ChangeNotifier {
         joinedAt: DateTime.now().toIso8601String(),
       ),
     ];
+    PatientRepository.connect(defaultTeam.id);
   }
 
   Future<void> _createInitialDefaultTeam(String uid) async {
@@ -352,6 +355,7 @@ class TeamService extends ChangeNotifier {
     }
 
     await _connectActiveTeamMembers(teamId);
+    PatientRepository.connect(teamId);
     notifyListeners();
   }
 
@@ -433,6 +437,7 @@ class TeamService extends ChangeNotifier {
 
     _teams.removeWhere((t) => t.id == active.id);
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
+    PatientRepository.connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -504,6 +509,7 @@ class TeamService extends ChangeNotifier {
 
     _teams.removeWhere((t) => t.id == active.id);
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
+    PatientRepository.connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -518,6 +524,7 @@ class TeamService extends ChangeNotifier {
     _activeRole = TeamRole.owner;
     _members = [];
     _loading = false;
+    PatientRepository.disconnect();
     notifyListeners();
   }
 

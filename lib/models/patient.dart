@@ -459,9 +459,26 @@ class PatientRepository {
   /// Starts streaming the patient directory for the active team.
   static void connect([String? teamId]) {
     final targetTeamId = teamId ?? _activeTeamId;
+    final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
     final firestore = FirebaseGate.firestoreIfReady();
+
+    if (teamChanged) {
+      _cancelDetails();
+      if (firestore != null) {
+        _patients.clear();
+        _pendingPatients.clear();
+      } else if (targetTeamId != null && targetTeamId.isNotEmpty) {
+        for (var i = 0; i < _patients.length; i++) {
+          if (_patients[i].teamId.isEmpty) {
+            _patients[i] = _patients[i].copyWith(teamId: targetTeamId);
+          }
+        }
+      }
+      changeNotifier.value++;
+    }
+
     if (firestore == null) return;
     _patientsSub?.cancel();
 
@@ -604,7 +621,12 @@ class PatientRepository {
     changeNotifier.value++;
   }
 
-  static List<Patient> getAllPatients() => List.unmodifiable(_patients);
+  static List<Patient> getAllPatients() {
+    if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+      return List.unmodifiable(_patients.where((p) => p.teamId.isEmpty || p.teamId == _activeTeamId));
+    }
+    return List.unmodifiable(_patients);
+  }
 
   static Patient? getPatientById(String id) {
     try {
@@ -615,11 +637,12 @@ class PatientRepository {
   }
 
   static List<Patient> searchPatients(String query) {
-    if (query.trim().isEmpty) return _patients;
+    final base = getAllPatients();
+    if (query.trim().isEmpty) return base;
     final q = query.trim().toLowerCase();
     final cleanDigitsQuery = q.replaceAll(RegExp(r'\D'), '');
 
-    return _patients.where((p) {
+    return base.where((p) {
       final nameMatch = p.fullName.toLowerCase().contains(q) ||
           p.middleName.toLowerCase().contains(q);
       final mrnMatch = p.mrn.toLowerCase().contains(q);

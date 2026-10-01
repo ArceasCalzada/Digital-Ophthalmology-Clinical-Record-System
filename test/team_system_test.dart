@@ -206,5 +206,61 @@ void main() {
       await service.switchTo(team2.id);
       expect(service.activeTeam?.id, team2.id);
     });
+
+    test('Patient Directory scopes records to active team and isolates data on switch', () async {
+      final service = TeamService.instance;
+      final teamA = await service.createTeam('Clinic Alpha');
+      final teamB = await service.createTeam('Clinic Beta');
+
+      // Switch to Team A and add patient
+      await service.switchTo(teamA.id);
+      PatientRepository.addPatient(Patient(
+        id: 'pat-alpha-1',
+        mrn: 'PT-ALPHA',
+        fullName: 'Alpha Patient',
+        dateOfBirth: '1990-01-01',
+        gender: 'Male',
+        phone: '123',
+        address: 'Alpha St',
+        medicalHistory: const [],
+        allergies: const [],
+        encounters: const [],
+        teamId: teamA.id,
+        lastVisitDate: '2026-10-01',
+        totalVisits: 1,
+      ));
+
+      expect(PatientRepository.getAllPatients().any((p) => p.id == 'pat-alpha-1'), isTrue);
+
+      // Switch to Team B
+      await service.switchTo(teamB.id);
+
+      // Add patient for Team B
+      PatientRepository.addPatient(Patient(
+        id: 'pat-beta-1',
+        mrn: 'PT-BETA',
+        fullName: 'Beta Patient',
+        dateOfBirth: '1992-02-02',
+        gender: 'Female',
+        phone: '456',
+        address: 'Beta St',
+        medicalHistory: const [],
+        allergies: const [],
+        encounters: const [],
+        teamId: teamB.id,
+        lastVisitDate: '2026-10-01',
+        totalVisits: 1,
+      ));
+
+      final teamBPatients = PatientRepository.getAllPatients();
+      expect(teamBPatients.any((p) => p.id == 'pat-beta-1'), isTrue);
+      expect(teamBPatients.any((p) => p.id == 'pat-alpha-1'), isFalse);
+
+      // Switch back to Team A
+      await service.switchTo(teamA.id);
+      final teamAPatients = PatientRepository.getAllPatients();
+      expect(teamAPatients.any((p) => p.id == 'pat-alpha-1'), isTrue);
+      expect(teamAPatients.any((p) => p.id == 'pat-beta-1'), isFalse);
+    });
   });
 }

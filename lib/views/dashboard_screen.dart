@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/calendar_event.dart';
 import '../models/patient.dart';
 import '../services/profile_store.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
@@ -45,6 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _updateClock();
     PatientRepository.changeNotifier.addListener(_loadDashboardData);
     CalendarEventRepository().addListener(_loadDashboardData);
+    TeamService.instance.addListener(_loadDashboardData);
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) _updateClock();
     });
@@ -54,6 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void dispose() {
     PatientRepository.changeNotifier.removeListener(_loadDashboardData);
     CalendarEventRepository().removeListener(_loadDashboardData);
+    TeamService.instance.removeListener(_loadDashboardData);
     _clockTimer?.cancel();
     _searchController.dispose();
     super.dispose();

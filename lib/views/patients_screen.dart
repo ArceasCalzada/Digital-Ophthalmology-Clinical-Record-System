@@ -35,6 +35,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
   void initState() {
     super.initState();
     _loadPatients();
+    TeamService.instance.addListener(_loadPatients);
+  }
+
+  @override
+  void dispose() {
+    TeamService.instance.removeListener(_loadPatients);
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadPatients() {
@@ -329,7 +337,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: PatientRepository.changeNotifier,
+      listenable: Listenable.merge([PatientRepository.changeNotifier, TeamService.instance]),
       builder: (context, child) {
         final query = _searchController.text.trim();
         if (query.isEmpty && _selectedFilter == 'All') {

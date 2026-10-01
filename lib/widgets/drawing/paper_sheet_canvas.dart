@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import '../../models/drawing_stroke.dart';
 import '../../theme/app_theme.dart';
@@ -240,9 +241,23 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFE2E8F0),
-      child: Stack(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): _undo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyY, meta: true): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true): _redo,
+        const SingleActivator(LogicalKeyboardKey.keyP): () => setState(() => _activeTool = DrawingTool.pen),
+        const SingleActivator(LogicalKeyboardKey.keyH): () => setState(() => _activeTool = DrawingTool.highlighter),
+        const SingleActivator(LogicalKeyboardKey.keyE): () => setState(() => _activeTool = DrawingTool.eraser),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Container(
+          color: const Color(0xFFE2E8F0),
+          child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
           // 1. SCROLLABLE CLINICAL PAPER CHART RECORD
@@ -355,6 +370,8 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
           ),
         ],
       ),
+    ),
+    ),
     );
   }
 
