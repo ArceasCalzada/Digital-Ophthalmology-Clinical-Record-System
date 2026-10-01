@@ -9,6 +9,7 @@ import '../widgets/clinical_modal_picker.dart';
 import '../widgets/field_label.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/rx_pad_widget.dart';
+import '../widgets/success_modal.dart';
 
 /// SettingsView - Complete Settings & Workstation Configuration UI/UX for DOCRS
 /// Tailored specifically for a single attending ophthalmologist / physician.
@@ -55,19 +56,11 @@ class _SettingsViewState extends State<SettingsView> {
   String _defaultPatientView = 'Patient EHR Profile';
 
   void _showSaveFeedback(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFF059669),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+    showActionSuccessModal(
+      context: context,
+      title: 'Settings Saved Successfully',
+      message: message,
+      icon: Icons.settings_suggest_rounded,
     );
   }
 

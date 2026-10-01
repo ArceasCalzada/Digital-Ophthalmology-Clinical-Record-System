@@ -6,6 +6,7 @@ import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
 import '../widgets/rx_pad_widget.dart';
+import '../widgets/success_modal.dart';
 
 class PrescriptionView extends StatefulWidget {
   final Patient? initialPatient;
@@ -99,7 +100,16 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       );
       return;
     }
-    _showPdfPreviewModal(newRx);
+    _showSaveSuccessModal(newRx);
+  }
+
+  void _showSaveSuccessModal(Prescription rx) {
+    showActionSuccessModal(
+      context: context,
+      title: 'Prescription Saved Successfully',
+      message: 'The prescription for ${_selectedPatient!.fullName} has been saved to the patient\'s clinical record.',
+      onDismissed: () => _showPdfPreviewModal(rx),
+    );
   }
 
   void _showPdfPreviewModal(Prescription rx) {
@@ -136,8 +146,11 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   children: [
                     OutlinedButton.icon(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Prescription PDF downloaded successfully.')),
+                        showActionSuccessModal(
+                          context: context,
+                          title: 'Prescription PDF Downloaded',
+                          message: 'The official prescription document for ${_selectedPatient?.fullName ?? "patient"} has been exported to PDF.',
+                          icon: Icons.file_download_outlined,
                         );
                       },
                       icon: const Icon(Icons.download, size: 16),
@@ -146,10 +159,13 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Sent to clinic prescription printer.')),
-                        );
                         Navigator.pop(context);
+                        showActionSuccessModal(
+                          context: context,
+                          title: 'Prescription Sent to Printer',
+                          message: 'The prescription sheet has been queued to the local clinic printer.',
+                          icon: Icons.print_rounded,
+                        );
                       },
                       icon: const Icon(Icons.print, size: 16),
                       label: const Text('Print Prescription'),

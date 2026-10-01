@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot;
+import 'package:cloud_firestore/cloud_firestore.dart' show QuerySnapshot, Query;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_limits.dart';
@@ -135,6 +135,7 @@ class Patient {
   final List<String> previousPrescriptions;
   final List<Prescription> prescriptions;
   final List<Encounter> encounters;
+  final String teamId;
   final String lastVisitDate;
   final int totalVisits;
 
@@ -157,6 +158,7 @@ class Patient {
     this.previousPrescriptions = const [],
     this.prescriptions = const [],
     required this.encounters,
+    this.teamId = '',
     required this.lastVisitDate,
     required this.totalVisits,
   });
@@ -202,6 +204,7 @@ class Patient {
         'previousPrescriptions': previousPrescriptions,
         'prescriptions': prescriptions.map((p) => p.toJson()).toList(),
         'encounters': encounters.map((e) => e.toJson()).toList(),
+        if (teamId.isNotEmpty) 'teamId': teamId,
         'lastVisitDate': lastVisitDate,
         'totalVisits': totalVisits,
       };
@@ -255,6 +258,7 @@ class Patient {
       // Only sent when there is something to say, so a patient without notes is written
       // exactly as before (rules published before this field existed still accept it).
       if (notes.isNotEmpty) 'notes': notes,
+      if (teamId.isNotEmpty) 'teamId': teamId,
       'medicalHistory': requireList('Medical history', medicalHistory),
       'allergies': requireList('Allergies', allergies),
       'previousDiagnoses': requireList(
@@ -273,6 +277,7 @@ class Patient {
     List<String>? previousDiagnoses,
     List<Prescription>? prescriptions,
     List<Encounter>? encounters,
+    String? teamId,
     String? lastVisitDate,
     int? totalVisits,
   }) =>
@@ -295,6 +300,7 @@ class Patient {
         previousPrescriptions: previousPrescriptions,
         prescriptions: prescriptions ?? this.prescriptions,
         encounters: encounters ?? this.encounters,
+        teamId: teamId ?? this.teamId,
         lastVisitDate: lastVisitDate ?? this.lastVisitDate,
         totalVisits: totalVisits ?? this.totalVisits,
       );
@@ -343,6 +349,7 @@ class Patient {
     final phicNumber = extractString(['phicNumber', 'phic'], '19-02581024-8');
     final referringDoctor = json['referringDoctor']?.toString() ?? json['doctor']?.toString();
     final notes = extractString(['notes'], '');
+    final teamId = extractString(['teamId', 'team_id'], '');
 
     final medicalHistory = extractStringList(['medicalHistory', 'medical_history']);
     final allergies = extractStringList(['allergies']);
@@ -393,6 +400,7 @@ class Patient {
       previousPrescriptions: previousPrescriptions,
       prescriptions: rxList,
       encounters: encList,
+      teamId: teamId,
       lastVisitDate: lastVisitDate,
       totalVisits: totalVisits,
     );
@@ -446,18 +454,53 @@ class PatientRepository {
     }
   }
 
-  /// Starts streaming the patient directory. Call after the user has signed in.
-  static void connect() {
+  static String? _activeTeamId;
+
+  /// Starts streaming the patient directory for the active team.
+  static void connect([String? teamId]) {
+    final targetTeamId = teamId ?? _activeTeamId;
+    _activeTeamId = targetTeamId;
+
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
     _patientsSub?.cancel();
-    _patientsSub = firestore
-        .collection('patients')
-        .limit(AppLimits.patientListLimit)
-        .snapshots()
-        .listen(_onPatientsSnapshot, onError: (Object e) {
+
+    Query<Map<String, dynamic>> query = firestore.collection('patients');
+    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+      query = query.where('teamId', isEqualTo: targetTeamId);
+    }
+    query = query.limit(AppLimits.patientListLimit);
+
+    _patientsSub = query.snapshots().listen(_onPatientsSnapshot, onError: (Object e) {
       debugPrint('Firestore patients stream error: $e');
     });
+
+    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+      migrateUnassignedPatientsToTeam(targetTeamId);
+    }
+  }
+
+  /// Migrates legacy unassigned patient records into the given team ID.
+  static Future<void> migrateUnassignedPatientsToTeam(String teamId) async {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null || teamId.isEmpty) return;
+
+    try {
+      final unassigned = await firestore
+          .collection('patients')
+          .where('teamId', isEqualTo: '')
+          .get();
+      if (unassigned.docs.isNotEmpty) {
+        final batch = firestore.batch();
+        for (final doc in unassigned.docs) {
+          batch.update(doc.reference, {'teamId': teamId});
+        }
+        await batch.commit();
+        debugPrint('Migrated ${unassigned.docs.length} unassigned patient records to team $teamId');
+      }
+    } catch (e) {
+      debugPrint('Patient data migration check: $e');
+    }
   }
 
   /// Stops all listeners and drops patient data from memory (sign-out).
@@ -597,6 +640,9 @@ class PatientRepository {
   /// Throws [PatientLimitReachedException] when the clinic is full, and
   /// [FormatException] when a field is over its length limit.
   static void addPatient(Patient newPatient) {
+    if (newPatient.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
+      newPatient = newPatient.copyWith(teamId: _activeTeamId);
+    }
     final existingIdx = _patients.indexWhere((p) => p.id == newPatient.id || p.mrn == newPatient.mrn);
     final isNew = existingIdx == -1;
     if (isNew && _patients.length >= maxPatients) {

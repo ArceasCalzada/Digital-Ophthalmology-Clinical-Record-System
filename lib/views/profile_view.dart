@@ -4,6 +4,7 @@ import '../services/clinic_store.dart';
 import '../services/profile_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/account_menu.dart';
+import '../widgets/success_modal.dart';
 
 /// The signed-in user's own page (opened from the account menu in the sidebar):
 /// their doctor profile and the clinic information printed on prescriptions.
@@ -21,19 +22,11 @@ class _ProfileViewState extends State<ProfileView> {
   _ProfileTab _tab = _ProfileTab.doctor;
 
   void _showSaveFeedback(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFF059669),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+    showActionSuccessModal(
+      context: context,
+      title: 'Profile Updated Successfully',
+      message: message,
+      icon: Icons.person_outline_rounded,
     );
   }
 

@@ -14,6 +14,7 @@ import 'services/dev_auth_backend.dart';
 import 'services/draft_manager_service.dart';
 import 'services/offline_sync_service.dart';
 import 'services/profile_store.dart';
+import 'services/team_service.dart';
 import 'theme/app_theme.dart';
 import 'views/login_view.dart';
 import 'views/main_layout.dart';
@@ -125,6 +126,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     final user = AuthService.instance.user;
     if (user != null) {
       ClinicStore.instance.load(user.uid);
+      TeamService.instance.load(user.uid, userEmail: user.email, displayName: user.displayName);
       ProfileStore.instance.syncWithUser(user);
     }
     PatientRepository.connect();
@@ -137,6 +139,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
 
   void _onSignedOut() {
     ClinicStore.instance.unload();
+    TeamService.instance.unload();
     PatientRepository.disconnect();
     CalendarEventRepository().disconnect();
     ClinicalNotificationRepository().disconnect();

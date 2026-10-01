@@ -118,8 +118,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(TeamsView), findsOneWidget);
-    expect(find.text('Create a clinic'), findsOneWidget);
-    expect(find.text('Join with a code'), findsOneWidget);
+    expect(find.text('Create a Team'), findsOneWidget);
+    expect(find.text('Join with Code'), findsOneWidget);
     expect(find.text('Log out'), findsNothing);
   });
 

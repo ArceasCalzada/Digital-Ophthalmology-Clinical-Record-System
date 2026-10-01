@@ -12,6 +12,7 @@ import 'clinical_modal_picker.dart';
 import 'clinical_time_picker.dart';
 import 'required_text_form_field.dart';
 import 'field_label.dart';
+import 'success_modal.dart';
 
 class AddEventModal extends StatefulWidget {
   final DateTime? initialDate;
@@ -171,24 +172,11 @@ class _AddEventModalState extends State<AddEventModal> {
       if (editing != null) {
         CalendarEventRepository().updateEvent(newEvent);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Event "${newEvent.title}" updated successfully!',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: const Color(0xFF059669),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        showActionSuccessModal(
+          context: context,
+          title: 'Event Updated Successfully',
+          message: 'Appointment "${newEvent.title}" has been updated.',
+          icon: Icons.event_available_rounded,
         );
         return;
       }
@@ -210,25 +198,11 @@ class _AddEventModalState extends State<AddEventModal> {
       );
 
       Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Event "${newEvent.title}" scheduled successfully!',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF059669),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
+      showActionSuccessModal(
+        context: context,
+        title: 'Appointment Scheduled Successfully',
+        message: 'Event "${newEvent.title}" has been added to your calendar and scheduled.',
+        icon: Icons.event_available_rounded,
       );
     }
   }

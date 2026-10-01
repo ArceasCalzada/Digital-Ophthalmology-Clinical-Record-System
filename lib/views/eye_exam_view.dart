@@ -7,6 +7,7 @@ import '../widgets/drawing/paper_sheet_canvas.dart';
 import '../widgets/pdf_exam_preview_dialog.dart';
 import '../theme/app_theme.dart';
 import '../widgets/page_header.dart';
+import '../widgets/success_modal.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
 import '../services/profile_store.dart';
@@ -316,47 +317,11 @@ class _EyeExamViewState extends State<EyeExamView> {
 
     if (!mounted) return;
 
-    await showDialog(
+    await showActionSuccessModal(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Consultation Saved Successfully',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'The consultation encounter for ${_activePatient.fullName} has been saved successfully.',
-          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.4),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          ),
-        ],
-      ),
+      title: 'Consultation Saved Successfully',
+      message: 'The consultation encounter for ${_activePatient.fullName} has been saved successfully.',
+      buttonText: 'Done',
     );
 
     if (mounted) {

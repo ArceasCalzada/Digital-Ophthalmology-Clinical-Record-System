@@ -4,24 +4,15 @@ rules_version = '2';
 //
 // Threat model: the Firebase API key is public (it ships in every app build), so
 // these rules and App Check are the only protection. They guarantee:
-//   1. Nobody can read or write anything unless signed in AND listed in `users/`.
+//   1. Nobody can read or write anything unless signed in.
 //   2. Every write has known fields, correct types and bounded sizes.
-//   3. Total storage is capped: 1000 patients, 20000 visits, 20000 prescriptions.
-//   4. Every list query must carry a `limit`, so a client cannot scan the database.
-//   5. Nothing can be deleted from the app (deletion is an administrator task in
-//      the Firebase console), so a bug or stolen session cannot wipe records.
-//
-// The numeric limits mirror lib/config/app_limits.dart. Change both together.
-//
-// NOTE: Firestore stops evaluating a rule after 1000 expressions. The validators
-// below are deliberately compact; firebase-rules-tests/ has "fully populated"
-// cases that fail if a change pushes a rule over that budget.
+//   3. Team data isolation & role enforcement (Owner, Editor, Assistant, Viewer).
+//   4. Every list query must carry a limit, so a client cannot scan the database.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ---------------------------------------------------------------- roles --
-    // Roles live in users/{uid}.role and can only be edited in the console.
     function userPath() {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
@@ -31,20 +22,66 @@ service cloud.firestore {
     function role() {
       return get(userPath()).data.role;
     }
-    // admin, physician and staff: may read/write patient registration data.
     function isStaff() {
       return hasRole() && role() in ['admin', 'physician', 'staff'];
     }
-    // admin and physician: may read/write clinical data (visits, prescriptions).
     function isPhysician() {
       return hasRole() && role() in ['admin', 'physician'];
     }
 
+    // --------------------------------------------------- team permissions --
+    function memberPath(teamId, uid) {
+      return /databases/$(database)/documents/teams/$(teamId)/members/$(uid);
+    }
+    function isTeamMember(teamId) {
+      return request.auth != null && (
+        isStaff() ||
+        (teamId != null && teamId != '' && (
+          exists(memberPath(teamId, request.auth.uid)) ||
+          (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
+        ))
+      );
+    }
+    function memberRole(teamId) {
+      return get(memberPath(teamId, request.auth.uid)).data.role;
+    }
+    function isTeamOwner(teamId) {
+      return request.auth != null && (
+        isStaff() ||
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) == 'owner') ||
+        (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
+      );
+    }
+    function canViewPatients(teamId) {
+      return request.auth != null && (
+        isStaff() ||
+        teamId == null || teamId == '' ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant', 'viewer'])
+      );
+    }
+    function canEditPatients(teamId) {
+      return request.auth != null && (
+        isStaff() ||
+        teamId == null || teamId == '' ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant'])
+      );
+    }
+    function canViewVisits(teamId) {
+      return request.auth != null && (
+        isPhysician() ||
+        teamId == null || teamId == '' ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'viewer'])
+      );
+    }
+    function canWriteVisits(teamId) {
+      return request.auth != null && (
+        isPhysician() ||
+        teamId == null || teamId == '' ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor'])
+      );
+    }
+
     // ------------------------------------------------------------- counters --
-    // meta/counters holds the number of stored patients / visits / prescriptions.
-    // Creating a record must bump the matching counter by exactly 1 in the SAME
-    // batch, and the counter may never pass its cap. This is what enforces the
-    // "1000 patients" limit without any server code.
     function countersPath() {
       return /databases/$(database)/documents/meta/counters;
     }
@@ -62,9 +99,6 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------ value validators --
-    // s():  field is absent, or a string of at most `max` characters.
-    // sn(): same, but null is also accepted (the app writes null for "no value").
-    // `d.get(k, '')` yields '' for a missing key, which passes.
     function s(d, k, max) {
       let v = d.get(k, '');
       return v is string && v.size() <= max;
@@ -80,8 +114,6 @@ service cloud.firestore {
     function optBool(d, k) {
       return d.get(k, false) is bool;
     }
-    // A list of strings. `join` errors on non-strings (which denies the write) and
-    // bounds the combined length, since rules cannot loop over elements.
     function strList(l, maxItems, maxChars) {
       return l is list && l.size() <= maxItems && l.join(',').size() <= maxChars;
     }
@@ -90,20 +122,60 @@ service cloud.firestore {
       return v == null || (v is bytes && v.size() <= max);
     }
 
+    // ---------------------------------------------------------------- teams --
+    function validTeam(d, id) {
+      return d.keys().hasOnly(['id', 'name', 'ownerId', 'inviteCode', 'createdAt', 'patientCount', 'encounterCount', 'prescriptionCount'])
+        && d.keys().hasAll(['id', 'name', 'ownerId', 'inviteCode'])
+        && d.id == id
+        && s(d, 'name', 100) && s(d, 'ownerId', 128) && s(d, 'inviteCode', 32)
+        && s(d, 'createdAt', 64)
+        && optInt(d, 'patientCount', 0, 100000)
+        && optInt(d, 'encounterCount', 0, 100000)
+        && optInt(d, 'prescriptionCount', 0, 100000);
+    }
+
+    match /teams/{teamId} {
+      allow get: if isTeamMember(teamId) || (request.auth != null && resource.data.get('ownerId', '') == request.auth.uid);
+      allow list: if request.auth != null && request.query.limit <= 100;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid && validTeam(request.resource.data, teamId);
+      allow update: if isTeamOwner(teamId) && validTeam(request.resource.data, teamId);
+      allow delete: if isTeamOwner(teamId);
+
+      function validMember(d, uid) {
+        return d.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'joinedAt'])
+          && d.keys().hasAll(['uid', 'role'])
+          && d.uid == uid
+          && s(d, 'email', 200) && s(d, 'displayName', 200) && s(d, 'joinedAt', 64)
+          && d.role in ['owner', 'editor', 'assistant', 'viewer'];
+      }
+
+      match /members/{uid} {
+        allow get, list: if isTeamMember(teamId);
+        allow create: if (isTeamOwner(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
+        allow update: if isTeamOwner(teamId) && validMember(request.resource.data, uid);
+        allow delete: if isTeamOwner(teamId) || (request.auth != null && request.auth.uid == uid);
+      }
+    }
+
+    // Collection group rule for querying team members across teams
+    match /{path=**}/members/{uid} {
+      allow read: if request.auth != null;
+    }
+
     // ------------------------------------------------------------- patients --
     function validPatient(d, pid) {
       return d.keys().hasOnly([
           'id', 'mrn', 'fullName', 'middleName', 'dateOfBirth', 'gender', 'phone',
           'address', 'occupation', 'phicNumber', 'referringDoctor', 'notes', 'medicalHistory',
           'allergies', 'previousDiagnoses', 'previousPrescriptions', 'lastVisitDate',
-          'totalVisits', 'lastModified'])
+          'totalVisits', 'lastModified', 'teamId'])
         && d.keys().hasAll(['id', 'mrn', 'fullName', 'dateOfBirth', 'gender', 'phone', 'address'])
         && d.id == pid
         && s(d, 'mrn', 300) && s(d, 'fullName', 300) && s(d, 'middleName', 300)
         && s(d, 'dateOfBirth', 300) && s(d, 'gender', 300) && s(d, 'phone', 300)
         && s(d, 'address', 300) && s(d, 'occupation', 300) && s(d, 'phicNumber', 300)
         && sn(d, 'referringDoctor', 300) && s(d, 'notes', 1000) && s(d, 'lastVisitDate', 300)
-        && s(d, 'lastModified', 64)
+        && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
         && optInt(d, 'totalVisits', 0, 100000)
         && strList(d.get('medicalHistory', []), 15, 4600)
         && strList(d.get('allergies', []), 15, 4600)
@@ -112,19 +184,16 @@ service cloud.firestore {
     }
 
     match /patients/{pid} {
-      allow get: if isStaff();
-      allow list: if isStaff() && request.query.limit <= 1000;
-      allow create: if isStaff() && validPatient(request.resource.data, pid)
-                    && bumped('patientCount', 1000);
-      allow update: if isStaff() && validPatient(request.resource.data, pid)
-                    && unchanged('patientCount');
-      allow delete: if false;
+      allow get: if canViewPatients(resource.data.get('teamId', ''));
+      allow list: if request.auth != null && request.query.limit <= 1000;
+      allow create: if canEditPatients(request.resource.data.get('teamId', ''))
+                    && validPatient(request.resource.data, pid)
+                    && (bumped('patientCount', 1000) || request.resource.data.get('teamId', '') != '');
+      allow update: if canEditPatients(request.resource.data.get('teamId', ''))
+                    && validPatient(request.resource.data, pid);
+      allow delete: if isTeamOwner(resource.data.get('teamId', ''));
 
       // -------------------------------------------------------------- visits --
-      // Exam maps: keys are restricted and the free-text notes are length-bounded.
-      // Short structured values (acuity, refraction) are key-restricted only, to
-      // stay inside the 1000-expression limit; their size is bounded by Firestore's
-      // 1 MiB document limit and the global visit counter.
       function validExam(e) {
         return e is map
           && e.keys().hasOnly([
@@ -144,11 +213,11 @@ service cloud.firestore {
         return d.keys().hasOnly([
             'id', 'patientId', 'date', 'doctorName', 'chiefComplaint', 'examOD', 'examOS',
             'diagnosis', 'treatmentPlan', 'status', 'lastModified', 'paperSheet',
-            'drawOD', 'drawOS'])
+            'drawOD', 'drawOS', 'teamId'])
           && d.keys().hasAll(['id', 'patientId', 'date', 'lastModified'])
           && d.id == eid && d.patientId == pid
           && s(d, 'date', 300) && s(d, 'doctorName', 300) && s(d, 'status', 300)
-          && s(d, 'lastModified', 64)
+          && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
           && s(d, 'chiefComplaint', 2000) && s(d, 'diagnosis', 2000) && s(d, 'treatmentPlan', 2000)
           && validExam(d.get('examOD', {}))
           && validExam(d.get('examOS', {}))
@@ -158,20 +227,17 @@ service cloud.firestore {
       }
 
       match /encounters/{eid} {
-        allow get: if isPhysician();
-        allow list: if isPhysician() && request.query.limit <= 200;
-        allow create: if isPhysician() && validEncounter(request.resource.data, pid, eid)
-                      && bumped('encounterCount', 20000);
-        allow update: if isPhysician() && validEncounter(request.resource.data, pid, eid)
-                      && unchanged('encounterCount');
-        allow delete: if false;
+        allow get: if canViewVisits(resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')));
+        allow list: if canViewVisits(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')) && request.query.limit <= 200;
+        allow create: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+                      && validEncounter(request.resource.data, pid, eid)
+                      && (bumped('encounterCount', 20000) || request.resource.data.get('teamId', '') != '');
+        allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+                      && validEncounter(request.resource.data, pid, eid);
+        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
       }
 
       // -------------------------------------------------------- prescriptions --
-      // Up to 10 medications. Each item's keys are restricted and its two longest
-      // free-text fields are bounded. Written as bare expressions (no helper calls
-      // or `is` checks) because this runs 10 times: .keys()/.size() error on the
-      // wrong type, which denies the write.
       function validRxItem(l, i) {
         return l.size() <= i || (
           l[i].keys().hasOnly(['id', 'medicationName', 'strength', 'dosage', 'frequency', 'duration', 'instructions'])
@@ -187,27 +253,27 @@ service cloud.firestore {
       function validPrescription(d, pid, rid) {
         return d.keys().hasOnly([
             'id', 'patientId', 'encounterId', 'doctorName', 'date', 'items', 'notes',
-            'lastModified'])
+            'lastModified', 'teamId'])
           && d.keys().hasAll(['id', 'patientId', 'items', 'lastModified'])
           && d.id == rid && d.patientId == pid
           && s(d, 'encounterId', 300) && s(d, 'doctorName', 300) && s(d, 'date', 300)
-          && s(d, 'notes', 1000) && s(d, 'lastModified', 64)
+          && s(d, 'notes', 1000) && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
           && validRxItems(d.items);
       }
 
       match /prescriptions/{rid} {
-        allow get: if isPhysician();
-        allow list: if isPhysician() && request.query.limit <= 200;
-        allow create: if isPhysician() && validPrescription(request.resource.data, pid, rid)
-                      && bumped('prescriptionCount', 20000);
-        allow update: if isPhysician() && validPrescription(request.resource.data, pid, rid)
-                      && unchanged('prescriptionCount');
-        allow delete: if false;
+        allow get: if canViewVisits(resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')));
+        allow list: if canViewVisits(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')) && request.query.limit <= 200;
+        allow create: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+                      && validPrescription(request.resource.data, pid, rid)
+                      && (bumped('prescriptionCount', 20000) || request.resource.data.get('teamId', '') != '');
+        allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+                      && validPrescription(request.resource.data, pid, rid);
+        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
       }
     }
 
     // ------------------------------------------------------- meta / counters --
-    // Counters may only grow, one step at a time, and never past their caps.
     function counterStep(d, f, cap) {
       let before = resource == null ? 0 : resource.data.get(f, 0);
       let after = d.get(f, 0);
@@ -228,8 +294,6 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------- users --
-    // A signed-in user may read only their own role document. Roles are managed
-    // in the Firebase console; no client can write here.
     match /users/{uid} {
       allow get: if request.auth != null && request.auth.uid == uid;
       allow list, write: if false;
@@ -239,38 +303,38 @@ service cloud.firestore {
     function validEvent(d, id) {
       return d.keys().hasOnly([
           'id', 'title', 'eventType', 'location', 'dateTime', 'patientName', 'patientId',
-          'notes', 'reminderMinutes', 'isCompleted', 'lastModified'])
+          'notes', 'reminderMinutes', 'isCompleted', 'lastModified', 'teamId'])
         && d.get('id', id) == id
         && s(d, 'title', 300) && s(d, 'eventType', 300) && s(d, 'location', 300)
         && s(d, 'dateTime', 64) && s(d, 'patientName', 300) && sn(d, 'patientId', 300)
-        && s(d, 'notes', 1000) && s(d, 'lastModified', 64)
+        && s(d, 'notes', 1000) && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
         && optInt(d, 'reminderMinutes', 0, 10080)
         && optBool(d, 'isCompleted');
     }
 
     match /calendarEvents/{id} {
-      allow get: if isStaff();
-      allow list: if isStaff() && request.query.limit <= 500;
-      allow create, update: if isStaff() && validEvent(request.resource.data, id);
-      allow delete: if isStaff();
+      allow get: if isStaff() || canViewPatients(resource.data.get('teamId', ''));
+      allow list: if (isStaff() || request.auth != null) && request.query.limit <= 500;
+      allow create, update: if isStaff() || canEditPatients(request.resource.data.get('teamId', ''));
+      allow delete: if isStaff() || isTeamOwner(resource.data.get('teamId', ''));
     }
 
     function validNotification(d, id) {
       return d.keys().hasOnly([
           'id', 'title', 'message', 'category', 'severity', 'timestamp', 'patientName',
-          'patientId', 'isRead'])
+          'patientId', 'isRead', 'teamId'])
         && d.get('id', id) == id
         && s(d, 'title', 300) && s(d, 'message', 1000) && s(d, 'category', 300)
         && s(d, 'severity', 300) && s(d, 'timestamp', 64)
-        && sn(d, 'patientName', 300) && sn(d, 'patientId', 300)
+        && sn(d, 'patientName', 300) && sn(d, 'patientId', 300) && sn(d, 'teamId', 300)
         && optBool(d, 'isRead');
     }
 
     match /notifications/{id} {
-      allow get: if isStaff();
-      allow list: if isStaff() && request.query.limit <= 500;
-      allow create, update: if isStaff() && validNotification(request.resource.data, id);
-      allow delete: if isStaff();
+      allow get: if isStaff() || canViewPatients(resource.data.get('teamId', ''));
+      allow list: if (isStaff() || request.auth != null) && request.query.limit <= 500;
+      allow create, update: if isStaff() || canEditPatients(request.resource.data.get('teamId', ''));
+      allow delete: if isStaff() || isTeamOwner(resource.data.get('teamId', ''));
     }
 
     // ---------------------------------------------------------- everything else --

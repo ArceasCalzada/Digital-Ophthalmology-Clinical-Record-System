@@ -11,6 +11,7 @@ import '../widgets/clinical_modal_picker.dart';
 import '../widgets/field_label.dart';
 import '../widgets/required_text_form_field.dart';
 import '../widgets/shake_widget.dart';
+import '../widgets/success_modal.dart';
 import '../theme/app_theme.dart';
 
 class NewPatientModal extends StatefulWidget {
@@ -96,6 +97,11 @@ class _NewPatientModalState extends State<NewPatientModal> {
       }
       Navigator.pop(context);
       widget.onPatientCreated(newPatient);
+      showActionSuccessModal(
+        context: context,
+        title: 'Patient Registered Successfully',
+        message: 'Patient "${newPatient.fullName}" (MRN: ${newPatient.mrn}) has been registered and added to the clinic database.',
+      );
     }
   }
 

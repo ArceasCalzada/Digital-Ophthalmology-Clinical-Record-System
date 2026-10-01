@@ -518,3 +518,83 @@ describe('calendar events and notifications', () => {
     await assertFails(as('stranger').doc('notifications/n1').set({ id: 'n1' }, merge));
   });
 });
+
+describe('Teams multi-tenancy and permission levels', () => {
+  beforeEach(async () => {
+    await seed(async (db) => {
+      // Seed Team A
+      await db.doc('teams/teamA').set({
+        id: 'teamA',
+        name: 'Metro Ophthalmology Team',
+        ownerId: 'ownerA',
+        inviteCode: 'CODE-A',
+        createdAt: '2026-10-01T10:00:00.000',
+      });
+      await db.doc('teams/teamA/members/ownerA').set({ uid: 'ownerA', email: 'ownerA@docrs.app', displayName: 'Dr. Owner A', role: 'owner', joinedAt: '2026-10-01T10:00:00.000' });
+      await db.doc('teams/teamA/members/editorA').set({ uid: 'editorA', email: 'editorA@docrs.app', displayName: 'Dr. Editor A', role: 'editor', joinedAt: '2026-10-01T10:00:00.000' });
+      await db.doc('teams/teamA/members/assistantA').set({ uid: 'assistantA', email: 'assistantA@docrs.app', displayName: 'Assistant A', role: 'assistant', joinedAt: '2026-10-01T10:00:00.000' });
+      await db.doc('teams/teamA/members/viewerA').set({ uid: 'viewerA', email: 'viewerA@docrs.app', displayName: 'Viewer A', role: 'viewer', joinedAt: '2026-10-01T10:00:00.000' });
+
+      // Seed Team B
+      await db.doc('teams/teamB').set({
+        id: 'teamB',
+        name: 'Davao Vision Clinic',
+        ownerId: 'ownerB',
+        inviteCode: 'CODE-B',
+        createdAt: '2026-10-01T10:00:00.000',
+      });
+      await db.doc('teams/teamB/members/ownerB').set({ uid: 'ownerB', email: 'ownerB@docrs.app', displayName: 'Dr. Owner B', role: 'owner', joinedAt: '2026-10-01T10:00:00.000' });
+
+      // Seed Patient in Team A
+      await db.doc('patients/p-teamA').set(patient('p-teamA', { teamId: 'teamA' }));
+      await db.doc('patients/p-teamA/encounters/enc-teamA').set(encounter('p-teamA', 'enc-teamA', { teamId: 'teamA' }));
+    });
+  });
+
+  test('Owner can manage members and update team properties', async () => {
+    const db = as('ownerA');
+    await assertSucceeds(db.doc('teams/teamA/members/newMember').set({ uid: 'newMember', email: 'new@docrs.app', displayName: 'New', role: 'viewer', joinedAt: '2026-10-01T12:00:00.000' }));
+    await assertSucceeds(db.doc('teams/teamA/members/editorA').update({ role: 'assistant' }));
+  });
+
+  test('Editor cannot manage team members', async () => {
+    const db = as('editorA');
+    await assertFails(db.doc('teams/teamA/members/newMember').set({ uid: 'newMember', email: 'new@docrs.app', displayName: 'New', role: 'viewer', joinedAt: '2026-10-01T12:00:00.000' }));
+  });
+
+  test('Editor can view and create patients and visits in Team A', async () => {
+    const db = as('editorA');
+    await assertSucceeds(db.doc('patients/p-teamA').get());
+    await assertSucceeds(db.doc('patients/p2-teamA').set(patient('p2-teamA', { teamId: 'teamA' }), merge));
+    await assertSucceeds(db.doc('patients/p-teamA/encounters/enc-2').set(encounter('p-teamA', 'enc-2', { teamId: 'teamA' }), merge));
+  });
+
+  test('Assistant can create/edit patients but CANNOT view or write visits/encounters', async () => {
+    const db = as('assistantA');
+    // Assistant can edit patients
+    await assertSucceeds(db.doc('patients/p-teamA').get());
+    await assertSucceeds(db.doc('patients/p3-teamA').set(patient('p3-teamA', { teamId: 'teamA' }), merge));
+
+    // Assistant CANNOT read or write encounters
+    await assertFails(db.doc('patients/p-teamA/encounters/enc-teamA').get());
+    await assertFails(db.doc('patients/p-teamA/encounters/enc-3').set(encounter('p-teamA', 'enc-3', { teamId: 'teamA' }), merge));
+  });
+
+  test('Viewer can view patients and visits, but CANNOT edit or write', async () => {
+    const db = as('viewerA');
+    await assertSucceeds(db.doc('patients/p-teamA').get());
+    await assertSucceeds(db.doc('patients/p-teamA/encounters/enc-teamA').get());
+
+    // Viewer cannot write patients or encounters
+    await assertFails(db.doc('patients/p4-teamA').set(patient('p4-teamA', { teamId: 'teamA' }), merge));
+    await assertFails(db.doc('patients/p-teamA/encounters/enc-4').set(encounter('p-teamA', 'enc-4', { teamId: 'teamA' }), merge));
+  });
+
+  test('Cross-team isolation: Member of Team B CANNOT read or write Team A patient data', async () => {
+    const db = as('ownerB');
+    await assertFails(db.doc('patients/p-teamA').get());
+    await assertFails(db.doc('patients/p-teamA/encounters/enc-teamA').get());
+    await assertFails(db.doc('patients/p-teamA').update({ fullName: 'Hacked Name' }));
+  });
+});
+

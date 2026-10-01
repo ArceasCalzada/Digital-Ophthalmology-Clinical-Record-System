@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/page_header.dart';
+import '../services/team_service.dart';
 import 'new_patient_modal.dart';
 
 class PatientsScreen extends StatefulWidget {
@@ -49,6 +50,12 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   Future<void> _openNewPatientModal() async {
+    if (!TeamService.instance.canEditPatients) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${TeamService.instance.activeRole.label} role cannot register or edit patient records.')),
+      );
+      return;
+    }
     if (!await ensureClinic(context) || !mounted) return;
     showDialog(
       context: context,

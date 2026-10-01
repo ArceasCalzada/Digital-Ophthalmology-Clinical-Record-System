@@ -8,6 +8,7 @@ import 'eye_exam_view.dart';
 import 'historical_comparison_view.dart';
 import 'examination_detail_view.dart';
 import 'prescription_view.dart';
+import '../services/team_service.dart';
 
 class PatientProfileView extends StatefulWidget {
   final String patientId;
@@ -60,6 +61,12 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   void _startNewExamination() async {
     if (_patientNullable == null) return;
+    if (!TeamService.instance.canWriteVisits) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${TeamService.instance.activeRole.label} role cannot create or edit clinical visits.')),
+      );
+      return;
+    }
 
     if (widget.onStartNewExam != null) {
       widget.onStartNewExam!();

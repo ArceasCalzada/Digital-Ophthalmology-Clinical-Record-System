@@ -18,6 +18,7 @@ class Encounter {
   final String diagnosis;
   final String treatmentPlan;
   final String status; // 'in-progress' | 'completed'
+  final String teamId;
 
   Encounter({
     required this.id,
@@ -33,6 +34,7 @@ class Encounter {
     required this.diagnosis,
     required this.treatmentPlan,
     this.status = 'completed',
+    this.teamId = '',
   });
 
   /// Plain JSON without drawings (used for previews and in-memory copies).
@@ -47,6 +49,7 @@ class Encounter {
         'diagnosis': diagnosis,
         'treatmentPlan': treatmentPlan,
         'status': status,
+        if (teamId.isNotEmpty) 'teamId': teamId,
       };
 
   /// Document stored at `patients/{patientId}/encounters/{id}`. Drawings are
@@ -110,6 +113,7 @@ class Encounter {
         diagnosis: json['diagnosis'] as String? ?? '',
         treatmentPlan: json['treatmentPlan'] as String? ?? '',
         status: json['status'] as String? ?? 'completed',
+        teamId: json['teamId'] as String? ?? json['team_id'] as String? ?? '',
       );
 
   /// Rebuilds an encounter from a Firestore document. Byte fields must already be

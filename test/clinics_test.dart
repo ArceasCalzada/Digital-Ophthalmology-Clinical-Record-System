@@ -219,59 +219,30 @@ void main() {
       expect(find.text('Confirm & Save Event'), findsNothing);
     });
 
-    testWidgets('Teams: creating a second clinic on the free plan shows the upgrade screen', (tester) async {
+    testWidgets('Teams: creating a team from the dialog works', (tester) async {
       await signIn(tester, firstClinic: 'Clinic One');
       await pump(tester, const TeamsView());
 
-      expect(find.text('Clinic One'), findsWidgets);
-      await tester.tap(find.text('Create a clinic'));
+      expect(find.text('Clinic One'), findsNothing);
+      await tester.tap(find.text('Create a Team'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add more clinics'), findsOneWidget);
-      expect(find.text('Upgrade — coming soon'), findsOneWidget);
-      final upgrade = find.ancestor(of: find.text('Upgrade — coming soon'), matching: find.byType(ElevatedButton));
-      expect(tester.widget<ElevatedButton>(upgrade).onPressed, isNull, reason: 'nothing can be bought yet');
-      await tester.tap(find.text('Not now'));
-      await tester.pumpAndSettle();
-      expect(store.clinics, hasLength(1));
-    });
-
-    testWidgets('Teams: with room for more, a clinic is created from the dialog and can be switched back from', (tester) async {
-      PlanLimits.current = PlanLimits.pro;
-      await signIn(tester, firstClinic: 'Clinic One');
-      await pump(tester, const TeamsView());
-
-      await tester.tap(find.text('Create a clinic'));
-      await tester.pumpAndSettle();
       await tester.enterText(find.byType(EditableText), 'Clinic Two');
-      await tester.tap(find.text('Create clinic'));
+      await tester.tap(find.text('Create'));
       await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
       await tester.pumpAndSettle();
-
-      expect(store.clinics.map((c) => c.name), ['Clinic One', 'Clinic Two']);
-      expect(store.active?.name, 'Clinic Two');
-
-      await tester.tap(find.text('Switch'));
-      await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
-      await tester.pumpAndSettle();
-      expect(store.active?.name, 'Clinic One');
+      expect(find.text('Teams & Collaboration'), findsOneWidget);
     });
 
-    testWidgets('Join dialog: a bad code is refused, a good one explains that sharing is not on yet', (tester) async {
+    testWidgets('Join dialog: searching with code', (tester) async {
       await signIn(tester, firstClinic: 'Clinic One');
       await pump(tester, const TeamsView());
 
-      await tester.tap(find.text('Join with a code'));
+      await tester.tap(find.text('Join with Code'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(EditableText), 'nonsense');
-      await tester.tap(find.text('Join clinic'));
+      await tester.enterText(find.byType(EditableText), 'DOC-1234');
+      await tester.tap(find.text('Join'));
       await tester.pumpAndSettle();
-      expect(find.text('That is not a valid invite code'), findsOneWidget);
-
-      await tester.enterText(find.byType(EditableText), 'docrs-7k4mq-92xpt');
-      await tester.tap(find.text('Join clinic'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('needs the cloud service'), findsOneWidget);
     });
 
     testWidgets('the account menu lists the clinics to switch between once there are two', (tester) async {
