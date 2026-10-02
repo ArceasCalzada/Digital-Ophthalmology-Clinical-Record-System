@@ -439,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final searchBarContainer = Container(
                     height: 54,
                     decoration: BoxDecoration(
-                      color: Color(0xFFF8FAFC),
+                      color: AppTheme.cardBg,
                       borderRadius: _isSearching && _searchController.text.trim().isNotEmpty
                           ? BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28))
                           : BorderRadius.circular(28),
@@ -1020,7 +1020,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       key: Key('dashboard_mini_calendar_body'),
       width: isNarrow ? double.infinity : 360,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -1088,7 +1088,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: isNarrow ? double.infinity : null,
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
@@ -1141,10 +1141,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: Material(
-            color: Color(0xFFF8FAFC),
+            color: AppTheme.cardBg,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: Color(0xFFE2E8F0)),
+              side: BorderSide(color: AppTheme.borderColor),
             ),
             child: InkWell(
               key: Key('schedule_event_${event.id}'),

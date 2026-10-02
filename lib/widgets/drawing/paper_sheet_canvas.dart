@@ -256,7 +256,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
       child: Focus(
         autofocus: true,
         child: Container(
-          color: const Color(0xFFE2E8F0),
+          color: AppTheme.lightBg,
           child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -393,9 +393,9 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            border: Border.all(color: AppTheme.borderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
@@ -586,7 +586,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
               ),
 
               const SizedBox(width: 6),
-              Container(width: 1.2, height: 22, color: const Color(0xFFE2E8F0)),
+              Container(width: 1.2, height: 22, color: AppTheme.borderColor),
               const SizedBox(width: 6),
 
               // ↩️ Undo
@@ -635,9 +635,9 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        border: Border.all(color: AppTheme.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.10),
@@ -690,9 +690,9 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        border: Border.all(color: AppTheme.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.10),
@@ -783,9 +783,9 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
           width: 190,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            border: Border.all(color: AppTheme.borderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.10),
@@ -797,7 +797,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: AppTheme.primaryBlue,
-              inactiveTrackColor: const Color(0xFFE2E8F0),
+              inactiveTrackColor: AppTheme.borderColor,
               thumbColor: AppTheme.primaryBlue,
               overlayColor: AppTheme.primaryBlue.withValues(alpha: 0.15),
               trackHeight: 4.0,

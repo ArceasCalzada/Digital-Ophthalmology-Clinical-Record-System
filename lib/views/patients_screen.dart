@@ -383,7 +383,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         child: Container(
                           height: 54,
                           decoration: BoxDecoration(
-                            color: Color(0xFFF8FAFC),
+                            color: AppTheme.cardBg,
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: AppTheme.borderColor),
                             boxShadow: [
@@ -435,7 +435,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       // View Toggle Buttons (Cards vs Table)
                       Container(
                         decoration: BoxDecoration(
-                          color: Color(0xFFF1F5F9),
+                          color: AppTheme.cardBg,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
@@ -463,7 +463,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     Container(
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF8FAFC),
+                        color: AppTheme.cardBg,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
                       ),
@@ -883,7 +883,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(Color(0xFFF8FAFC)),
+              headingRowColor: WidgetStateProperty.all(AppTheme.cardBg),
               horizontalMargin: 20,
               columnSpacing: 24,
               columns: [

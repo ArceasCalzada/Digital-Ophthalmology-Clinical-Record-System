@@ -237,7 +237,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -352,7 +352,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
@@ -538,8 +538,8 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               color: isSelected
                   ? AppTheme.primaryBlue.withValues(alpha: 0.12)
                   : (isOutsideMonth
-                      ? Color(0xFFF8FAFC)
-                      : (isToday ? Color(0xFFEFF6FF) : Colors.white)),
+                      ? AppTheme.lightBg
+                      : (isToday ? AppTheme.primaryBlue.withValues(alpha: 0.15) : AppTheme.cardBg)),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
@@ -643,7 +643,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
@@ -822,7 +822,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1))],

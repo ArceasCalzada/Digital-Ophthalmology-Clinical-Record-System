@@ -490,9 +490,9 @@ class _EyeExamViewState extends State<EyeExamView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFE2E8F0),
+      backgroundColor: AppTheme.lightBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.cardBg,
         elevation: 1,
         toolbarHeight: 76,
         leading: Navigator.canPop(context)

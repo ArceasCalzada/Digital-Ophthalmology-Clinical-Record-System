@@ -91,7 +91,7 @@ Future<void> showClinicalActionModal({
         ...actions.map((act) => Container(
               margin: EdgeInsets.only(bottom: 10),
               child: Material(
-                color: Color(0xFFF8FAFC),
+                color: AppTheme.cardBg,
                 borderRadius: BorderRadius.circular(14),
                 child: InkWell(
                   onTap: () {

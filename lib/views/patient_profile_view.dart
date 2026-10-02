@@ -584,7 +584,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
         final hasDrawing = enc.drawingOD != null || enc.drawingOS != null;
 
         return Card(
-          color: Color(0xFFF8FAFC),
+          color: AppTheme.cardBg,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

@@ -413,7 +413,7 @@ void showPatientCreatedSuccessModal({
             Container(
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Color(0xFFF8FAFC),
+                color: AppTheme.cardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.borderColor),
               ),
