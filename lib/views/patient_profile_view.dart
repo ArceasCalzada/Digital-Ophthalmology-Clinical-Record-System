@@ -39,6 +39,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     // for the patient being viewed.
     PatientRepository.loadPatientDetails(widget.patientId);
     PatientRepository.changeNotifier.addListener(_onRepositoryChanged);
+    TeamService.instance.addListener(_onRepositoryChanged);
   }
 
   @override
@@ -52,6 +53,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
   @override
   void dispose() {
     PatientRepository.changeNotifier.removeListener(_onRepositoryChanged);
+    TeamService.instance.removeListener(_onRepositoryChanged);
     super.dispose();
   }
 
@@ -59,7 +61,17 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     if (mounted) setState(() {});
   }
 
-  Patient? get _patientNullable => PatientRepository.getPatientById(widget.patientId) ?? widget.patient;
+  Patient? get _patientNullable {
+    final patient = PatientRepository.getPatientById(widget.patientId) ?? widget.patient;
+    if (patient == null) return null;
+    final activeTeamId = TeamService.instance.activeTeam?.id;
+    if (activeTeamId != null && activeTeamId.isNotEmpty) {
+      if (patient.teamId.isNotEmpty && patient.teamId != activeTeamId) {
+        return null;
+      }
+    }
+    return patient;
+  }
   Patient get _patient => _patientNullable!;
 
   void _startNewExamination() async {

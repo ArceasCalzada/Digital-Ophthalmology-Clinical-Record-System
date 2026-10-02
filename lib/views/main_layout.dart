@@ -6,6 +6,7 @@ import '../widgets/account_menu.dart';
 import '../widgets/clinic_dialogs.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/sync_status_indicator.dart';
+import '../services/team_service.dart';
 import 'calendar_page_view.dart';
 import 'dashboard_screen.dart';
 import 'eye_exam_view.dart';
@@ -34,6 +35,63 @@ class _MainLayoutState extends State<MainLayout> {
   bool _isSidebarCollapsed = false;
   DateTime? _calendarStartDate; // day picked on the dashboard calendar, if any
   final _searchController = TextEditingController();
+  String? _activeTeamId;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeTeamId = TeamService.instance.activeTeam?.id;
+    TeamService.instance.addListener(_onTeamServiceChanged);
+    PatientRepository.changeNotifier.addListener(_onPatientRepoChanged);
+  }
+
+  @override
+  void dispose() {
+    TeamService.instance.removeListener(_onTeamServiceChanged);
+    PatientRepository.changeNotifier.removeListener(_onPatientRepoChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onTeamServiceChanged() {
+    final newTeamId = TeamService.instance.activeTeam?.id;
+    if (_activeTeamId != newTeamId) {
+      _activeTeamId = newTeamId;
+      _handleTeamWorkspaceSwitch();
+    }
+  }
+
+  void _onPatientRepoChanged() {
+    if (!mounted) return;
+    if (_selectedPatient != null && !_isPatientValidForActiveTeam(_selectedPatient)) {
+      _handleTeamWorkspaceSwitch();
+      return;
+    }
+    setState(() {});
+  }
+
+  void _handleTeamWorkspaceSwitch() {
+    if (!mounted) return;
+    setState(() {
+      _selectedPatient = null;
+      _isExamMode = false;
+      if (_selectedIndex == 2 || _selectedIndex == 3 || _selectedIndex == 4) {
+        _selectedIndex = 0; // Dashboard of the new active workspace
+      }
+      _mobileTabIndex = 0;
+    });
+  }
+
+  bool _isPatientValidForActiveTeam(Patient? patient) {
+    if (patient == null) return false;
+    final activeTeamId = TeamService.instance.activeTeam?.id;
+    if (activeTeamId != null && activeTeamId.isNotEmpty) {
+      if (patient.teamId.isNotEmpty && patient.teamId != activeTeamId) {
+        return false;
+      }
+    }
+    return PatientRepository.getPatientById(patient.id) != null;
+  }
 
   void _navigateToPatientProfile(Patient patient) {
     setState(() {
@@ -234,14 +292,20 @@ class _MainLayoutState extends State<MainLayout> {
         );
       case 2:
         if (_selectedPatient != null) {
-          return PatientProfileView(
-            patientId: _selectedPatient!.id,
-            patient: _selectedPatient,
-            onBack: () => setState(() => _selectedPatient = null),
-            onStartNewExam: () {
-              setState(() => _isExamMode = true);
-            },
-          );
+          if (_isPatientValidForActiveTeam(_selectedPatient)) {
+            return PatientProfileView(
+              patientId: _selectedPatient!.id,
+              patient: _selectedPatient,
+              onBack: () => setState(() => _selectedPatient = null),
+              onStartNewExam: () {
+                setState(() => _isExamMode = true);
+              },
+            );
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _selectedPatient = null);
+            });
+          }
         }
         return PatientsScreen(
           onSelectPatient: _navigateToPatientProfile,
@@ -249,8 +313,9 @@ class _MainLayoutState extends State<MainLayout> {
           onOpenPrescription: (p) => _openPrescriptionForPatient(p, isMobileScreen: false),
         );
       case 3:
+        final validPatient = _isPatientValidForActiveTeam(_selectedPatient) ? _selectedPatient : null;
         return EyeExamView(
-          patient: _selectedPatient,
+          patient: validPatient,
           onExamComplete: (completedPatient) {
             setState(() {
               _selectedPatient = completedPatient;
@@ -260,8 +325,9 @@ class _MainLayoutState extends State<MainLayout> {
           },
         );
       case 4:
+        final validPatient = _isPatientValidForActiveTeam(_selectedPatient) ? _selectedPatient : null;
         return PrescriptionView(
-          initialPatient: _selectedPatient,
+          initialPatient: validPatient,
         );
       case 5:
         return const SettingsView();
@@ -712,7 +778,7 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildNavItem(2, Icons.folder_shared_outlined, Icons.folder_shared, 'Records', isDrawer: isDrawer, collapsed: collapsed),
                 _buildNavItem(3, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer, collapsed: collapsed),
                 _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer, collapsed: collapsed),
-                if (_selectedPatient != null && !collapsed)
+                if (_selectedPatient != null && _isPatientValidForActiveTeam(_selectedPatient) && !collapsed)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
