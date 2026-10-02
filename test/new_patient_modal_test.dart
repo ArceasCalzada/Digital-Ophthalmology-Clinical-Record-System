@@ -55,9 +55,10 @@ void main() {
     expect(find.text('Select gender'), findsOneWidget);
     expect(find.text('Male'), findsNothing);
 
-    for (final label in ['Full Name', 'Date of Birth', 'Sex / Gender']) {
+    for (final label in ['First Name', 'Last Name', 'Date of Birth', 'Sex / Gender']) {
       expect(hasRedAsterisk(tester, label), isTrue, reason: '$label is required');
     }
+    expect(hasRedAsterisk(tester, 'Middle Name'), isFalse);
     expect(hasRedAsterisk(tester, 'Contact Phone Number'), isFalse);
 
     // The patient ID is not on the form at all: it is assigned when the patient is saved.
@@ -95,30 +96,31 @@ void main() {
   testWidgets('registering with the required fields empty is refused, and each one says so', (tester) async {
     final created = await openModal(tester);
 
-    final name = find.widgetWithText(TextFormField, 'e.g. Elena Rostova');
+    final firstName = find.widgetWithText(TextFormField, 'e.g. Elena');
+    final lastName = find.widgetWithText(TextFormField, 'e.g. Rostova');
     final dob = find.widgetWithText(TextFormField, 'Jun 15, 1985');
     final gender = find.text('Select gender');
 
     await tester.tap(find.text('Register Patient'));
     await letShakeStart(tester);
     // Each missing required field shakes; nothing says "Required".
-    for (final field in [name, dob, gender]) {
+    for (final field in [firstName, lastName, dob, gender]) {
       expect(shakeOffset(tester, field), isNot(0));
     }
     expect(find.text('Required'), findsNothing);
     expect(created, isEmpty);
 
     await tester.pumpAndSettle();
-    expect(shakeOffset(tester, name), 0, reason: 'the shake settles');
+    expect(shakeOffset(tester, firstName), 0, reason: 'the shake settles');
   });
 
   testWidgets('a field that is filled in does not shake', (tester) async {
     await openModal(tester);
-    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Elena Rostova'), 'Someone');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Elena'), 'Someone');
 
     await tester.tap(find.text('Register Patient'));
     await letShakeStart(tester);
-    expect(shakeOffset(tester, find.widgetWithText(TextFormField, 'e.g. Elena Rostova')), 0);
+    expect(shakeOffset(tester, find.widgetWithText(TextFormField, 'e.g. Elena')), 0);
     expect(shakeOffset(tester, find.text('Select gender')), isNot(0));
     await tester.pumpAndSettle();
   });
@@ -150,7 +152,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(created, isEmpty);
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Elena Rostova'), 'Test Patient');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Elena'), 'Test');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Marie'), 'John');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Rostova'), 'Patient');
     await tester.enterText(find.widgetWithText(TextFormField, 'Jun 15, 1985'), '1990-01-02');
     await tester.enterText(find.widgetWithText(TextFormField, 'Anything else worth knowing about this patient'), 'Prefers morning appointments');
     await tester.tap(find.text('Select gender'));
@@ -161,7 +165,10 @@ void main() {
     await tester.tap(find.text('Register Patient'));
     await tester.pumpAndSettle();
     expect(created.single.gender, 'Female');
-    expect(created.single.fullName, 'Test Patient');
+    expect(created.single.firstName, 'Test');
+    expect(created.single.middleName, 'John');
+    expect(created.single.lastName, 'Patient');
+    expect(created.single.fullName, 'Test John Patient');
     expect(created.single.notes, 'Prefers morning appointments');
     expect(created.single.dateOfBirth, 'Jan 2, 1990', reason: 'stored in one format, however it was entered');
     // The hidden patient ID is assigned on save, in the app's PT-###### form.

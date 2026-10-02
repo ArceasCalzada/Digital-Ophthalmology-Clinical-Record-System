@@ -26,7 +26,9 @@ class NewPatientModal extends StatefulWidget {
 
 class _NewPatientModalState extends State<NewPatientModal> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _middleNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _dobController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
@@ -35,6 +37,20 @@ class _NewPatientModalState extends State<NewPatientModal> {
   final _notesController = TextEditingController();
   final _genderShake = GlobalKey<ShakeWidgetState>();
   String? _gender; // not assumed: the user must choose
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _middleNameController.dispose();
+    _lastNameController.dispose();
+    _dobController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _medHistoryController.dispose();
+    _allergiesController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   /// The patient ID is assigned here rather than typed or shown on the form: a fresh random
   /// "PT-######" that no loaded patient already has. (The old clock-based one repeated every
@@ -65,7 +81,9 @@ class _NewPatientModalState extends State<NewPatientModal> {
       final newPatient = Patient(
         id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
         mrn: _newPatientId(),
-        fullName: _nameController.text.trim(),
+        firstName: _firstNameController.text.trim(),
+        middleName: _middleNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
         // Stored in one format whether it was picked or typed.
         dateOfBirth: formatClinicalDate(
           () {
@@ -162,11 +180,51 @@ class _NewPatientModalState extends State<NewPatientModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const FieldLabel('Full Name', required: true, fontSize: 12),
-                const SizedBox(height: 6),
-                RequiredTextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(hintText: 'e.g. Elena Rostova'),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FieldLabel('First Name', required: true, fontSize: 12),
+                          const SizedBox(height: 6),
+                          RequiredTextFormField(
+                            controller: _firstNameController,
+                            decoration: const InputDecoration(hintText: 'e.g. Elena'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FieldLabel('Middle Name', fontSize: 12),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _middleNameController,
+                            decoration: const InputDecoration(hintText: 'e.g. Marie'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FieldLabel('Last Name', required: true, fontSize: 12),
+                          const SizedBox(height: 6),
+                          RequiredTextFormField(
+                            controller: _lastNameController,
+                            decoration: const InputDecoration(hintText: 'e.g. Rostova'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
 
@@ -384,6 +442,7 @@ void showPatientCreatedSuccessModal({
                   ),
                   const SizedBox(height: 6),
                   Text('Gender & Age: ${patient.gender}, ${patient.age} years old', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Registered: ${formatRegistrationDate(patient.createdAt)}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
                   Text('Contact Phone: ${patient.phone}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   Text('Address: ${patient.address}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 ],

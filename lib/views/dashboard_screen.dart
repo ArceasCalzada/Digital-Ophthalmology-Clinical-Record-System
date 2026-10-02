@@ -62,14 +62,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return 'Good morning';
+    } else if (hour >= 12 && hour < 18) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
+    }
+  }
+
   void _updateClock() {
     final now = DateTime.now();
     final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
-    setState(() {
-      _currentTime = '$hour:$minute $period';
-    });
+    if (mounted) {
+      setState(() {
+        _currentTime = '$hour:$minute $period';
+      });
+    }
   }
 
   void _loadDashboardData() {
@@ -374,7 +387,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final rawName = ProfileStore.instance.doctorName.text.trim();
               final name = rawName.isNotEmpty ? rawName : 'Dr. Sigrid Robillos, MD';
               return PageHeader(
-                title: 'Good morning, $name',
+                title: '$_greeting, $name',
                 subtitle: 'Manage patient records, review examination history, and create digital prescriptions.',
               );
             },

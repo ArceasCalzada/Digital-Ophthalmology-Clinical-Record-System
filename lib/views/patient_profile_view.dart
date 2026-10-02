@@ -480,6 +480,8 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                     const SizedBox(height: 12),
                     Text('Date of Birth: ${_patient.dateOfBirth}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
                     const SizedBox(height: 6),
+                    Text('Registered: ${formatRegistrationDate(_patient.createdAt)}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
                     Text('Contact Phone: ${_patient.phone}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
                     const SizedBox(height: 6),
                     Text('Address: ${_patient.address}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),

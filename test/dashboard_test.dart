@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/calendar_event.dart';
+import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart';
 
@@ -20,7 +21,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Good morning, Dr. Sigrid Robillos, MD'), findsOneWidget);
+    expect(find.textContaining('Dr. Sigrid Robillos, MD'), findsOneWidget);
     expect(find.text('Schedules'), findsOneWidget);
     // Staff do not know patient IDs, so the search prompt does not ask for one.
     expect(find.text('Search patient by name or phone...'), findsOneWidget);
@@ -145,5 +146,11 @@ void main() {
     final day = tester.widget<InkWell>(find.byKey(const Key('dashboard_calendar_day_15')));
     expect(day.onTap, isNotNull);
     expect(day.hoverColor, isNotNull);
+  });
+
+  test('formatRegistrationDate formats ISO timestamp to human readable clinical date & time', () {
+    final formatted = formatRegistrationDate('2026-09-29T09:42:00.000');
+    expect(formatted, contains('September 29, 2026'));
+    expect(formatted, contains('9:42 AM'));
   });
 }

@@ -8,16 +8,16 @@ import 'package:ophthalmology_clinical_record_system/views/prescription_view.dar
 import 'package:ophthalmology_clinical_record_system/widgets/page_header.dart';
 
 void main() {
-  // (title, subtitle, page) for every screen that opens with a PageHeader.
-  final pages = <(String, String, Widget)>[
-    ('Good morning, Dr. Sigrid Robillos, MD', 'Manage patient records, review examination history, and create digital prescriptions.', const DashboardScreen()),
+  // (titlePattern, subtitle, page) for every screen that opens with a PageHeader.
+  final pages = <(Pattern, String, Widget)>[
+    (RegExp(r'Good (morning|afternoon|evening), Dr\. Sigrid Robillos, MD'), 'Manage patient records, review examination history, and create digital prescriptions.', const DashboardScreen()),
     ('Clinical Calendar & Scheduling', 'Patient appointments, surgeries & locations', CalendarPageView()),
     ('Patient Directory', 'Search and manage clinical patient records with modern patient cards.', PatientsScreen(onSelectPatient: (_) {})),
     ('Prescriptions Workspace', 'Create, preview, and print clinical eye prescriptions.', const PrescriptionView()),
   ];
 
-  for (final (title, subtitle, page) in pages) {
-    testWidgets('"$title" uses the shared header sizes and position', (tester) async {
+  for (final (titlePattern, subtitle, page) in pages) {
+    testWidgets('"$titlePattern" uses the shared header sizes and position', (tester) async {
       tester.view.physicalSize = const Size(1600, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -25,13 +25,14 @@ void main() {
       await tester.pumpWidget(MaterialApp(theme: AppTheme.lightTheme, home: Scaffold(body: page)));
       await tester.pumpAndSettle();
 
-      final titleText = tester.widget<Text>(find.text(title));
+      final titleFinder = find.byWidgetPredicate((w) => w is Text && (w.data != null && titlePattern.allMatches(w.data!).isNotEmpty));
+      final titleText = tester.widget<Text>(titleFinder);
       final subtitleText = tester.widget<Text>(find.text(subtitle));
       expect(titleText.style, PageHeader.titleStyle);
       expect(subtitleText.style, PageHeader.subtitleStyle);
 
       // Every header starts at the same point: the shared page padding.
-      final topLeft = tester.getTopLeft(find.text(title));
+      final topLeft = tester.getTopLeft(titleFinder);
       expect(topLeft.dx, PageHeader.pagePadding);
       expect(topLeft.dy, PageHeader.pagePadding);
     });

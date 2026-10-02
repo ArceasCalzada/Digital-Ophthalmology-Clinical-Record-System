@@ -44,6 +44,26 @@ String formatClinicalDate(String dateStr) {
   return dateStr;
 }
 
+/// Formats an ISO registration timestamp into e.g. "September 29, 2026, 9:42 AM".
+String formatRegistrationDate(String isoStr) {
+  if (isoStr.isEmpty) return 'N/A';
+  try {
+    final dt = DateTime.tryParse(isoStr)?.toLocal();
+    if (dt != null) {
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      final monthName = months[dt.month - 1];
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$monthName ${dt.day}, ${dt.year}, $hour:$minute $period';
+    }
+  } catch (_) {}
+  return isoStr;
+}
+
 /// Parses the date-of-birth formats the app stores: "1985-06-15", "Jun 15, 1985" and
 /// "6/15/1985" (month first). Returns null for anything else or for an impossible
 /// date such as Feb 30.
@@ -117,8 +137,10 @@ class TodayPatientQueue {
 class Patient {
   final String id;
   final String mrn; // Medical Record Number
-  final String fullName;
+  final String firstName;
   final String middleName;
+  final String lastName;
+  final String fullName;
   final String dateOfBirth; // YYYY-MM-DD or formatted string
   final String gender;
   final String phone;
@@ -136,14 +158,17 @@ class Patient {
   final List<Prescription> prescriptions;
   final List<Encounter> encounters;
   final String teamId;
+  final String createdAt;
   final String lastVisitDate;
   final int totalVisits;
 
   Patient({
     required this.id,
     required this.mrn,
-    required this.fullName,
-    this.middleName = '',
+    String? firstName,
+    String? middleName,
+    String? lastName,
+    String? fullName,
     required this.dateOfBirth,
     required this.gender,
     required this.phone,
@@ -159,9 +184,66 @@ class Patient {
     this.prescriptions = const [],
     required this.encounters,
     this.teamId = '',
+    String? createdAt,
     required this.lastVisitDate,
     required this.totalVisits,
-  });
+  })  : firstName = _resolveFirstName(firstName, fullName),
+        middleName = _resolveMiddleName(middleName, fullName),
+        lastName = _resolveLastName(lastName, fullName),
+        fullName = _resolveFullName(firstName, middleName, lastName, fullName),
+        createdAt = (createdAt != null && createdAt.isNotEmpty) ? createdAt : DateTime.now().toIso8601String();
+
+  static String _resolveFirstName(String? firstName, String? fullName) {
+    if (firstName != null && firstName.trim().isNotEmpty) {
+      return firstName.trim();
+    }
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      final parts = fullName.trim().split(RegExp(r'\s+'));
+      return parts.first;
+    }
+    return '';
+  }
+
+  static String _resolveMiddleName(String? middleName, String? fullName) {
+    if (middleName != null && middleName.trim().isNotEmpty) {
+      return middleName.trim();
+    }
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      final parts = fullName.trim().split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        return parts.sublist(1, parts.length - 1).join(' ');
+      }
+    }
+    return '';
+  }
+
+  static String _resolveLastName(String? lastName, String? fullName) {
+    if (lastName != null && lastName.trim().isNotEmpty) {
+      return lastName.trim();
+    }
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      final parts = fullName.trim().split(RegExp(r'\s+'));
+      if (parts.length > 1) {
+        return parts.last;
+      }
+    }
+    return '';
+  }
+
+  static String _resolveFullName(String? firstName, String? middleName, String? lastName, String? fullName) {
+    final f = _resolveFirstName(firstName, fullName);
+    final m = _resolveMiddleName(middleName, fullName);
+    final l = _resolveLastName(lastName, fullName);
+
+    if (f.isNotEmpty || l.isNotEmpty) {
+      final parts = [f, m, l].where((s) => s.isNotEmpty).toList();
+      return parts.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    }
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      return fullName.trim();
+    }
+    return '';
+  }
 
   int get age {
     // "Jun 15, 1985" (what the registration form stores) is not an ISO date, so it used
@@ -188,8 +270,10 @@ class Patient {
   Map<String, dynamic> toJson() => {
         'id': id,
         'mrn': mrn,
-        'fullName': fullName,
+        'firstName': firstName,
         'middleName': middleName,
+        'lastName': lastName,
+        'fullName': fullName,
         'dateOfBirth': dateOfBirth,
         'gender': gender,
         'phone': phone,
@@ -205,6 +289,7 @@ class Patient {
         'prescriptions': prescriptions.map((p) => p.toJson()).toList(),
         'encounters': encounters.map((e) => e.toJson()).toList(),
         if (teamId.isNotEmpty) 'teamId': teamId,
+        'createdAt': createdAt,
         'lastVisitDate': lastVisitDate,
         'totalVisits': totalVisits,
       };
@@ -231,8 +316,10 @@ class Patient {
       return items;
     }
 
-    requireLength('Full name', fullName, AppLimits.maxShortTextLength);
+    requireLength('First name', firstName, AppLimits.maxShortTextLength);
     requireLength('Middle name', middleName, AppLimits.maxShortTextLength);
+    requireLength('Last name', lastName, AppLimits.maxShortTextLength);
+    requireLength('Full name', fullName, AppLimits.maxShortTextLength);
     requireLength('MRN', mrn, AppLimits.maxShortTextLength);
     requireLength('Date of birth', dateOfBirth, AppLimits.maxShortTextLength);
     requireLength('Gender', gender, AppLimits.maxShortTextLength);
@@ -246,8 +333,10 @@ class Patient {
     return {
       'id': id,
       'mrn': mrn,
-      'fullName': fullName,
+      'firstName': firstName,
       'middleName': middleName,
+      'lastName': lastName,
+      'fullName': fullName,
       'dateOfBirth': dateOfBirth,
       'gender': gender,
       'phone': phone,
@@ -259,6 +348,7 @@ class Patient {
       // exactly as before (rules published before this field existed still accept it).
       if (notes.isNotEmpty) 'notes': notes,
       if (teamId.isNotEmpty) 'teamId': teamId,
+      'createdAt': createdAt,
       'medicalHistory': requireList('Medical history', medicalHistory),
       'allergies': requireList('Allergies', allergies),
       'previousDiagnoses': requireList(
@@ -274,18 +364,25 @@ class Patient {
   }
 
   Patient copyWith({
+    String? firstName,
+    String? middleName,
+    String? lastName,
+    String? fullName,
     List<String>? previousDiagnoses,
     List<Prescription>? prescriptions,
     List<Encounter>? encounters,
     String? teamId,
+    String? createdAt,
     String? lastVisitDate,
     int? totalVisits,
   }) =>
       Patient(
         id: id,
         mrn: mrn,
-        fullName: fullName,
-        middleName: middleName,
+        firstName: firstName ?? this.firstName,
+        middleName: middleName ?? this.middleName,
+        lastName: lastName ?? this.lastName,
+        fullName: fullName ?? (firstName != null || middleName != null || lastName != null ? null : this.fullName),
         dateOfBirth: dateOfBirth,
         gender: gender,
         phone: phone,
@@ -301,6 +398,7 @@ class Patient {
         prescriptions: prescriptions ?? this.prescriptions,
         encounters: encounters ?? this.encounters,
         teamId: teamId ?? this.teamId,
+        createdAt: createdAt ?? this.createdAt,
         lastVisitDate: lastVisitDate ?? this.lastVisitDate,
         totalVisits: totalVisits ?? this.totalVisits,
       );
@@ -330,17 +428,41 @@ class Patient {
     final id = extractString(['id', 'patientId', 'docId'], 'pat-${DateTime.now().millisecondsSinceEpoch}');
     final mrn = extractString(['mrn', 'MRN', 'medicalRecordNumber'], 'PT-000000');
 
-    String fullName = extractString(['fullName', 'name', 'full_name', 'patientName'], '');
-    if (fullName.isEmpty) {
-      final first = extractString(['firstName', 'first_name'], '');
-      final last = extractString(['lastName', 'last_name'], '');
-      fullName = '$first $last'.trim();
+    final rawFirst = extractString(['firstName', 'first_name'], '');
+    final rawMiddle = extractString(['middleName', 'middle_name'], '');
+    final rawLast = extractString(['lastName', 'last_name'], '');
+    String rawFull = extractString(['fullName', 'name', 'full_name', 'patientName'], '');
+
+    String firstName = rawFirst;
+    String middleName = rawMiddle;
+    String lastName = rawLast;
+    String fullName = rawFull;
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      if (fullName.isNotEmpty) {
+        final parts = fullName.trim().split(RegExp(r'\s+'));
+        if (parts.length == 1) {
+          if (firstName.isEmpty) firstName = parts[0];
+        } else if (parts.length == 2) {
+          if (firstName.isEmpty) firstName = parts[0];
+          if (lastName.isEmpty) lastName = parts[1];
+        } else if (parts.length >= 3) {
+          if (firstName.isEmpty) firstName = parts[0];
+          if (lastName.isEmpty) lastName = parts.last;
+          if (middleName.isEmpty) middleName = parts.sublist(1, parts.length - 1).join(' ');
+        }
+      }
     }
+
+    if (fullName.isEmpty) {
+      final parts = [firstName, middleName, lastName].where((s) => s.isNotEmpty).toList();
+      fullName = parts.join(' ');
+    }
+
     if (fullName.isEmpty) {
       fullName = 'Patient $mrn';
     }
 
-    final middleName = extractString(['middleName', 'middle_name'], '');
     final dateOfBirth = extractString(['dateOfBirth', 'dob', 'date_of_birth', 'birthDate'], '1985-06-15');
     final gender = extractString(['gender', 'sex'], 'Unspecified');
     final phone = extractString(['phone', 'contactNumber', 'phoneNumber', 'mobile', 'contact'], 'N/A');
@@ -350,6 +472,7 @@ class Patient {
     final referringDoctor = json['referringDoctor']?.toString() ?? json['doctor']?.toString();
     final notes = extractString(['notes'], '');
     final teamId = extractString(['teamId', 'team_id'], '');
+    final createdAt = extractString(['createdAt', 'created_at', 'registeredAt', 'registrationDate'], '');
 
     final medicalHistory = extractStringList(['medicalHistory', 'medical_history']);
     final allergies = extractStringList(['allergies']);
@@ -384,8 +507,10 @@ class Patient {
     return Patient(
       id: id,
       mrn: mrn,
-      fullName: fullName,
+      firstName: firstName,
       middleName: middleName,
+      lastName: lastName,
+      fullName: fullName,
       dateOfBirth: dateOfBirth,
       gender: gender,
       phone: phone,
@@ -401,6 +526,7 @@ class Patient {
       prescriptions: rxList,
       encounters: encList,
       teamId: teamId,
+      createdAt: createdAt.isNotEmpty ? createdAt : null,
       lastVisitDate: lastVisitDate,
       totalVisits: totalVisits,
     );
