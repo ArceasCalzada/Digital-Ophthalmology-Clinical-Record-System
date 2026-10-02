@@ -1006,7 +1006,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     const headerShape = RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16)));
     final headerButton = Material(
-      color: Color(0xFFF8FAFC),
+      color: AppTheme.cardBg,
       shape: headerShape,
       clipBehavior: Clip.antiAlias,
       child: InkWell(

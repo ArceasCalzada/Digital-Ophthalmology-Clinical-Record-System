@@ -266,6 +266,14 @@ class AppTheme {
         secondary: odColor,
         surface: darkCardBg,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: darkCardBg,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: darkBorder, width: 1),
+        ),
+      ),
     );
   }
 }

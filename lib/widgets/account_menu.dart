@@ -224,7 +224,7 @@ class _AccountPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppTheme.cardBg,
       elevation: 8,
       shadowColor: Colors.black.withValues(alpha: 0.25),
       borderRadius: BorderRadius.circular(14),
