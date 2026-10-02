@@ -89,7 +89,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   void _triggerManualBackup() async {
     setState(() => _isBackingUp = true);
-    await Future.delayed(const Duration(milliseconds: 1400));
+    await Future.delayed(Duration(milliseconds: 1400));
     if (mounted) {
       setState(() {
         _isBackingUp = false;
@@ -104,7 +104,7 @@ class _SettingsViewState extends State<SettingsView> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 28),
             SizedBox(width: 10),
@@ -116,40 +116,40 @@ class _SettingsViewState extends State<SettingsView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                border: Border.all(color: Color(0xFFF59E0B).withValues(alpha: 0.5)),
               ),
-              child: const Text(
+              child: Text(
                 'Restoring a previous backup may replace the current system data. Ensure you have backed up any unsaved patient encounters before continuing.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF92400E), height: 1.4),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _buildDetailRow('Backup Date:', backup['date'] ?? ''),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             _buildDetailRow('Backup Time:', backup['time'] ?? '11:00 PM'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             _buildDetailRow('Backup Size:', backup['size'] ?? ''),
           ],
         ),
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
+              backgroundColor: Color(0xFFDC2626),
               foregroundColor: Colors.white,
             ),
             onPressed: () {
               Navigator.pop(context);
               _showSaveFeedback('System successfully restored to backup state (${backup['date']}).');
             },
-            child: const Text('Continue to Restore'),
+            child: Text('Continue to Restore'),
           ),
         ],
       ),
@@ -163,7 +163,7 @@ class _SettingsViewState extends State<SettingsView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 580,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,22 +171,22 @@ class _SettingsViewState extends State<SettingsView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Prescription Document Preview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  Text('Prescription Document Preview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                    icon: Icon(Icons.close, color: AppTheme.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const Divider(height: 24),
+              Divider(height: 24),
               _buildPrescriptionPreviewCard(),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Close Preview'),
+                    icon: Icon(Icons.check, size: 16),
+                    label: Text('Close Preview'),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -201,9 +201,9 @@ class _SettingsViewState extends State<SettingsView> {
   Widget _buildDetailRow(String label, String value) {
     return Row(
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
-        const SizedBox(width: 8),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+        SizedBox(width: 8),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
       ],
     );
   }
@@ -215,15 +215,15 @@ class _SettingsViewState extends State<SettingsView> {
         final isDesktop = constraints.maxWidth > 800;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Page Header
-              const Text('System Settings & Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-              const SizedBox(height: 4),
-              const Text('Manage your Rx layout, security, preferences, and local backups.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-              const SizedBox(height: 24),
+              Text('System Settings & Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              SizedBox(height: 4),
+              Text('Manage your Rx layout, security, preferences, and local backups.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+              SizedBox(height: 24),
 
               if (isDesktop)
                 Row(
@@ -234,7 +234,7 @@ class _SettingsViewState extends State<SettingsView> {
                       width: 260,
                       child: _buildLeftNavigation(),
                     ),
-                    const SizedBox(width: 24),
+                    SizedBox(width: 24),
                     // Right Content Area
                     Expanded(
                       child: _buildActiveContentSection(),
@@ -245,7 +245,7 @@ class _SettingsViewState extends State<SettingsView> {
                 Column(
                   children: [
                     _buildMobileNavSelector(),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     _buildActiveContentSection(),
                   ],
                 ),
@@ -260,10 +260,10 @@ class _SettingsViewState extends State<SettingsView> {
   Widget _buildMobileNavSelector() {
     return Card(
       color: AppTheme.cardBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppTheme.borderColor)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppTheme.borderColor)),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
             _buildMobileNavItem('prescription_settings', 'Prescription', Icons.description_outlined),
@@ -279,7 +279,7 @@ class _SettingsViewState extends State<SettingsView> {
   Widget _buildMobileNavItem(String key, String title, IconData icon) {
     final isSelected = _activeSection == key;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.symmetric(horizontal: 4),
       child: ChoiceChip(
         selected: isSelected,
         showCheckmark: false,
@@ -299,17 +299,17 @@ class _SettingsViewState extends State<SettingsView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.borderColor),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildNavCategoryHeader('General'),
             _buildNavItem('prescription_settings', 'Prescription Settings', Icons.description_outlined, Icons.description_rounded),
             
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Divider(height: 1, color: AppTheme.borderColor),
             ),
@@ -318,7 +318,7 @@ class _SettingsViewState extends State<SettingsView> {
             _buildNavItem('security', 'Security', Icons.security_outlined, Icons.security_rounded),
             _buildNavItem('backup_data', 'Backup & Data', Icons.backup_outlined, Icons.backup_rounded),
             
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Divider(height: 1, color: AppTheme.borderColor),
             ),
@@ -333,10 +333,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget _buildNavCategoryHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 8, bottom: 6),
+      padding: EdgeInsets.only(left: 12, top: 8, bottom: 6),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary, letterSpacing: 0.8),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary, letterSpacing: 0.8),
       ),
     );
   }
@@ -397,27 +397,27 @@ class _SettingsViewState extends State<SettingsView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Prescription Settings', 'Customize the information and layout used for prescriptions.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Doctor Information Summary Card
         _buildCardContainer(
           title: 'Doctor Information',
           child: Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 20),
-                const SizedBox(width: 12),
+                Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 20),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${_profile.doctorName.text} — ${_profile.doctorTitle.text}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                      Text('${_profile.license.text} • Specialization: ${_profile.specialization.text}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                      Text('${_profile.doctorName.text} — ${_profile.doctorTitle.text}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                      Text('${_profile.license.text} • Specialization: ${_profile.specialization.text}', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     ],
                   ),
                 ),
@@ -425,7 +425,7 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Signature Upload & Management Card
         _buildCardContainer(
@@ -456,11 +456,11 @@ class _SettingsViewState extends State<SettingsView> {
                               ],
                             ),
                           )
-                        : const Center(
+                        : Center(
                             child: Text('No Signature Uploaded', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                           ),
                   ),
-                  const SizedBox(width: 20),
+                  SizedBox(width: 20),
                   Expanded(
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,8 +470,8 @@ class _SettingsViewState extends State<SettingsView> {
                         runSpacing: 8,
                         children: [
                           ElevatedButton.icon(
-                            icon: const Icon(Icons.draw, size: 16),
-                            label: const Text('Upload Signature Image'),
+                            icon: Icon(Icons.draw, size: 16),
+                            label: Text('Upload Signature Image'),
                             onPressed: () {
                               setState(() => _hasSignature = true);
                               _showSaveFeedback('Signature uploaded.');
@@ -483,12 +483,12 @@ class _SettingsViewState extends State<SettingsView> {
                                 setState(() => _hasSignature = false);
                                 _showSaveFeedback('Signature removed.');
                               },
-                              child: const Text('Remove Signature'),
+                              child: Text('Remove Signature'),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      const Text('PNG with transparent background (Max 1MB). Appears on exported PDFs.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                      SizedBox(height: 6),
+                      Text('PNG with transparent background (Max 1MB). Appears on exported PDFs.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     ],
                     ),
                   ),
@@ -497,7 +497,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Prescription Template Preview Card
         _buildCardContainer(
@@ -506,12 +506,12 @@ class _SettingsViewState extends State<SettingsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPrescriptionPreviewCard(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 children: [
                   OutlinedButton.icon(
-                    icon: const Icon(Icons.visibility_outlined, size: 16),
-                    label: const Text('Preview Prescription'),
+                    icon: Icon(Icons.visibility_outlined, size: 16),
+                    label: Text('Preview Prescription'),
                     onPressed: _showRxPreviewDialog,
                   ),
                 ],
@@ -519,7 +519,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         _buildActionButtons(onSave: () => _showSaveFeedback('Prescription settings updated.')),
       ],
@@ -566,7 +566,7 @@ class _SettingsViewState extends State<SettingsView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Security', 'Manage access and protect your clinical records.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Change Password Card
         _buildCardContainer(
@@ -575,51 +575,51 @@ class _SettingsViewState extends State<SettingsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPasswordField('Current Password', _currentPasswordController),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: _buildPasswordField('New Password', _newPasswordController, onChanged: (_) => setState(() {})),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: _buildPasswordField('Confirm New Password', _confirmPasswordController),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               
               // Password Strength Indicator
               if (_newPasswordController.text.isNotEmpty) ...[
                 Row(
                   children: [
-                    const Text('Password Strength: ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                    Text('Password Strength: ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     Text(
                       _newPasswordController.text.length > 8 ? 'Strong' : 'Weak',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                        color: _newPasswordController.text.length > 8 ? Color(0xFF059669) : Color(0xFFDC2626),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: (_newPasswordController.text.length / 12).clamp(0.1, 1.0),
-                    backgroundColor: const Color(0xFFE2E8F0),
-                    color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                    backgroundColor: Color(0xFFE2E8F0),
+                    color: _newPasswordController.text.length > 8 ? Color(0xFF059669) : Color(0xFFDC2626),
                     minHeight: 4,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
               ],
 
               ElevatedButton.icon(
-                icon: const Icon(Icons.lock_reset, size: 16),
-                label: const Text('Update Password'),
+                icon: Icon(Icons.lock_reset, size: 16),
+                label: Text('Update Password'),
                 onPressed: () {
                   _currentPasswordController.clear();
                   _newPasswordController.clear();
@@ -630,7 +630,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Session Security Card
         _buildCardContainer(
@@ -641,22 +641,22 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: const Text('Auto-Lock System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: const Text('Automatically lock system after a period of inactivity to protect patient privacy.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text('Auto-Lock System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                subtitle: Text('Automatically lock system after a period of inactivity to protect patient privacy.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 value: _autoLockEnabled,
                 onChanged: (val) => setState(() => _autoLockEnabled = val),
               ),
               if (_autoLockEnabled) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                    const SizedBox(width: 16),
+                    Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                    SizedBox(width: 16),
                     Expanded(
                       child: ClinicalDropdownField<String>(
                         placeholder: 'Select timeout...',
                         value: _autoLockDuration,
-                        items: const [
+                        items: [
                           ClinicalPickerItem<String>(value: '5 minutes', label: '5 minutes'),
                           ClinicalPickerItem<String>(value: '10 minutes', label: '10 minutes'),
                           ClinicalPickerItem<String>(value: '15 minutes', label: '15 minutes'),
@@ -672,7 +672,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Two-Factor Authentication Card
         _buildCardContainer(
@@ -684,16 +684,16 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: const Text('Two-Factor Authentication (2FA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: const Text('Add an extra layer of security when signing into the DOCRS workstation.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text('Two-Factor Authentication (2FA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                subtitle: Text('Add an extra layer of security when signing into the DOCRS workstation.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 value: _twoFactorEnabled,
                 onChanged: (val) => setState(() => _twoFactorEnabled = val),
               ),
               if (_twoFactorEnabled) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.qr_code, size: 16),
-                  label: const Text('Set Up Two-Factor Authentication'),
+                  icon: Icon(Icons.qr_code, size: 16),
+                  label: Text('Set Up Two-Factor Authentication'),
                   onPressed: () {
                     _showSaveFeedback('2FA Authenticator setup initialized.');
                   },
@@ -714,7 +714,7 @@ class _SettingsViewState extends State<SettingsView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Backup & Data', 'Manage local backups and protect patient clinical records.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Backup Status Banner Card
         Card(
@@ -722,17 +722,17 @@ class _SettingsViewState extends State<SettingsView> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.borderColor),
+            side: BorderSide(color: AppTheme.borderColor),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
                         Icon(Icons.backup_rounded, color: AppTheme.primaryBlue, size: 24),
                         SizedBox(width: 10),
@@ -740,13 +740,13 @@ class _SettingsViewState extends State<SettingsView> {
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
+                        color: Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF166534).withValues(alpha: 0.3)),
+                        border: Border.all(color: Color(0xFF166534).withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.check_circle, color: Color(0xFF15803D), size: 14),
@@ -757,18 +757,18 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Last Backup: $_lastBackupDate', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                        const SizedBox(height: 4),
-                        Text('Storage Location: $_backupLocation', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                        const SizedBox(height: 2),
-                        const Text('Next Scheduled Backup: August 21, 2026 — 11:00 PM', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text('Last Backup: $_lastBackupDate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                        SizedBox(height: 4),
+                        Text('Storage Location: $_backupLocation', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        SizedBox(height: 2),
+                        Text('Next Scheduled Backup: August 21, 2026 — 11:00 PM', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                       ],
                     ),
                     Row(
@@ -776,8 +776,8 @@ class _SettingsViewState extends State<SettingsView> {
                         ElevatedButton.icon(
                           onPressed: _isBackingUp ? null : _triggerManualBackup,
                           icon: _isBackingUp
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Icon(Icons.cloud_upload_outlined, size: 16),
+                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Icon(Icons.cloud_upload_outlined, size: 16),
                           label: Text(_isBackingUp ? 'Backing up...' : 'Backup Now'),
                         ),
                       ],
@@ -788,7 +788,7 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Automatic Backup Card
         _buildCardContainer(
@@ -800,26 +800,26 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: const Text('Enable Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: const Text('Automatically backup local encrypted clinical database at specified intervals.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text('Enable Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                subtitle: Text('Automatically backup local encrypted clinical database at specified intervals.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 value: _autoBackupEnabled,
                 onChanged: (val) => setState(() => _autoBackupEnabled = val),
               ),
               if (_autoBackupEnabled) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Backup Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                          const SizedBox(height: 6),
+                          Text('Backup Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupFrequency,
-                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                             items: ['Daily', 'Weekly', 'Monthly']
-                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 13))))
+                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(fontSize: 13))))
                                 .toList(),
                             onChanged: (val) {
                               if (val != null) setState(() => _backupFrequency = val);
@@ -828,18 +828,18 @@ class _SettingsViewState extends State<SettingsView> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Backup Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                          const SizedBox(height: 6),
+                          Text('Backup Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupTime,
-                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                             items: ['10:00 PM', '11:00 PM', '12:00 AM', '01:00 AM']
-                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 13))))
+                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(fontSize: 13))))
                                 .toList(),
                             onChanged: (val) {
                               if (val != null) setState(() => _backupTime = val);
@@ -850,41 +850,41 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Local Backup Folder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 6),
+                    Text('Local Backup Folder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                    SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             readOnly: true,
                             controller: TextEditingController(text: _backupLocation),
-                            decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         OutlinedButton.icon(
-                          icon: const Icon(Icons.folder_open, size: 16),
-                          label: const Text('Change Location'),
+                          icon: Icon(Icons.folder_open, size: 16),
+                          label: Text('Change Location'),
                           onPressed: () {
                             _showSaveFeedback('Backup folder updated.');
                           },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     if (_locationAvailable)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
+                          color: Color(0xFFF0FDF4),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                          border: Border.all(color: Color(0xFF10B981).withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.check_circle, size: 14, color: Color(0xFF10B981)),
                             SizedBox(width: 6),
@@ -898,7 +898,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // SECTION 7: STORAGE INFORMATION
         _buildCardContainer(
@@ -909,40 +909,40 @@ class _SettingsViewState extends State<SettingsView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Storage: 1 TB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                  Text('Total Storage: 1 TB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                   Row(
                     children: [
                       Text('Used: 650 GB ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryBlue)),
-                      const Text('• Available: 350 GB', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text('• Available: 350 GB', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: 0.65,
-                  backgroundColor: const Color(0xFFE2E8F0),
+                  backgroundColor: Color(0xFFE2E8F0),
                   color: AppTheme.primaryBlue,
                   minHeight: 10,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Wrap(
                 spacing: 16,
                 runSpacing: 8,
                 children: [
                   _buildStorageLegend('Patient Records', '210 GB', AppTheme.primaryBlue),
-                  _buildStorageLegend('Eye Drawings', '320 GB', const Color(0xFF06B6D4)),
-                  _buildStorageLegend('Prescriptions', '40 GB', const Color(0xFF10B981)),
-                  _buildStorageLegend('Backup Files', '80 GB', const Color(0xFFD97706)),
+                  _buildStorageLegend('Eye Drawings', '320 GB', Color(0xFF06B6D4)),
+                  _buildStorageLegend('Prescriptions', '40 GB', Color(0xFF10B981)),
+                  _buildStorageLegend('Backup Files', '80 GB', Color(0xFFD97706)),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Backup History Table (Section 5 & 6)
         _buildCardContainer(
@@ -962,9 +962,9 @@ class _SettingsViewState extends State<SettingsView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text('$label: ', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-        Text(size, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
+        SizedBox(width: 6),
+        Text('$label: ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        Text(size, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
       ],
     );
   }
@@ -977,7 +977,7 @@ class _SettingsViewState extends State<SettingsView> {
     ];
 
     return Table(
-      columnWidths: const {
+      columnWidths: {
         0: FlexColumnWidth(1.2),
         1: FlexColumnWidth(1.2),
         2: FlexColumnWidth(1),
@@ -986,60 +986,60 @@ class _SettingsViewState extends State<SettingsView> {
       },
       children: [
         TableRow(
-          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.borderColor))),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.borderColor))),
           children: ['Date', 'Backup Type', 'Size', 'Status', 'Action'].map((heading) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(heading, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textSecondary)),
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(heading, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textSecondary)),
             );
           }).toList(),
         ),
         ...history.map((row) {
           return TableRow(
-            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['date']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(row['date']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['type']!, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(row['type']!, style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['size']!, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(row['size']!, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: EdgeInsets.symmetric(vertical: 10),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 14),
-                    const SizedBox(width: 4),
-                    Text(row['status']!, style: const TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 11)),
+                    Icon(Icons.check_circle, color: Color(0xFF10B981), size: 14),
+                    SizedBox(width: 4),
+                    Text(row['status']!, style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 11)),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
                     TextButton(
-                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), minimumSize: Size.zero),
+                      style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 8), minimumSize: Size.zero),
                       onPressed: () {
                         _showSaveFeedback('Backup log verified: ${row['date']}');
                       },
-                      child: const Text('View', style: TextStyle(fontSize: 11)),
+                      child: Text('View', style: TextStyle(fontSize: 11)),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,
-                        side: const BorderSide(color: Color(0xFFF59E0B)),
+                        side: BorderSide(color: Color(0xFFF59E0B)),
                       ),
                       onPressed: () => _showRestoreDialog(row),
-                      child: const Text('Restore', style: TextStyle(fontSize: 11, color: Color(0xFFD97706))),
+                      child: Text('Restore', style: TextStyle(fontSize: 11, color: Color(0xFFD97706))),
                     ),
                   ],
                 ),
@@ -1059,7 +1059,7 @@ class _SettingsViewState extends State<SettingsView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('System Preferences', 'Customize your DOCRS experience.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Appearance Card
         _buildCardContainer(
@@ -1067,14 +1067,14 @@ class _SettingsViewState extends State<SettingsView> {
           child: Row(
             children: [
               Expanded(child: _buildAppearanceCard('Light', Icons.light_mode, _appearanceMode == 'Light')),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(child: _buildAppearanceCard('Dark', Icons.dark_mode, _appearanceMode == 'Dark')),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(child: _buildAppearanceCard('System Default', Icons.settings_brightness, _appearanceMode == 'System Default')),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Date Format Card
         _buildCardContainer(
@@ -1084,7 +1084,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map((fmt) {
               final isSelected = _dateFormat == fmt;
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: EdgeInsets.only(right: 16),
                 child: ChoiceChip(
                   selected: isSelected,
                   showCheckmark: false,
@@ -1099,7 +1099,7 @@ class _SettingsViewState extends State<SettingsView> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Time Format Card
         _buildCardContainer(
@@ -1109,7 +1109,7 @@ class _SettingsViewState extends State<SettingsView> {
             children: ['12-hour', '24-hour'].map((fmt) {
               final isSelected = _timeFormat == fmt;
               return Padding(
-                padding: const EdgeInsets.only(right: 16),
+                padding: EdgeInsets.only(right: 16),
                 child: ChoiceChip(
                   selected: isSelected,
                   showCheckmark: false,
@@ -1124,7 +1124,7 @@ class _SettingsViewState extends State<SettingsView> {
             }).toList(),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Notification Reminder Alert Card. One choice for every appointment, applied
         // when an event is scheduled (the scheduling form no longer asks).
@@ -1135,11 +1135,11 @@ class _SettingsViewState extends State<SettingsView> {
             builder: (context, _) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'How long before an appointment its reminder alert is sent. Applies to events you schedule from now on.',
                   style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: Wrap(
@@ -1159,7 +1159,7 @@ class _SettingsViewState extends State<SettingsView> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // Examination Preferences Card
         _buildCardContainer(
@@ -1172,14 +1172,14 @@ class _SettingsViewState extends State<SettingsView> {
                 ['Standard 2-Column', 'Expanded Single Canvas', 'Clinical Tabbed'],
                 (val) => setState(() => _defaultExamLayout = val!),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _buildDropdownField(
                 'Default Eye Drawing Template',
                 _defaultDrawingTemplate,
                 ['Fundus / Retina Map', 'Anterior Segment / Cornea', 'External Eye & Lids'],
                 (val) => setState(() => _defaultDrawingTemplate = val!),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _buildDropdownField(
                 'Default View When Opening a Patient',
                 _defaultPatientView,
@@ -1189,7 +1189,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
 
         _buildActionButtons(
           saveLabel: 'Save Preferences',
@@ -1207,7 +1207,7 @@ class _SettingsViewState extends State<SettingsView> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.12) : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(12),
@@ -1219,7 +1219,7 @@ class _SettingsViewState extends State<SettingsView> {
         child: Column(
           children: [
             Icon(icon, color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary, size: 28),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(mode, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 12, color: isSelected ? AppTheme.primaryBlue : AppTheme.textPrimary)),
           ],
         ),
@@ -1234,9 +1234,9 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-        const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+        SizedBox(height: 4),
+        Text(subtitle, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
       ],
     );
   }
@@ -1247,15 +1247,15 @@ class _SettingsViewState extends State<SettingsView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.borderColor),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-            const SizedBox(height: 16),
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            SizedBox(height: 16),
             child,
           ],
         ),
@@ -1267,14 +1267,14 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
           obscureText: true,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-          decoration: const InputDecoration(
+          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+          decoration: InputDecoration(
             prefixIcon: Icon(Icons.lock_outline, size: 18, color: AppTheme.primaryBlue),
             contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
@@ -1297,16 +1297,16 @@ class _SettingsViewState extends State<SettingsView> {
     return Row(
       children: [
         ElevatedButton.icon(
-          icon: const Icon(Icons.save_outlined, size: 16),
+          icon: Icon(Icons.save_outlined, size: 16),
           label: Text(saveLabel),
           onPressed: onSave,
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         OutlinedButton(
           onPressed: () {
             _showSaveFeedback('Form reset to default.');
           },
-          child: const Text('Cancel'),
+          child: Text('Cancel'),
         ),
       ],
     );

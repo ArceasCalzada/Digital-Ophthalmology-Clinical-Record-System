@@ -60,7 +60,7 @@ class _CreateClinicDialogState extends State<_CreateClinicDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      title: Text(widget.firstTime ? 'Create your clinic first' : 'Create a clinic', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      title: Text(widget.firstTime ? 'Create your clinic first' : 'Create a clinic', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       content: SizedBox(
         width: 380,
         child: Form(
@@ -69,19 +69,19 @@ class _CreateClinicDialogState extends State<_CreateClinicDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const FieldLabel('Clinic or hospital name', required: true),
-              const SizedBox(height: 6),
+              FieldLabel('Clinic or hospital name', required: true),
+              SizedBox(height: 6),
               RequiredTextFormField(
                 controller: _name,
-                decoration: const InputDecoration(hintText: 'e.g. Metro Eye Center'),
+                decoration: InputDecoration(hintText: 'e.g. Metro Eye Center'),
                 invalidMessage: ClinicStore.nameProblem,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 widget.firstTime
                     ? 'Patients, exams and appointments are saved in a clinic. Give yours a name to continue.'
                     : 'Each clinic keeps its own patients, calendar and members.',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -90,9 +90,9 @@ class _CreateClinicDialogState extends State<_CreateClinicDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+          child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
         ),
-        ElevatedButton(onPressed: _create, child: const Text('Create clinic')),
+        ElevatedButton(onPressed: _create, child: Text('Create clinic')),
       ],
     );
   }
@@ -146,7 +146,7 @@ class _JoinClinicDialogState extends State<_JoinClinicDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      title: const Text('Join a clinic', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      title: Text('Join a clinic', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
       content: SizedBox(
         width: 380,
         child: Form(
@@ -155,28 +155,28 @@ class _JoinClinicDialogState extends State<_JoinClinicDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const FieldLabel('Invite code or link', required: true),
-              const SizedBox(height: 6),
+              FieldLabel('Invite code or link', required: true),
+              SizedBox(height: 6),
               RequiredTextFormField(
                 controller: _code,
-                decoration: const InputDecoration(hintText: 'DOCRS-XXXXX-XXXXX'),
+                decoration: InputDecoration(hintText: 'DOCRS-XXXXX-XXXXX'),
                 invalidMessage: (v) => InviteCode.parse(v) == null ? 'That is not a valid invite code' : null,
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Open the link the clinic leader sent you, or type the code from their invite.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ),
               if (_notice != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
+                    color: Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                    border: Border.all(color: Color(0xFFF59E0B).withValues(alpha: 0.5)),
                   ),
-                  child: Text(_notice!, style: const TextStyle(fontSize: 12, color: Color(0xFF92400E), height: 1.4)),
+                  child: Text(_notice!, style: TextStyle(fontSize: 12, color: Color(0xFF92400E), height: 1.4)),
                 ),
               ],
             ],
@@ -186,9 +186,9 @@ class _JoinClinicDialogState extends State<_JoinClinicDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+          child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
         ),
-        ElevatedButton(onPressed: _busy ? null : _join, child: const Text('Join clinic')),
+        ElevatedButton(onPressed: _busy ? null : _join, child: Text('Join clinic')),
       ],
     );
   }

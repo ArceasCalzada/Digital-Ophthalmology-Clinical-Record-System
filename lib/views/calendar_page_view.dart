@@ -114,15 +114,15 @@ class _CalendarPageViewState extends State<CalendarPageView> {
   Color _getEventTypeColor(String type) {
     switch (type) {
       case 'Surgery':
-        return const Color(0xFFEF4444); // Red
+        return Color(0xFFEF4444); // Red
       case 'Emergency':
-        return const Color(0xFFD97706); // Amber
+        return Color(0xFFD97706); // Amber
       case 'IOP Check':
-        return const Color(0xFF10B981); // Emerald Green
+        return Color(0xFF10B981); // Emerald Green
       case 'Follow-up':
-        return const Color(0xFF0284C7); // Sky Blue
+        return Color(0xFF0284C7); // Sky Blue
       case 'Laser Procedure':
-        return const Color(0xFF8B5CF6); // Purple
+        return Color(0xFF8B5CF6); // Purple
       case 'Checkup':
       default:
         return AppTheme.primaryBlue; // Primary Blue
@@ -166,7 +166,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               final isNarrow = constraints.maxWidth < 900;
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(PageHeader.pagePadding),
+                padding: EdgeInsets.all(PageHeader.pagePadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -175,12 +175,12 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
                     // Categorization Filter Bar
                     _buildFilterSection(context),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     if (isNarrow) ...[
                       // Stacked view for smaller screens: Grid on top, Agenda below
                       _buildMonthCalendarCard(context, repo),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       _buildAgendaSection(context, repo, selectedDayEvents, allFilteredEvents),
                     ] else ...[
                       // Side-by-side view for Desktop / Large screens
@@ -191,7 +191,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                             flex: 3,
                             child: _buildMonthCalendarCard(context, repo),
                           ),
-                          const SizedBox(width: 20),
+                          SizedBox(width: 20),
                           Expanded(
                             flex: 2,
                             child: _buildAgendaSection(context, repo, selectedDayEvents, allFilteredEvents),
@@ -215,12 +215,12 @@ class _CalendarPageViewState extends State<CalendarPageView> {
       subtitle: 'Patient appointments, surgeries & locations',
       action: ElevatedButton.icon(
         onPressed: () => _addEvent(),
-        icon: const Icon(Icons.add_rounded, size: 18),
-        label: const Text('Add Event', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        icon: Icon(Icons.add_rounded, size: 18),
+        label: Text('Add Event', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primaryBlue,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
@@ -248,24 +248,24 @@ class _CalendarPageViewState extends State<CalendarPageView> {
             borderRadius: BorderRadius.circular(14),
             onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'Filters',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                   if (active.isNotEmpty && !_filtersExpanded) ...[
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         active.join(' • '),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ] else
-                    const Spacer(),
+                    Spacer(),
                   Icon(
                     _filtersExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                     size: 20,
@@ -277,7 +277,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           ),
           if (_filtersExpanded)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: _buildFilterChips(context),
             ),
         ],
@@ -298,7 +298,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 4),
                   child: Text(
                     'Type Filter:',
@@ -315,7 +315,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           // Location Filter Chips
           SizedBox(
@@ -325,7 +325,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(right: 4),
                   child: Text(
                     'Location:',
@@ -336,7 +336,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                   FilterPill(
                     label: loc,
                     selected: _selectedLocationFilter == loc,
-                    selectedColor: const Color(0xFF10B981),
+                    selectedColor: Color(0xFF10B981),
                     onSelected: () => setState(() => _selectedLocationFilter = loc),
                   ),
               ],
@@ -355,9 +355,9 @@ class _CalendarPageViewState extends State<CalendarPageView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         children: [
           // Navigation controls for Month View
@@ -366,16 +366,16 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.chevron_left_rounded, color: AppTheme.textPrimary),
                     onPressed: _previousMonth,
                     tooltip: 'Previous Month',
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: BoxConstraints(minWidth: 28, minHeight: 28),
                     padding: EdgeInsets.zero,
                   ),
                   Flexible(
                     child: Text(
                       monthTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -384,22 +384,22 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.chevron_right_rounded, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.chevron_right_rounded, color: AppTheme.textPrimary),
                     onPressed: _nextMonth,
                     tooltip: 'Next Month',
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: BoxConstraints(minWidth: 28, minHeight: 28),
                     padding: EdgeInsets.zero,
                   ),
                 ],
               );
             final todayButton = OutlinedButton.icon(
                 onPressed: _goToToday,
-                icon: const Icon(Icons.today_rounded, size: 14),
-                label: const Text('Today', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                icon: Icon(Icons.today_rounded, size: 14),
+                label: Text('Today', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  side: const BorderSide(color: AppTheme.primaryBlue),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  side: BorderSide(color: AppTheme.primaryBlue),
                   foregroundColor: AppTheme.primaryBlue,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -418,13 +418,13 @@ class _CalendarPageViewState extends State<CalendarPageView> {
             }
             return Row(
               children: [
-                const Expanded(child: SizedBox.shrink()),
+                Expanded(child: SizedBox.shrink()),
                 monthNav,
                 Expanded(child: Align(alignment: Alignment.centerRight, child: todayButton)),
               ],
             );
           }),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // Days of the week header
           Row(
@@ -433,26 +433,26 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               return Expanded(
                 child: Container(
                   alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     day,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isWeekend ? const Color(0xFFEF4444) : AppTheme.textSecondary,
+                      color: isWeekend ? Color(0xFFEF4444) : AppTheme.textSecondary,
                     ),
                   ),
                 ),
               );
             }).toList(),
           ),
-          const Divider(height: 1, color: AppTheme.borderColor),
-          const SizedBox(height: 8),
+          Divider(height: 1, color: AppTheme.borderColor),
+          SizedBox(height: 8),
 
           // Month Days Grid: slides up when going forward, down when going back
           ClipRect(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 550), // slow enough to follow which way the month moved
+              duration: Duration(milliseconds: 550), // slow enough to follow which way the month moved
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               transitionBuilder: (child, animation) {
@@ -491,8 +491,8 @@ class _CalendarPageViewState extends State<CalendarPageView> {
 
     return GridView.builder(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      physics: NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
         childAspectRatio: 0.9,
         mainAxisSpacing: 6,
@@ -533,13 +533,13 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           child: Opacity(
             opacity: isOutsideMonth ? 0.5 : 1,
             child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppTheme.primaryBlue.withValues(alpha: 0.12)
                   : (isOutsideMonth
-                      ? const Color(0xFFF8FAFC)
-                      : (isToday ? const Color(0xFFEFF6FF) : Colors.white)),
+                      ? Color(0xFFF8FAFC)
+                      : (isToday ? Color(0xFFEFF6FF) : Colors.white)),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
@@ -590,21 +590,21 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
 
                 // Event preview badges
                 Expanded(
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
+                    physics: NeverScrollableScrollPhysics(),
                     itemCount: dayEvents.length > 2 ? 2 : dayEvents.length,
                     itemBuilder: (context, idx) {
                       final evt = dayEvents[idx];
                       final badgeColor = _getEventTypeColor(evt.eventType);
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 2),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        margin: EdgeInsets.only(bottom: 2),
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
                           color: badgeColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
@@ -646,20 +646,20 @@ class _CalendarPageViewState extends State<CalendarPageView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title + events for the selected day. Picking another date cross-fades
           // to the new day while the card grows or shrinks, so it is easy to follow.
           AnimatedSize(
-            duration: const Duration(milliseconds: 250),
+            duration: Duration(milliseconds: 250),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: Duration(milliseconds: 250),
               layoutBuilder: (current, previous) => Stack(
                 alignment: Alignment.topCenter,
                 children: [...previous, ?current],
@@ -672,37 +672,37 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                   children: [
                     Text(
                       'Agenda for $selectedDateFormatted',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     if (selectedDayEvents.isEmpty)
                       // The heading already names the day, so no extra "nothing scheduled" text.
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(24),
+                        padding: EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.event_available_rounded, size: 36, color: AppTheme.textSecondary),
-                            const SizedBox(height: 8),
-                            const Text(
+                            Icon(Icons.event_available_rounded, size: 36, color: AppTheme.textSecondary),
+                            SizedBox(height: 8),
+                            Text(
                               'No events for this date',
                               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             ElevatedButton.icon(
                               onPressed: () => _addEvent(),
-                              icon: const Icon(Icons.add_rounded, size: 16),
-                              label: const Text('Schedule Event on This Date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              icon: Icon(Icons.add_rounded, size: 16),
+                              label: Text('Schedule Event on This Date', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryBlue,
                                 foregroundColor: Colors.white,
@@ -716,9 +716,9 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     else
                       ListView.separated(
                         shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                        physics: NeverScrollableScrollPhysics(),
                         itemCount: selectedDayEvents.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 10),
+                        separatorBuilder: (context, index) => SizedBox(height: 10),
                         itemBuilder: (context, idx) {
                           final evt = selectedDayEvents[idx];
                           return _buildAgendaItemCard(context, evt, repo);
@@ -729,23 +729,23 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          const Divider(height: 1, color: AppTheme.borderColor),
-          const SizedBox(height: 14),
+          SizedBox(height: 20),
+          Divider(height: 1, color: AppTheme.borderColor),
+          SizedBox(height: 14),
 
           // Overall Chronological Upcoming Schedule
-          const Text(
+          Text(
             'Upcoming Master Schedule',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           ListView.separated(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: NeverScrollableScrollPhysics(),
             itemCount: allFilteredEvents.length > 5 ? 5 : allFilteredEvents.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) => SizedBox(height: 8),
             itemBuilder: (context, idx) {
               final evt = allFilteredEvents[idx];
               final dateStr = formatScheduleDate(evt.dateTime);
@@ -753,11 +753,11 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               // Only today's events keep their colour, so what is coming next stands out.
               final now = DateTime.now();
               final isToday = evt.dateTime.year == now.year && evt.dateTime.month == now.month && evt.dateTime.day == now.day;
-              final tagColor = isToday ? _getEventTypeColor(evt.eventType) : const Color(0xFFCBD5E1);
+              final tagColor = isToday ? _getEventTypeColor(evt.eventType) : Color(0xFFCBD5E1);
 
               return Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -769,7 +769,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     borderRadius: BorderRadius.circular(10),
                     onTap: () => AddEventModal.show(context, event: evt),
                     child: Padding(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       child: Row(
                         children: [
                           Container(
@@ -780,7 +780,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,7 +797,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                                 ),
                                 Text(
                                   '$dateStr • $timeStr • ${evt.patientName}${evt.location.isEmpty ? '' : ' (${evt.location})'}',
-                                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
@@ -825,7 +825,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1))],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1))],
       ),
       // The whole card is the edit button: tapping it opens the event for editing.
       child: Material(
@@ -835,7 +835,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => AddEventModal.show(context, event: evt),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -850,7 +850,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                     if (evt.eventType.isNotEmpty)
                     Flexible(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: tagColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
@@ -862,24 +862,24 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                         ),
                       ),
                     ),
-                    if (evt.eventType.isNotEmpty && evt.location.isNotEmpty) const SizedBox(width: 6),
+                    if (evt.eventType.isNotEmpty && evt.location.isNotEmpty) SizedBox(width: 6),
                     if (evt.location.isNotEmpty)
                     Flexible(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          color: Color(0xFF10B981).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on, size: 12, color: Color(0xFF10B981)),
-                            const SizedBox(width: 3),
+                            Icon(Icons.location_on, size: 12, color: Color(0xFF10B981)),
+                            SizedBox(width: 3),
                             Flexible(
                               child: Text(
                                 evt.location,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -890,14 +890,14 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 formattedTime,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
 
           Text(
             evt.title,
@@ -908,16 +908,16 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               decoration: evt.isCompleted ? TextDecoration.lineThrough : null,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
 
           Row(
             children: [
-              const Icon(Icons.person_outline, size: 14, color: AppTheme.textSecondary),
-              const SizedBox(width: 4),
+              Icon(Icons.person_outline, size: 14, color: AppTheme.textSecondary),
+              SizedBox(width: 4),
               Expanded(
                 child: Text(
                   '${evt.patientName}${evt.patientId != null ? ' (${evt.patientId})' : ''}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -925,10 +925,10 @@ class _CalendarPageViewState extends State<CalendarPageView> {
           ),
 
           if (evt.notes.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Text(
               'Notes: ${evt.notes}',
-              style: const TextStyle(fontSize: 12, height: 1.4, fontStyle: FontStyle.italic, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 12, height: 1.4, fontStyle: FontStyle.italic, color: AppTheme.textSecondary),
             ),
           ],
         ],

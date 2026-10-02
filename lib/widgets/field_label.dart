@@ -17,7 +17,7 @@ class FieldLabel extends StatelessWidget {
       TextSpan(
         text: text,
         children: [
-          if (required) const TextSpan(text: ' *', style: TextStyle(color: Color(0xFFDC2626))),
+          if (required) TextSpan(text: ' *', style: TextStyle(color: Color(0xFFDC2626))),
         ],
       ),
       style: TextStyle(

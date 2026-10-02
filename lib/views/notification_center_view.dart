@@ -41,7 +41,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
         return Scaffold(
           backgroundColor: AppTheme.lightBg,
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -52,25 +52,25 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                       child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
+                          child: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Clinical Alerts & Notifications',
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                               ),
                               Text(
                                 '${allNotifications.length} alert${allNotifications.length == 1 ? '' : 's'}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                               ),
                             ],
                           ),
@@ -80,7 +80,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Filter Chips
                 SizedBox(
@@ -98,13 +98,13 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Notification List / Empty State
                 if (filteredNotifications.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(32),
+                    padding: EdgeInsets.all(32),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -114,20 +114,20 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.08),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.notifications_none_rounded, size: 36, color: AppTheme.primaryBlue),
+                          child: Icon(Icons.notifications_none_rounded, size: 36, color: AppTheme.primaryBlue),
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
+                        SizedBox(height: 12),
+                        Text(
                           'All Alerts Clear!',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'There are no clinical alerts matching this filter.',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
@@ -138,9 +138,9 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                 else
                   ListView.separated(
                     shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                    physics: NeverScrollableScrollPhysics(),
                     itemCount: filteredNotifications.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    separatorBuilder: (context, index) => SizedBox(height: 10),
                     itemBuilder: (context, idx) {
                       final n = filteredNotifications[idx];
                       return _buildNotificationCard(n);
@@ -159,12 +159,12 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
   Widget _buildNotificationCard(ClinicalNotification n) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 4,
@@ -178,14 +178,14 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   n.category.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryBlue,
@@ -193,28 +193,28 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                   ),
                 ),
               ),
-              const Spacer(),
+              Spacer(),
               Text(
                 _formatTimeAgo(n.timestamp),
-                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             n.title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             n.message,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
           if (n.patientName != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               '${n.patientName} (${n.patientId ?? ''})',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
             ),
           ],
         ],

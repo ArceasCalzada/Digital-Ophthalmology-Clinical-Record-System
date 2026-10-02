@@ -415,9 +415,9 @@ class _EyeExamViewState extends State<EyeExamView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Not saved: $message'),
-        backgroundColor: const Color(0xFFDC2626),
+        backgroundColor: Color(0xFFDC2626),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 7),
+        duration: Duration(seconds: 7),
       ),
     );
   }
@@ -490,14 +490,14 @@ class _EyeExamViewState extends State<EyeExamView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE2E8F0),
+      backgroundColor: Color(0xFFE2E8F0),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         toolbarHeight: 76,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
@@ -510,8 +510,8 @@ class _EyeExamViewState extends State<EyeExamView> {
               style: PageHeader.titleStyle,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
-            const Text(
+            SizedBox(height: 4),
+            Text(
               'Clinical Consultation Record',
               style: PageHeader.subtitleStyle,
               overflow: TextOverflow.ellipsis,
@@ -529,37 +529,37 @@ class _EyeExamViewState extends State<EyeExamView> {
                 ),
               );
             },
-            icon: const Icon(Icons.medication, size: 16, color: AppTheme.primaryBlue),
-            label: const Text('Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
+            icon: Icon(Icons.medication, size: 16, color: AppTheme.primaryBlue),
+            label: Text('Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppTheme.primaryBlue),
+              side: BorderSide(color: AppTheme.primaryBlue),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
 
           // Print PDF
           IconButton(
             onPressed: _showPdfPreview,
-            icon: const Icon(Icons.print, color: AppTheme.primaryBlue),
+            icon: Icon(Icons.print, color: AppTheme.primaryBlue),
             tooltip: 'Print / Export Clinical PDF',
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
 
           // Save Record
           ElevatedButton.icon(
             onPressed: _isSaving ? null : _saveConsultationRecord,
             icon: _isSaving
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save, size: 16),
-            label: Text(_isSaving ? 'Saving...' : 'Save Record', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Icon(Icons.save, size: 16),
+            label: Text(_isSaving ? 'Saving...' : 'Save Record', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
         ],
       ),
       body: PaperSheetCanvas(

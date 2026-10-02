@@ -9,7 +9,7 @@ class OphthalmicColor {
   final String name;
   final Color color;
 
-  const OphthalmicColor(this.name, this.color);
+  OphthalmicColor(this.name, this.color);
 }
 
 class EyeDrawingCanvas extends StatefulWidget {
@@ -35,7 +35,7 @@ class EyeDrawingCanvas extends StatefulWidget {
 }
 
 class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
-  static const List<OphthalmicColor> ophthalmicColors = [
+  static final List<OphthalmicColor> ophthalmicColors = [
     OphthalmicColor('Retinal Red', Color(0xFFDC2626)),
     OphthalmicColor('Vein Blue', Color(0xFF2563EB)),
     OphthalmicColor('Drusen Yellow', Color(0xFFEAB308)),
@@ -45,7 +45,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
     OphthalmicColor('Black Marking', Color(0xFF000000)),
   ];
 
-  static const List<Map<String, String>> presetSymbols = [
+  static List<Map<String, String>> presetSymbols = [
     {'id': 'cataract', 'label': 'Cataract Opacity', 'color': '0xFF2563EB'},
     {'id': 'retinal_tear', 'label': 'Retinal Tear', 'color': '0xFFDC2626'},
     {'id': 'flame_hem', 'label': 'Flame Hemorrhage', 'color': '0xFFDC2626'},
@@ -55,7 +55,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   ];
 
   DrawingTool _activeTool = DrawingTool.pen;
-  Color _selectedColor = const Color(0xFFDC2626);
+  Color _selectedColor = Color(0xFFDC2626);
   final double _brushSize = 4.0;
   String _selectedSymbol = 'cataract';
 
@@ -110,7 +110,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
       _showSavedIndicator = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    Future.delayed(Duration(milliseconds: 1200), () {
       if (mounted) {
         setState(() {
           _showSavedIndicator = false;
@@ -198,27 +198,27 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
       builder: (context) {
         return Dialog.fullscreen(
           child: Scaffold(
-            backgroundColor: const Color(0xFF0F172A),
+            backgroundColor: Color(0xFF0F172A),
             appBar: AppBar(
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: Color(0xFF1E293B),
               title: Text(
                 'Full-Screen Eye Drawing Canvas — ${widget.eye == EyeType.OD ? "Right Eye (OD)" : "Left Eye (OS)"}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
               ),
               actions: [
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                  label: const Text('Done & Return', style: TextStyle(color: Colors.white)),
+                  icon: Icon(Icons.check, color: Colors.white, size: 18),
+                  label: Text('Done & Return', style: TextStyle(color: Colors.white)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.primaryBlue),
+                    side: BorderSide(color: AppTheme.primaryBlue),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
               ],
             ),
             body: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: EyeDrawingCanvas(
                 eye: widget.eye,
                 onEyeChanged: widget.onEyeChanged,
@@ -247,7 +247,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -261,10 +261,10 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Target Eye: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                  const SizedBox(width: 6),
+                  Text('Target Eye: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                  SizedBox(width: 6),
                   SegmentedButton<EyeType>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(value: EyeType.OD, label: Text('OD')),
                       ButtonSegment(value: EyeType.OS, label: Text('OS')),
                     ],
@@ -288,13 +288,13 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                 children: [
                   if (_showSavedIndicator)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                        color: Color(0xFF10B981).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF10B981)),
+                        border: Border.all(color: Color(0xFF10B981)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.check_circle, size: 12, color: Color(0xFF10B981)),
@@ -305,9 +305,9 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                     ),
 
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
@@ -317,11 +317,11 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                           : widget.diagramType == 'anterior'
                               ? 'Anterior'
                               : 'Plain',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.fullscreen, color: AppTheme.primaryBlue, size: 20),
+                    icon: Icon(Icons.fullscreen, color: AppTheme.primaryBlue, size: 20),
                     tooltip: 'Open Full-Screen Drawing Canvas',
                     onPressed: _openFullScreenDrawingDialog,
                   ),
@@ -330,7 +330,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
             ],
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // Main Canvas Frame + Canva-Style Floating Toolbar Overlay
           LayoutBuilder(
@@ -350,7 +350,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                         // Floating Expandable Color/Stamp Drawer Tray
                         if (_showColorDrawer) _buildFloatingColorTray(),
                         if (_showStampDrawer) _buildFloatingStampTray(),
-                        if (_showColorDrawer || _showStampDrawer) const SizedBox(height: 8),
+                        if (_showColorDrawer || _showStampDrawer) SizedBox(height: 8),
 
                         // Canva Floating Bottom Toolbar Pill
                         _buildCanvaFloatingToolbar(),
@@ -368,12 +368,12 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
   Widget _buildCanvaFloatingToolbar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.92),
+        color: Color(0xFF0F172A).withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.5), width: 1.5),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Colors.black38,
             blurRadius: 18,
@@ -425,9 +425,9 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
             ),
           ),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Container(width: 1, height: 24, color: Colors.white24),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
 
           // Clinical Stamps / Presets Button
           IconButton(
@@ -463,9 +463,9 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
             tooltip: 'Eraser Tool',
           ),
 
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Container(width: 1, height: 24, color: Colors.white24),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
 
           // Undo Button
           IconButton(
@@ -489,11 +489,11 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
             tooltip: 'Clear Canvas',
           ),
 
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           // Full Screen Expand Icon
           IconButton(
             onPressed: _openFullScreenDrawingDialog,
-            icon: const Icon(
+            icon: Icon(
               Icons.fullscreen,
               color: AppTheme.primaryBlue,
               size: 22,
@@ -507,12 +507,12 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
   Widget _buildFloatingColorTray() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+        color: Color(0xFF1E293B).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white24),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)],
       ),
       child: Wrap(
         spacing: 8,
@@ -550,19 +550,19 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   Widget _buildFloatingStampTray() {
     return Container(
       width: 280,
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+        color: Color(0xFF1E293B).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.accentCyan.withValues(alpha: 0.6)),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12)],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SELECT CLINICAL STAMP', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-          const SizedBox(height: 6),
+          Text('SELECT CLINICAL STAMP', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+          SizedBox(height: 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -578,7 +578,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: isSelected ? AppTheme.primaryBlue : Colors.white10,
                     borderRadius: BorderRadius.circular(8),
@@ -588,8 +588,8 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(width: 8, height: 8, decoration: BoxDecoration(color: symColor, shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
-                      Text(sym['label']!, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                      SizedBox(width: 6),
+                      Text(sym['label']!, style: TextStyle(fontSize: 11, color: Colors.white)),
                     ],
                   ),
                 ),
@@ -803,7 +803,7 @@ class AnatomicalEyePainter extends CustomPainter {
       if (currentTool == DrawingTool.symbol) {
         // Handled immediately on touch, no drag preview needed for symbols
       } else {
-        final bgEraserColor = diagramType == 'plain' ? Colors.white : const Color(0xFF451A03);
+        final bgEraserColor = diagramType == 'plain' ? Colors.white : Color(0xFF451A03);
         final paint = Paint()
           ..color = currentTool == DrawingTool.eraser ? bgEraserColor : currentColor
           ..style = PaintingStyle.fill
@@ -830,8 +830,8 @@ class AnatomicalEyePainter extends CustomPainter {
     final rect = Offset.zero & size;
     final bgPaint = Paint()
       ..shader = RadialGradient(
-        colors: const [Color(0xFF7C2D12), Color(0xFF451A03), Color(0xFF1E1B4B)],
-        stops: const [0.1, 0.7, 1.0],
+        colors: [Color(0xFF7C2D12), Color(0xFF451A03), Color(0xFF1E1B4B)],
+        stops: [0.1, 0.7, 1.0],
       ).createShader(rect);
     canvas.drawCircle(center, radius, bgPaint);
 
@@ -841,31 +841,31 @@ class AnatomicalEyePainter extends CustomPainter {
     final discCenter = Offset(discX, discY);
     const double discRadius = 32.0;
 
-    final discPaint = Paint()..color = const Color(0xFFFEF3C7).withValues(alpha: 0.6);
+    final discPaint = Paint()..color = Color(0xFFFEF3C7).withValues(alpha: 0.6);
     canvas.drawCircle(discCenter, discRadius, discPaint);
     final discBorder = Paint()
-      ..color = const Color(0xFFFBBF24)
+      ..color = Color(0xFFFBBF24)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawCircle(discCenter, discRadius, discBorder);
 
     // Optic Cup based on cdRatio
     final cupRadius = discRadius * cdRatio;
-    final cupPaint = Paint()..color = const Color(0xFFFEF3C7).withValues(alpha: 0.9);
+    final cupPaint = Paint()..color = Color(0xFFFEF3C7).withValues(alpha: 0.9);
     canvas.drawCircle(discCenter, cupRadius, cupPaint);
 
     // Macula & Fovea
     final maculaX = eye == EyeType.OS ? size.width * 0.65 : size.width * 0.35;
     final maculaCenter = Offset(maculaX, discY);
-    final maculaPaint = Paint()..color = const Color(0xFF991B1B).withValues(alpha: 0.7);
+    final maculaPaint = Paint()..color = Color(0xFF991B1B).withValues(alpha: 0.7);
     canvas.drawCircle(maculaCenter, 20.0, maculaPaint);
 
-    final foveaPaint = Paint()..color = const Color(0xFFFEE2E2);
+    final foveaPaint = Paint()..color = Color(0xFFFEE2E2);
     canvas.drawCircle(maculaCenter, 3.0, foveaPaint);
 
     // Major Retinal Vessels Arches
     final vesselPaint = Paint()
-      ..color = const Color(0xFFDC2626).withValues(alpha: 0.6)
+      ..color = Color(0xFFDC2626).withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
@@ -880,27 +880,27 @@ class AnatomicalEyePainter extends CustomPainter {
 
   void _drawAnteriorBase(Canvas canvas, Size size, Offset center, double radius) {
     // Sclera/Background
-    final bgPaint = Paint()..color = const Color(0xFF0F172A);
+    final bgPaint = Paint()..color = Color(0xFF0F172A);
     canvas.drawCircle(center, radius, bgPaint);
 
     // Cornea Rim
     final corneaPaint = Paint()
-      ..color = const Color(0xFF38BDF8)
+      ..color = Color(0xFF38BDF8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     canvas.drawCircle(center, radius - 20, corneaPaint);
 
     // Iris Ring
-    final irisPaint = Paint()..color = const Color(0xFF1E3A8A).withValues(alpha: 0.7);
+    final irisPaint = Paint()..color = Color(0xFF1E3A8A).withValues(alpha: 0.7);
     canvas.drawCircle(center, radius - 45, irisPaint);
 
     // Pupil
-    final pupilPaint = Paint()..color = const Color(0xFF020617);
+    final pupilPaint = Paint()..color = Color(0xFF020617);
     canvas.drawCircle(center, 45, pupilPaint);
   }
 
   void _renderSingleStroke(Canvas canvas, VectorStroke stroke) {
-    final bgEraserColor = diagramType == 'plain' ? Colors.white : const Color(0xFF451A03);
+    final bgEraserColor = diagramType == 'plain' ? Colors.white : Color(0xFF451A03);
     final paint = Paint()
       ..color = stroke.tool == DrawingTool.eraser ? bgEraserColor : stroke.color
       ..style = PaintingStyle.fill

@@ -103,7 +103,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Not saved: ${e.message}'),
-          backgroundColor: const Color(0xFFDC2626),
+          backgroundColor: Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -128,7 +128,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 620,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,11 +137,11 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 RxPadWidget(
                   patient: _selectedPatient,
                   items: rx.items,
@@ -149,7 +149,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   doctorName: 'Dr. Sigrid T. Robillos',
                   showBorder: true,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -162,10 +162,10 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           icon: Icons.file_download_outlined,
                         );
                       },
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('Download PDF'),
+                      icon: Icon(Icons.download, size: 16),
+                      label: Text('Download PDF'),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
@@ -176,8 +176,8 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           icon: Icons.print_rounded,
                         );
                       },
-                      icon: const Icon(Icons.print, size: 16),
-                      label: const Text('Print Prescription'),
+                      icon: Icon(Icons.print, size: 16),
+                      label: Text('Print Prescription'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
@@ -198,7 +198,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     final allPatients = PatientRepository.getAllPatients();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(PageHeader.pagePadding),
+      padding: EdgeInsets.all(PageHeader.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -208,12 +208,12 @@ class _PrescriptionViewState extends State<PrescriptionView> {
             subtitle: 'Create, preview, and print clinical eye prescriptions.',
             action: ElevatedButton.icon(
               onPressed: _medications.isEmpty ? null : _savePrescription,
-              icon: const Icon(Icons.picture_as_pdf, size: 18),
-              label: const Text('Generate Printable PDF'),
+              icon: Icon(Icons.picture_as_pdf, size: 18),
+              label: Text('Generate Printable PDF'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               ),
             ),
           ),
@@ -224,16 +224,16 @@ class _PrescriptionViewState extends State<PrescriptionView> {
             elevation: 1,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppTheme.borderColor),
+              side: BorderSide(color: AppTheme.borderColor),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const Icon(Icons.person, color: AppTheme.primaryBlue),
-                  const SizedBox(width: 12),
-                  const Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
-                  const SizedBox(width: 16),
+                  Icon(Icons.person, color: AppTheme.primaryBlue),
+                  SizedBox(width: 12),
+                  Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                  SizedBox(width: 16),
                   Expanded(
                     child: ClinicalDropdownField<Patient>(
                       placeholder: 'Search & select patient...',
@@ -261,7 +261,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Add Medication Form & Active Items
           Row(
@@ -275,89 +275,89 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   elevation: 1,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppTheme.borderColor),
+                    side: BorderSide(color: AppTheme.borderColor),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Add Ophthalmic Medication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                        const SizedBox(height: 16),
-                        const Text('Medication Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                        const SizedBox(height: 6),
+                        Text('Add Ophthalmic Medication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                        SizedBox(height: 16),
+                        Text('Medication Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                        SizedBox(height: 6),
                         TextFormField(
                           controller: _medNameController,
-                          decoration: const InputDecoration(hintText: 'e.g. Timolol 0.5% Maleate Drops'),
+                          decoration: InputDecoration(hintText: 'e.g. Timolol 0.5% Maleate Drops'),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Strength', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  const SizedBox(height: 6),
-                                  TextFormField(controller: _strengthController, decoration: const InputDecoration(hintText: '0.5%')),
+                                  Text('Strength', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                  SizedBox(height: 6),
+                                  TextFormField(controller: _strengthController, decoration: InputDecoration(hintText: '0.5%')),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  const SizedBox(height: 6),
-                                  TextFormField(controller: _dosageController, decoration: const InputDecoration(hintText: '1 drop OU')),
+                                  Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                  SizedBox(height: 6),
+                                  TextFormField(controller: _dosageController, decoration: InputDecoration(hintText: '1 drop OU')),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  const SizedBox(height: 6),
-                                  TextFormField(controller: _frequencyController, decoration: const InputDecoration(hintText: 'Twice daily (BID)')),
+                                  Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                  SizedBox(height: 6),
+                                  TextFormField(controller: _frequencyController, decoration: InputDecoration(hintText: 'Twice daily (BID)')),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  const SizedBox(height: 6),
-                                  TextFormField(controller: _durationController, decoration: const InputDecoration(hintText: '30 days')),
+                                  Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                  SizedBox(height: 6),
+                                  TextFormField(controller: _durationController, decoration: InputDecoration(hintText: '30 days')),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        const Text('Special Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 12),
+                        Text('Special Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                        SizedBox(height: 6),
                         TextFormField(
                           controller: _instructionsController,
-                          decoration: const InputDecoration(hintText: 'Instill 1 drop in morning and evening.'),
+                          decoration: InputDecoration(hintText: 'Instill 1 drop in morning and evening.'),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         ElevatedButton.icon(
                           onPressed: _addMedicationFromInput,
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add Medication to Prescription'),
+                          icon: Icon(Icons.add, size: 16),
+                          label: Text('Add Medication to Prescription'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryBlue,
                             foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 44),
+                            minimumSize: Size(double.infinity, 44),
                           ),
                         ),
                       ],
@@ -365,7 +365,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: 20),
 
               // Live Prescription Pad Preview Pane
               Expanded(
@@ -376,16 +376,16 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Live Prescription Pad Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                        Text('Live Prescription Pad Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
                         if (_medications.isNotEmpty)
                           TextButton.icon(
                             onPressed: () => setState(() => _medications.clear()),
-                            icon: const Icon(Icons.clear_all, size: 16, color: Colors.redAccent),
-                            label: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                            icon: Icon(Icons.clear_all, size: 16, color: Colors.redAccent),
+                            label: Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     RxPadWidget(
                       patient: _selectedPatient,
                       items: _medications,

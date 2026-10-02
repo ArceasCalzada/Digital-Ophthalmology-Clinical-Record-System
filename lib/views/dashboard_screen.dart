@@ -47,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     PatientRepository.changeNotifier.addListener(_loadDashboardData);
     CalendarEventRepository().addListener(_loadDashboardData);
     TeamService.instance.addListener(_loadDashboardData);
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _clockTimer = Timer.periodic(Duration(seconds: 1), (_) {
       if (mounted) _updateClock();
     });
   }
@@ -129,7 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: 'Create New Prescription (Rx)',
       subtitle: 'Select patient to generate ophthalmic prescription',
       icon: Icons.medication_rounded,
-      color: const Color(0xFF0284C7),
+      color: Color(0xFF0284C7),
       actionLabel: 'Write Rx',
       onSelect: (patient) {
         if (widget.onOpenPrescription != null) {
@@ -166,25 +166,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-              contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              titlePadding: EdgeInsets.fromLTRB(24, 20, 16, 12),
+              contentPadding: EdgeInsets.fromLTRB(24, 0, 24, 20),
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(icon, color: color, size: 22),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                        Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                       ],
                     ),
                   ),
@@ -200,35 +200,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onChanged: (val) => setModalState(() => filterText = val),
                       decoration: InputDecoration(
                         hintText: 'Search by patient name or phone...',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                        prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.primaryBlue),
+                        hintStyle: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        prefixIcon: Icon(Icons.search, size: 20, color: AppTheme.primaryBlue),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppTheme.borderColor),
+                          borderSide: BorderSide(color: AppTheme.borderColor),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 280),
+                      constraints: BoxConstraints(maxHeight: 280),
                       child: matchingPatients.isEmpty
                           ? Padding(
-                              padding: const EdgeInsets.all(24),
+                              padding: EdgeInsets.all(24),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textSecondary),
-                                  const SizedBox(height: 8),
-                                  const Text('No patients match your search.', style: TextStyle(color: AppTheme.textSecondary)),
-                                  const SizedBox(height: 12),
+                                  Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textSecondary),
+                                  SizedBox(height: 8),
+                                  Text('No patients match your search.', style: TextStyle(color: AppTheme.textSecondary)),
+                                  SizedBox(height: 12),
                                   TextButton.icon(
                                     onPressed: () {
                                       Navigator.pop(dialogCtx);
                                       _openNewPatientModal();
                                     },
-                                    icon: const Icon(Icons.person_add, size: 16),
-                                    label: const Text('Register New Patient', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    icon: Icon(Icons.person_add, size: 16),
+                                    label: Text('Register New Patient', style: TextStyle(fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),
@@ -236,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: matchingPatients.length,
-                              separatorBuilder: (_, _) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => Divider(height: 1),
                               itemBuilder: (ctx, idx) {
                                 final p = matchingPatients[idx];
                                 return ListTile(
@@ -247,8 +247,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       style: TextStyle(color: color, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  title: Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  subtitle: Text('${p.mrn} â€¢ ${p.gender}, ${p.age} yrs â€¢ ${p.phone}', style: const TextStyle(fontSize: 12)),
+                                  title: Text(p.fullName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  subtitle: Text('${p.mrn} â€¢ ${p.gender}, ${p.age} yrs â€¢ ${p.phone}', style: TextStyle(fontSize: 12)),
                                   trailing: ElevatedButton(
                                     onPressed: () {
                                       Navigator.pop(dialogCtx);
@@ -261,7 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       visualDensity: VisualDensity.compact,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
-                                    child: Text(actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    child: Text(actionLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   ),
                                   onTap: () {
                                     Navigator.pop(dialogCtx);
@@ -277,15 +277,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogCtx),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel'),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(dialogCtx);
                     _openNewPatientModal();
                   },
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('New Patient'),
+                  icon: Icon(Icons.add, size: 16),
+                  label: Text('New Patient'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
@@ -316,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: 'New Patient',
               subtitle: 'Register a new patient record in the system',
               icon: Icons.person_add_rounded,
-              color: const Color(0xFF10B981),
+              color: Color(0xFF10B981),
               onTap: _openNewPatientModal,
             ),
             ClinicalActionItem(
@@ -332,7 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: 'New Prescription',
               subtitle: 'Write digital prescription (Rx) for patient',
               icon: Icons.medication_rounded,
-              color: const Color(0xFF0284C7),
+              color: Color(0xFF0284C7),
               onTap: _openPatientSelectorForPrescription,
             ),
           ],
@@ -349,11 +349,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             BoxShadow(
               color: AppTheme.primaryBlue.withValues(alpha: 0.35),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add_rounded, color: Colors.white, size: 20),
@@ -376,7 +376,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(PageHeader.pagePadding),
+      padding: EdgeInsets.all(PageHeader.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -405,7 +405,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildTodayQueueCard(isNarrow: true),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       _buildMiniCalendarCard(isNarrow: true),
                     ],
                   );
@@ -418,7 +418,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(child: _buildTodayQueueCard(isNarrow: false)),
-                      const SizedBox(width: 20),
+                      SizedBox(width: 20),
                       _buildMiniCalendarCard(isNarrow: false),
                     ],
                   ),
@@ -426,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: 28),
 
           // 3. Search Bar Box + Dropdown Suggestions (Directly on top of Clinical Patient Records)
           Column(
@@ -439,12 +439,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final searchBarContainer = Container(
                     height: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: Color(0xFFF8FAFC),
                       borderRadius: _isSearching && _searchController.text.trim().isNotEmpty
-                          ? const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28))
+                          ? BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28))
                           : BorderRadius.circular(28),
                       border: Border.all(color: AppTheme.borderColor),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
                           color: Colors.black12,
                           blurRadius: 4,
@@ -452,18 +452,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    padding: EdgeInsets.symmetric(horizontal: 18),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
-                        const SizedBox(width: 10),
+                        Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
+                        SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: _searchController,
                             onChanged: _onSearchChanged,
-                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                            decoration: const InputDecoration(
+                            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            decoration: InputDecoration(
                               hintText: 'Search patient by name or phone...',
                               hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                               filled: false,
@@ -477,7 +477,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         if (_searchController.text.isNotEmpty)
                           IconButton(
-                            icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                            icon: Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
                             tooltip: 'Clear search',
                             onPressed: () {
                               _searchController.clear();
@@ -492,7 +492,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     return Column(
                       children: [
                         searchBarContainer,
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         _buildNewActionsDropdownButton(width: double.infinity),
                       ],
                     );
@@ -502,7 +502,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(child: searchBarContainer),
-                      const SizedBox(width: 14),
+                      SizedBox(width: 14),
                       _buildNewActionsDropdownButton(),
                     ],
                   );
@@ -514,9 +514,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+                    borderRadius: BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
                     border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 16,
@@ -524,18 +524,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'PATIENTS FOUND (${_searchSuggestions.length})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.8,
@@ -547,7 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 _searchController.clear();
                                 _onSearchChanged('');
                               },
-                              child: const Text(
+                              child: Text(
                                 'Close',
                                 style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold),
                               ),
@@ -555,18 +555,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
                       ),
-                      const Divider(height: 8),
+                      Divider(height: 8),
                       if (_searchSuggestions.isEmpty)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                           child: Row(
                             children: [
-                              const Icon(Icons.info_outline, size: 16, color: Color(0xFFE11D48)),
-                              const SizedBox(width: 8),
+                              Icon(Icons.info_outline, size: 16, color: Color(0xFFE11D48)),
+                              SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'No patient matching "${_searchController.text}" found in database.',
-                                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                                 ),
                               ),
                               TextButton.icon(
@@ -575,8 +575,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   _onSearchChanged('');
                                   _openNewPatientModal();
                                 },
-                                icon: const Icon(Icons.add, size: 14),
-                                label: const Text('Register New Patient', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                icon: Icon(Icons.add, size: 14),
+                                label: Text('Register New Patient', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -596,7 +596,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(8),
                               hoverColor: AppTheme.primaryBlue.withValues(alpha: 0.05),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                                 child: Row(
                                   children: [
                                     CircleAvatar(
@@ -604,33 +604,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                       child: Text(
                                         patient.fullName.isNotEmpty ? patient.fullName[0].toUpperCase() : 'P',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             patient.fullName,
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                                           ),
-                                          const SizedBox(height: 2),
+                                          SizedBox(height: 2),
                                           Text(
                                             '${patient.mrn} â€¢ ${patient.gender}, ${patient.age} yrs â€¢ ${patient.phone}',
-                                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                       decoration: BoxDecoration(
                                         color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: const Row(
+                                      child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(Icons.folder_shared_outlined, size: 12, color: AppTheme.primaryBlue),
@@ -650,17 +650,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // 4. Patient Records Grid Header (Always visible and intact)
-          const Text(
+          Text(
             'Clinical Patient Records',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           _allPatients.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.all(32),
                   child: Center(child: Text('No patient records in database.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14))),
                 )
@@ -676,7 +676,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final crossCount = math.max(1, (constraints.maxWidth / 420).floor());
         return GridView.builder(
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossCount,
             mainAxisExtent: 220,
@@ -693,10 +693,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: AppTheme.borderColor),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -708,79 +708,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           child: Text(
                             patient.fullName.isNotEmpty ? patient.fullName[0] : 'P',
-                            style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 patient.fullName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 '${patient.mrn} â€¢ ${patient.gender}, ${patient.age}y',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${patient.totalVisits} Visits',
-                            style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
-                            const SizedBox(width: 4),
-                            Text(patient.phone, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
+                            SizedBox(width: 4),
+                            Text(patient.phone, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                           ],
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.history_outlined, size: 12, color: AppTheme.textSecondary),
-                            const SizedBox(width: 4),
-                            Text('Last: ${formatClinicalDate(patient.lastVisitDate)}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            Icon(Icons.history_outlined, size: 12, color: AppTheme.textSecondary),
+                            SizedBox(width: 4),
+                            Text('Last: ${formatClinicalDate(patient.lastVisitDate)}', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                           ],
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
 
                     Row(
                       children: [
-                        const Icon(Icons.medical_information_outlined, size: 12, color: Color(0xFFD97706)),
-                        const SizedBox(width: 4),
+                        Icon(Icons.medical_information_outlined, size: 12, color: Color(0xFFD97706)),
+                        SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             hasDiagnosis ? patient.previousDiagnoses.first : 'No prior registered conditions',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFFD97706), fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 11, color: Color(0xFFD97706), fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     Row(
                       children: [
@@ -801,14 +801,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.primaryBlue,
-                              side: const BorderSide(color: AppTheme.borderColor),
-                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              side: BorderSide(color: AppTheme.borderColor),
+                              padding: EdgeInsets.symmetric(vertical: 9),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text('View History', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            child: Text('View History', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           flex: 5,
                           child: _buildPatientCardNewActionsButton(patient),
@@ -852,7 +852,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: 'New Prescription (Rx)',
               subtitle: 'Write digital prescription for ${patient.fullName}',
               icon: Icons.medication_rounded,
-              color: const Color(0xFF0284C7),
+              color: Color(0xFF0284C7),
               onTap: () {
                 if (widget.onOpenPrescription != null) {
                   widget.onOpenPrescription!(patient);
@@ -866,12 +866,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: AppTheme.primaryBlue,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add, color: Colors.white, size: 15),
@@ -903,7 +903,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     // Time and date share one style in the calendar header.
-    const headerTextStyle = TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13);
+    final headerTextStyle = TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary, fontSize: 13);
 
     final weekRows = <Widget>[];
     for (int week = 0; week < 5; week++) {
@@ -912,7 +912,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final index = week * 7 + day;
         final dayNumber = index - firstWeekday + 1;
         if (dayNumber < 1 || dayNumber > daysInMonth) {
-          dayCells.add(const Expanded(child: SizedBox(height: 28)));
+          dayCells.add(Expanded(child: SizedBox(height: 28)));
         } else {
           final isToday = dayNumber == now.day;
           final hasAppointments = daysWithEvents.contains(dayNumber);
@@ -926,11 +926,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   height: 30,
                   child: Material(
                     color: isToday ? AppTheme.primaryBlue : Colors.transparent,
-                    shape: const CircleBorder(),
+                    shape: CircleBorder(),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
                       key: Key('dashboard_calendar_day_$dayNumber'),
-                      customBorder: const CircleBorder(),
+                      customBorder: CircleBorder(),
                       hoverColor: AppTheme.primaryBlue.withValues(alpha: isToday ? 0.25 : 0.12),
                       onTap: onOpenCalendar == null ? null : () => onOpenCalendar(date),
                       child: Stack(
@@ -949,7 +949,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Positioned(
                               bottom: 3,
                               child: Container(
-                                key: const Key('dashboard_calendar_dot'),
+                                key: Key('dashboard_calendar_dot'),
                                 width: 5,
                                 height: 5,
                                 decoration: BoxDecoration(
@@ -970,7 +970,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       weekRows.add(
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: EdgeInsets.symmetric(vertical: 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: dayCells,
@@ -981,9 +981,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Clicking the header opens the calendar as-is; clicking a day opens it on that day.
     final header = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       // No fill of its own: the Material below paints it, so the hover ripple shows.
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
       ),
       child: Row(
@@ -996,7 +996,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             _currentTime.isNotEmpty ? _currentTime : '11:45 AM',
             style: headerTextStyle,
@@ -1006,24 +1006,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     const headerShape = RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16)));
     final headerButton = Material(
-      color: const Color(0xFFF8FAFC),
+      color: Color(0xFFF8FAFC),
       shape: headerShape,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        key: const Key('dashboard_mini_calendar_header'),
+        key: Key('dashboard_mini_calendar_header'),
         onTap: onOpenCalendar == null ? null : () => onOpenCalendar(null),
         child: header,
       ),
     );
 
     final card = Container(
-      key: const Key('dashboard_mini_calendar_body'),
+      key: Key('dashboard_mini_calendar_body'),
       width: isNarrow ? double.infinity : 360,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,
@@ -1042,7 +1042,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // CALENDAR BODY
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1058,13 +1058,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isWeekend ? const Color(0xFFEF4444) : AppTheme.textSecondary,
+                          color: isWeekend ? Color(0xFFEF4444) : AppTheme.textSecondary,
                         ),
                       ),
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
 
                 // Days grid (5 rows)
                 ...weekRows,
@@ -1086,12 +1086,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final queueItems = _buildQueueItems(queue);
     return Container(
       width: isNarrow ? double.infinity : null,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,
@@ -1103,12 +1103,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Named "Schedules" (not "Patient Queue") because it will hold more than patient visits.
-          const Text(
+          Text(
             'Schedules',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (isNarrow)
             ...queueItems
           else
@@ -1119,7 +1119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Positioned.fill(
                     child: queue.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'Nothing scheduled for today',
                               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
@@ -1139,33 +1139,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return [
       for (final event in events)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: 8),
           child: Material(
-            color: const Color(0xFFF8FAFC),
+            color: Color(0xFFF8FAFC),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              side: BorderSide(color: Color(0xFFE2E8F0)),
             ),
             child: InkWell(
               key: Key('schedule_event_${event.id}'),
               borderRadius: BorderRadius.circular(10),
               onTap: widget.onOpenCalendar == null ? null : () => widget.onOpenCalendar!(event.dateTime),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         TimeOfDay.fromDateTime(event.dateTime).format(context),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1182,14 +1182,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           Text(
                             '${event.title} • ${event.location}',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
                     if (event.isCompleted)
-                      const Icon(Icons.check_circle, size: 16, color: Color(0xFF10B981)),
+                      Icon(Icons.check_circle, size: 16, color: Color(0xFF10B981)),
                   ],
                 ),
               ),

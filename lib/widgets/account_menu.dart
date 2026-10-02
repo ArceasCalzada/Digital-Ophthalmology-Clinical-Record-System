@@ -40,7 +40,7 @@ class AccountMenuTrigger extends StatelessWidget {
         final name = ProfileStore.instance.doctorName.text.trim();
         final clinic = ClinicStore.instance.active;
         return Padding(
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(8),
           child: Tooltip(
             message: 'Account',
             // A Material of its own so the hover highlight paints like the sidebar's other buttons.
@@ -48,11 +48,11 @@ class AccountMenuTrigger extends StatelessWidget {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               child: InkWell(
-                key: const ValueKey('account-menu-trigger'),
+                key: ValueKey('account-menu-trigger'),
                 borderRadius: BorderRadius.circular(10),
                 onTap: () => _open(context, name: name),
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: EdgeInsets.all(4),
                   child: Row(
                     mainAxisAlignment: collapsed
                         ? MainAxisAlignment.center
@@ -60,14 +60,14 @@ class AccountMenuTrigger extends StatelessWidget {
                     children: [
                       AccountAvatar(name: name, radius: 16),
                       if (!collapsed) ...[
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 name.isEmpty ? (email ?? 'Signed in') : name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   color: AppTheme.textPrimary,
@@ -77,7 +77,7 @@ class AccountMenuTrigger extends StatelessWidget {
                               if (clinic != null)
                                 Text(
                                   clinic.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
                                     color: AppTheme.textSecondary,
                                   ),
@@ -109,7 +109,7 @@ class AccountMenuTrigger extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: 'Close account menu',
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 120),
+      transitionDuration: Duration(milliseconds: 120),
       transitionBuilder: (context, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
       pageBuilder: (dialogContext, _, _) {
@@ -240,18 +240,18 @@ class _AccountPanel extends StatelessWidget {
           children: [
             const _SectionTitle('Account'),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 14),
               child: Row(
                 children: [
                   AccountAvatar(name: name, radius: 22),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           name.isEmpty ? 'Signed in' : name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: AppTheme.textPrimary,
@@ -261,7 +261,7 @@ class _AccountPanel extends StatelessWidget {
                         if (clinic != null)
                           Text(
                             'Clinic: ${clinic!.name}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppTheme.textSecondary,
                             ),
@@ -270,7 +270,7 @@ class _AccountPanel extends StatelessWidget {
                         if (clinic != null)
                           Text(
                             clinic!.role.label,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppTheme.textSecondary,
                             ),
@@ -282,7 +282,7 @@ class _AccountPanel extends StatelessWidget {
               ),
             ),
             if (clinics.length > 1) ...[
-              const Divider(height: 1, color: AppTheme.borderColor),
+              Divider(height: 1, color: AppTheme.borderColor),
               const _SectionTitle('Switch clinic'),
               for (final c in clinics)
                 _MenuRow(
@@ -290,9 +290,9 @@ class _AccountPanel extends StatelessWidget {
                   label: c.name,
                   onTap: () => onSwitchClinic(c.id),
                 ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
             ],
-            const Divider(height: 1, color: AppTheme.borderColor),
+            Divider(height: 1, color: AppTheme.borderColor),
             _MenuRow(
               icon: Icons.person_outline_rounded,
               label: 'Profile',
@@ -308,11 +308,11 @@ class _AccountPanel extends StatelessWidget {
               label: 'Settings',
               onTap: onSettings,
             ),
-            const Divider(height: 1, color: AppTheme.borderColor),
+            Divider(height: 1, color: AppTheme.borderColor),
             _MenuRow(
               icon: Icons.logout_rounded,
               label: 'Log out',
-              color: const Color(0xFFE11D48),
+              color: Color(0xFFE11D48),
               onTap: onLogout,
             ),
           ],
@@ -328,10 +328,10 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+    padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
     child: Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
         color: AppTheme.textSecondary,
@@ -343,32 +343,33 @@ class _SectionTitle extends StatelessWidget {
 class _MenuRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
+  final Color? color;
   final VoidCallback onTap;
 
   const _MenuRow({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = AppTheme.textPrimary,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = color ?? AppTheme.textPrimary;
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: color),
-            const SizedBox(width: 14),
+            Icon(icon, size: 20, color: textColor),
+            SizedBox(width: 14),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: color,
+                color: textColor,
               ),
             ),
           ],

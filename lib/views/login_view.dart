@@ -124,7 +124,7 @@ class _LoginViewState extends State<LoginView> {
         builder: (context, setDialogState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
+            title: Row(
               children: [
                 Icon(Icons.lock_reset_rounded, color: AppTheme.primaryBlue),
                 SizedBox(width: 8),
@@ -142,20 +142,20 @@ class _LoginViewState extends State<LoginView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Enter your registered email address and we will send you a link to reset your password.',
                     style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   RequiredTextFormField(
                     controller: resetEmailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                    style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'name@clinic.example',
-                      prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
+                      prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) return 'Please enter your email';
@@ -166,17 +166,17 @@ class _LoginViewState extends State<LoginView> {
                     },
                   ),
                   if (dialogError != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text(
                       dialogError!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                      style: TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
                     ),
                   ],
                   if (dialogSuccess != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text(
                       dialogSuccess!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF047857), fontWeight: FontWeight.w600),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF047857), fontWeight: FontWeight.w600),
                     ),
                   ],
                 ],
@@ -185,7 +185,7 @@ class _LoginViewState extends State<LoginView> {
             actions: [
               TextButton(
                 onPressed: isResetting ? null : () => Navigator.pop(context),
-                child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
               ),
               ElevatedButton(
                 onPressed: isResetting
@@ -216,12 +216,12 @@ class _LoginViewState extends State<LoginView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: isResetting
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('Send Reset Link'),
+                    : Text('Send Reset Link'),
               ),
             ],
           );
@@ -235,23 +235,23 @@ class _LoginViewState extends State<LoginView> {
     final auth = AuthService.instance;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Color(0xFFF8FAFC),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: BoxConstraints(maxWidth: 460),
               child: Card(
                 color: Colors.white,
                 elevation: 4,
                 shadowColor: Colors.black.withValues(alpha: 0.08),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(color: AppTheme.borderColor),
+                  side: BorderSide(color: AppTheme.borderColor),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -275,19 +275,19 @@ class _LoginViewState extends State<LoginView> {
                               BoxShadow(
                                 color: AppTheme.primaryBlue.withValues(alpha: 0.25),
                                 blurRadius: 12,
-                                offset: const Offset(0, 4),
+                                offset: Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.remove_red_eye_rounded,
                             size: 32,
                             color: Colors.white,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      const Text(
+                      SizedBox(height: 14),
+                      Text(
                         'DOCRS Clinical System',
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -297,8 +297,8 @@ class _LoginViewState extends State<LoginView> {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      const Text(
+                      SizedBox(height: 2),
+                      Text(
                         'Digital Ophthalmology Clinical Record System',
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -307,7 +307,7 @@ class _LoginViewState extends State<LoginView> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       // State Handler views
                       if (auth.isPendingEmailVerification)
@@ -318,9 +318,9 @@ class _LoginViewState extends State<LoginView> {
                         // Mode Switcher Tabs
                         Container(
                           height: 40,
-                          padding: const EdgeInsets.all(3),
+                          padding: EdgeInsets.all(3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -343,7 +343,7 @@ class _LoginViewState extends State<LoginView> {
                                               BoxShadow(
                                                 color: Colors.black.withValues(alpha: 0.05),
                                                 blurRadius: 4,
-                                                offset: const Offset(0, 1),
+                                                offset: Offset(0, 1),
                                               )
                                             ]
                                           : null,
@@ -378,7 +378,7 @@ class _LoginViewState extends State<LoginView> {
                                               BoxShadow(
                                                 color: Colors.black.withValues(alpha: 0.05),
                                                 blurRadius: 4,
-                                                offset: const Offset(0, 1),
+                                                offset: Offset(0, 1),
                                               )
                                             ]
                                           : null,
@@ -398,22 +398,22 @@ class _LoginViewState extends State<LoginView> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
 
                         if (!_isSignUpMode) _buildSignInForm() else _buildSignUpForm(),
                       ],
 
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
 
                       // Compliance Footer Badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.shield_outlined, size: 16, color: Color(0xFF059669)),
@@ -445,40 +445,40 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Email Address',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInEmailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Enter your email';
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
-          const Text(
+          Text(
             'Password',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInPasswordController,
             obscureText: _obscureSignInPassword,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: '••••••••••••',
-              prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignInPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -490,14 +490,14 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.isEmpty) return 'Enter your password';
               return null;
             },
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -516,8 +516,8 @@ class _LoginViewState extends State<LoginView> {
                         onChanged: (val) => setState(() => _rememberMe = val ?? true),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Flexible(
+                    SizedBox(width: 6),
+                    Flexible(
                       child: Text(
                         'Keep me signed in',
                         style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
@@ -534,7 +534,7 @@ class _LoginViewState extends State<LoginView> {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text(
+                child: Text(
                   'Forgot Password?',
                   style: TextStyle(color: AppTheme.primaryBlue, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
@@ -542,10 +542,10 @@ class _LoginViewState extends State<LoginView> {
             ],
           ),
           if (_errorMessage != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildErrorContainer(_errorMessage!),
           ],
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -558,12 +558,12 @@ class _LoginViewState extends State<LoginView> {
                 elevation: 0,
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.login_rounded, size: 20),
@@ -584,41 +584,41 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Full Name',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _fullNameController,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Dr. Jane Doe',
-              prefixIcon: const Icon(Icons.person_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.person_outline, color: AppTheme.primaryBlue, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Enter your full name';
               return null;
             },
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
-          const Text(
+          Text(
             'Clinic Email',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signUpEmailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Enter your email';
@@ -628,20 +628,20 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
-          const Text(
+          Text(
             'Password',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signUpPasswordController,
             obscureText: _obscureSignUpPassword,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'At least 6 characters',
-              prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignUpPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -653,27 +653,27 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.length < 6) return 'Password must be at least 6 characters';
               return null;
             },
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
-          const Text(
+          Text(
             'Confirm Password',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           RequiredTextFormField(
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Repeat password',
-              prefixIcon: const Icon(Icons.lock_clock_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(Icons.lock_clock_outlined, color: AppTheme.primaryBlue, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -685,7 +685,7 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val != _signUpPasswordController.text) return 'Passwords do not match';
@@ -693,10 +693,10 @@ class _LoginViewState extends State<LoginView> {
             },
           ),
           if (_errorMessage != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _buildErrorContainer(_errorMessage!),
           ],
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -709,12 +709,12 @@ class _LoginViewState extends State<LoginView> {
                 elevation: 0,
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.person_add_rounded, size: 20),
@@ -735,46 +735,46 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _buildEmailVerificationPendingView(AuthService auth) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: Color(0xFFFDE68A)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
             child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
                 color: Color(0xFFFEF3C7),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.mark_email_unread_rounded, size: 40, color: Color(0xFFD97706)),
+              child: Icon(Icons.mark_email_unread_rounded, size: 40, color: Color(0xFFD97706)),
             ),
           ),
-          const SizedBox(height: 14),
-          const Text(
+          SizedBox(height: 14),
+          Text(
             'Verify Your Gmail Address',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'A verification link has been sent to ${auth.email ?? "your Gmail address"}. Please open your Gmail inbox (or Spam folder), click the link to verify, then return here and tap the button below.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
           if (_verificationStatusMessage != null) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _verificationIsError ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5),
+                color: _verificationIsError ? Color(0xFFFEF2F2) : Color(0xFFECFDF5),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _verificationIsError ? const Color(0xFFFCA5A5) : const Color(0xFFA7F3D0),
+                  color: _verificationIsError ? Color(0xFFFCA5A5) : Color(0xFFA7F3D0),
                 ),
               ),
               child: Row(
@@ -782,15 +782,15 @@ class _LoginViewState extends State<LoginView> {
                   Icon(
                     _verificationIsError ? Icons.error_outline : Icons.check_circle_outline,
                     size: 18,
-                    color: _verificationIsError ? const Color(0xFFB91C1C) : const Color(0xFF047857),
+                    color: _verificationIsError ? Color(0xFFB91C1C) : Color(0xFF047857),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _verificationStatusMessage!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: _verificationIsError ? const Color(0xFFB91C1C) : const Color(0xFF047857),
+                        color: _verificationIsError ? Color(0xFFB91C1C) : Color(0xFF047857),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -799,7 +799,7 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
           ],
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -823,13 +823,13 @@ class _LoginViewState extends State<LoginView> {
                       }
                     },
               icon: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.mark_email_read_rounded, size: 18),
-              label: const Text('I Have Clicked the Verification Link', style: TextStyle(fontWeight: FontWeight.bold)),
+                  : Icon(Icons.mark_email_read_rounded, size: 18),
+              label: Text('I Have Clicked the Verification Link', style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
@@ -837,7 +837,7 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           SizedBox(
             height: 44,
@@ -876,21 +876,21 @@ class _LoginViewState extends State<LoginView> {
                       }
                     },
               icon: _isSendingVerification
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
                     )
-                  : const Icon(Icons.send_rounded, size: 16),
-              label: const Text('Resend Verification Email to Gmail'),
+                  : Icon(Icons.send_rounded, size: 16),
+              label: Text('Resend Verification Email to Gmail'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.primaryBlue,
-                side: const BorderSide(color: AppTheme.primaryBlue),
+                side: BorderSide(color: AppTheme.primaryBlue),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
 
           Center(
             child: TextButton(
@@ -898,7 +898,7 @@ class _LoginViewState extends State<LoginView> {
                 setState(() => _verificationStatusMessage = null);
                 auth.signOut();
               },
-              child: const Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+              child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
             ),
           ),
         ],
@@ -908,49 +908,49 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _buildPendingRoleView(AuthService auth) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
+        border: Border.all(color: Color(0xFFBFDBFE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
+          Center(
             child: Icon(Icons.admin_panel_settings_outlined, size: 48, color: AppTheme.primaryBlue),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12),
+          Text(
             'Waiting for Administrator Approval',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Your account (${auth.email}) is registered and verified. A clinic administrator must assign your role (Physician, Staff, or Admin) before you can access clinical records.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           ElevatedButton.icon(
             onPressed: () async {
               setState(() => _isLoading = true);
               await auth.reloadUserAndCheckRole();
               if (mounted) setState(() => _isLoading = false);
             },
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Check Status'),
+            icon: Icon(Icons.refresh_rounded, size: 18),
+            label: Text('Check Status'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           TextButton(
             onPressed: () => auth.signOut(),
-            child: const Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
+            child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
           ),
         ],
       ),
@@ -959,20 +959,20 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _buildErrorContainer(String message) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: Color(0xFFFEF2F2),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFCA5A5)),
+        border: Border.all(color: Color(0xFFFCA5A5)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
-          const SizedBox(width: 8),
+          Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+              style: TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
             ),
           ),
         ],

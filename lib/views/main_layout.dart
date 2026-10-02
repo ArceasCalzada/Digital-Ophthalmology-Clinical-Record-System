@@ -143,23 +143,23 @@ class _MainLayoutState extends State<MainLayout> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFD97706).withValues(alpha: 0.1),
+                color: Color(0xFFD97706).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.important_devices_rounded, color: Color(0xFFD97706), size: 22),
+              child: Icon(Icons.important_devices_rounded, color: Color(0xFFD97706), size: 22),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Comprehensive ocular drawing and clinical examination modules are optimized for tablet and desktop workstations.\n\nMobile view focuses on Calendar scheduling, Agenda queue management, and Clinical Notifications.',
           style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
         ),
@@ -170,7 +170,7 @@ class _MainLayoutState extends State<MainLayout> {
               backgroundColor: AppTheme.primaryBlue,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Understand'),
+            child: Text('Understand'),
           ),
         ],
       ),
@@ -188,7 +188,7 @@ class _MainLayoutState extends State<MainLayout> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Search Patient Record', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text('Search Patient Record', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _searchController,
           autofocus: true,
@@ -201,7 +201,7 @@ class _MainLayoutState extends State<MainLayout> {
               }
             }
           },
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Enter patient name or phone...',
             prefixIcon: Icon(Icons.search, color: AppTheme.primaryBlue),
           ),
@@ -209,7 +209,7 @@ class _MainLayoutState extends State<MainLayout> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -222,7 +222,7 @@ class _MainLayoutState extends State<MainLayout> {
                 }
               }
             },
-            child: const Text('Search'),
+            child: Text('Search'),
           ),
         ],
       ),
@@ -238,11 +238,11 @@ class _MainLayoutState extends State<MainLayout> {
         backgroundColor: Colors.transparent,
         builder: (ctx) => Container(
           height: MediaQuery.of(ctx).size.height * 0.85,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: const ClipRRect(
+          child: ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             child: NotificationCenterView(),
           ),
@@ -254,8 +254,8 @@ class _MainLayoutState extends State<MainLayout> {
         builder: (ctx) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680, maxHeight: 720),
-            child: const NotificationCenterView(),
+            constraints: BoxConstraints(maxWidth: 680, maxHeight: 720),
+            child: NotificationCenterView(),
           ),
         ),
       );
@@ -336,11 +336,11 @@ class _MainLayoutState extends State<MainLayout> {
           initialPatient: validPatient,
         );
       case 5:
-        return const SettingsView();
+        return SettingsView();
       case 6:
-        return const ProfileView();
+        return ProfileView();
       case 7:
-        return const TeamsView();
+        return TeamsView();
       default:
         return DashboardScreen(
           onSelectPatient: _navigateToPatientProfile,
@@ -358,7 +358,7 @@ class _MainLayoutState extends State<MainLayout> {
       case 1:
         return _buildMobileAgendaTab();
       case 2:
-        return const NotificationCenterView();
+        return NotificationCenterView();
       case 3:
       default:
         if (_selectedPatient != null) {
@@ -383,46 +383,46 @@ class _MainLayoutState extends State<MainLayout> {
     final queue = PatientRepository.getTodayQueue();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Today's Clinic Agenda",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  color: Color(0xFF10B981).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '${queue.length} Consultations',
-                  style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 11),
+                  style: TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
 
           ListView.separated(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: NeverScrollableScrollPhysics(),
             itemCount: queue.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            separatorBuilder: (context, index) => SizedBox(height: 10),
             itemBuilder: (context, idx) {
               final item = queue[idx];
               return Container(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppTheme.borderColor),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,30 +431,30 @@ class _MainLayoutState extends State<MainLayout> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             item.time,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             item.visitType,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Row(
                       children: [
                         CircleAvatar(
@@ -462,28 +462,28 @@ class _MainLayoutState extends State<MainLayout> {
                           backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           child: Text(
                             item.patient.fullName.isNotEmpty ? item.patient.fullName[0].toUpperCase() : 'P',
-                            style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 item.patient.fullName,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                               ),
                               Text(
                                 '${item.patient.mrn} • ${item.patient.gender}, ${item.patient.age} yrs',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const Divider(height: 16),
+                    Divider(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -493,25 +493,25 @@ class _MainLayoutState extends State<MainLayout> {
                                 SnackBar(content: Text('Calling ${item.patient.phone}...')),
                               );
                             },
-                            icon: const Icon(Icons.phone, size: 14),
-                            label: const Text('Call Patient', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            icon: Icon(Icons.phone, size: 14),
+                            label: Text('Call Patient', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             style: OutlinedButton.styleFrom(
                               visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              padding: EdgeInsets.symmetric(vertical: 6),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () => _navigateToPatientProfile(item.patient),
-                            icon: const Icon(Icons.folder_shared, size: 14),
-                            label: const Text('View Record', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            icon: Icon(Icons.folder_shared, size: 14),
+                            label: Text('View Record', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryBlue,
                               foregroundColor: Colors.white,
                               visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              padding: EdgeInsets.symmetric(vertical: 6),
                             ),
                           ),
                         ),
@@ -541,7 +541,7 @@ class _MainLayoutState extends State<MainLayout> {
               ? AppBar(
                   backgroundColor: Theme.of(context).cardColor,
                   elevation: 0.5,
-                  title: const Row(
+                  title: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 20),
@@ -556,19 +556,19 @@ class _MainLayoutState extends State<MainLayout> {
                     ],
                   ),
                   actions: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(right: 6),
                       child: Center(child: SyncStatusIndicator(compact: true)),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryBlue),
+                      icon: Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryBlue),
                       tooltip: 'Add Event',
                       onPressed: () async {
                         if (await ensureClinic(context) && context.mounted) AddEventModal.show(context);
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.search, color: AppTheme.textPrimary),
+                      icon: Icon(Icons.search, color: AppTheme.textPrimary),
                       tooltip: 'Search Patient',
                       onPressed: () => _showMobileSearchDialog(context),
                     ),
@@ -583,7 +583,7 @@ class _MainLayoutState extends State<MainLayout> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
+                          duration: Duration(milliseconds: 250),
                           curve: Curves.easeInOut,
                           height: constraints.maxHeight,
                           width: _isSidebarCollapsed ? 72 : 240,
@@ -620,21 +620,21 @@ class _MainLayoutState extends State<MainLayout> {
                       ],
                     ),
                     AnimatedPositioned(
-                      duration: const Duration(milliseconds: 250),
+                      duration: Duration(milliseconds: 250),
                       curve: Curves.easeInOut,
                       left: (_isSidebarCollapsed ? 72 : 240) - 14,
                       top: (constraints.maxHeight / 2) - 15,
                       child: Material(
                         color: Colors.white,
                         elevation: 4,
-                        shape: const CircleBorder(
+                        shape: CircleBorder(
                           side: BorderSide(color: AppTheme.borderColor, width: 1.2),
                         ),
                         child: InkWell(
-                          customBorder: const CircleBorder(),
+                          customBorder: CircleBorder(),
                           onTap: _toggleSidebar,
                           child: Padding(
-                            padding: const EdgeInsets.all(6),
+                            padding: EdgeInsets.all(6),
                             child: Icon(
                               _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
                               color: AppTheme.primaryBlue,
@@ -663,12 +663,12 @@ class _MainLayoutState extends State<MainLayout> {
                       backgroundColor: Colors.white,
                       elevation: 8,
                       items: [
-                        const BottomNavigationBarItem(
+                        BottomNavigationBarItem(
                           icon: Icon(Icons.calendar_month_rounded),
                           activeIcon: Icon(Icons.calendar_month),
                           label: 'Calendar',
                         ),
-                        const BottomNavigationBarItem(
+                        BottomNavigationBarItem(
                           icon: Icon(Icons.view_agenda_outlined),
                           activeIcon: Icon(Icons.view_agenda_rounded),
                           label: 'Agenda',
@@ -676,17 +676,17 @@ class _MainLayoutState extends State<MainLayout> {
                         BottomNavigationBarItem(
                           icon: Badge(
                             isLabelVisible: unread > 0,
-                            label: Text('$unread', style: const TextStyle(fontSize: 10)),
-                            child: const Icon(Icons.notifications_active_outlined),
+                            label: Text('$unread', style: TextStyle(fontSize: 10)),
+                            child: Icon(Icons.notifications_active_outlined),
                           ),
                           activeIcon: Badge(
                             isLabelVisible: unread > 0,
-                            label: Text('$unread', style: const TextStyle(fontSize: 10)),
-                            child: const Icon(Icons.notifications_active_rounded),
+                            label: Text('$unread', style: TextStyle(fontSize: 10)),
+                            child: Icon(Icons.notifications_active_rounded),
                           ),
                           label: 'Alerts',
                         ),
-                        const BottomNavigationBarItem(
+                        BottomNavigationBarItem(
                           icon: Icon(Icons.folder_shared_outlined),
                           activeIcon: Icon(Icons.folder_shared_rounded),
                           label: 'Records',
@@ -716,17 +716,17 @@ class _MainLayoutState extends State<MainLayout> {
                 onTap: collapsed ? _toggleSidebar : null,
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 24),
+                  child: Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 24),
                 ),
               ),
               if (!collapsed) ...[
-                const SizedBox(width: 10),
-                const Expanded(
+                SizedBox(width: 10),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -740,17 +740,17 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
         if (!collapsed)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: SyncStatusIndicator(compact: false),
           )
         else
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
             child: Center(child: SyncStatusIndicator(compact: true, iconOnly: true)),
           ),
-        const SizedBox(height: 6),
-        const Divider(height: 1, color: AppTheme.borderColor),
+        SizedBox(height: 6),
+        Divider(height: 1, color: AppTheme.borderColor),
         Expanded(
           child: _ScrollEdgeShadow(
             builder: (controller) => SingleChildScrollView(
@@ -758,12 +758,12 @@ class _MainLayoutState extends State<MainLayout> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', isDrawer: isDrawer, collapsed: collapsed),
                 _buildNavItem(1, Icons.calendar_month_outlined, Icons.calendar_month, 'Calendar', isDrawer: isDrawer, collapsed: collapsed),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 if (!collapsed)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     child: Row(
                       children: [
@@ -777,7 +777,7 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                   )
                 else
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Divider(height: 1, color: AppTheme.borderColor),
                   ),
@@ -786,8 +786,8 @@ class _MainLayoutState extends State<MainLayout> {
                 _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer, collapsed: collapsed),
                 if (_selectedPatient != null && _isPatientValidForActiveTeam(_selectedPatient) && !collapsed)
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    margin: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryBlue.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
@@ -795,20 +795,20 @@ class _MainLayoutState extends State<MainLayout> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.account_circle, size: 16, color: AppTheme.primaryBlue),
-                        const SizedBox(width: 8),
+                        Icon(Icons.account_circle, size: 16, color: AppTheme.primaryBlue),
+                        SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 _selectedPatient!.fullName,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 '${_selectedPatient!.mrn} • ${_selectedPatient!.gender}, ${_selectedPatient!.age}y',
-                                style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
                               ),
                             ],
                           ),
@@ -816,7 +816,7 @@ class _MainLayoutState extends State<MainLayout> {
                         InkWell(
                           onTap: () => setState(() => _selectedPatient = null),
                           borderRadius: BorderRadius.circular(8),
-                          child: const Padding(
+                          child: Padding(
                             padding: EdgeInsets.all(2),
                             child: Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
                           ),
@@ -836,7 +836,7 @@ class _MainLayoutState extends State<MainLayout> {
 
             if (collapsed) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: EdgeInsets.symmetric(vertical: 6),
                 child: Center(
                   child: Tooltip(
                     message: 'Notifications ($unread)',
@@ -844,11 +844,11 @@ class _MainLayoutState extends State<MainLayout> {
                       borderRadius: BorderRadius.circular(10),
                       onTap: () => _showNotificationCenterModal(context),
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(12),
                         child: Badge(
                           isLabelVisible: unread > 0,
-                          label: Text('$unread', style: const TextStyle(fontSize: 10)),
-                          child: const Icon(
+                          label: Text('$unread', style: TextStyle(fontSize: 10)),
+                          child: Icon(
                             Icons.notifications_active_outlined,
                             color: AppTheme.textSecondary,
                             size: 22,
@@ -862,7 +862,7 @@ class _MainLayoutState extends State<MainLayout> {
             }
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Material(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
@@ -871,14 +871,14 @@ class _MainLayoutState extends State<MainLayout> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   leading: Badge(
                     isLabelVisible: unread > 0,
-                    label: Text('$unread', style: const TextStyle(fontSize: 10)),
-                    child: const Icon(
+                    label: Text('$unread', style: TextStyle(fontSize: 10)),
+                    child: Icon(
                       Icons.notifications_active_outlined,
                       color: AppTheme.textSecondary,
                       size: 20,
                     ),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Notifications',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
@@ -892,7 +892,7 @@ class _MainLayoutState extends State<MainLayout> {
             );
           },
         ),
-        const Divider(height: 1, color: AppTheme.borderColor),
+        Divider(height: 1, color: AppTheme.borderColor),
         AccountMenuTrigger(
           collapsed: collapsed,
           onOpenProfile: () {
@@ -918,7 +918,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     if (collapsed) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.symmetric(vertical: 6),
         child: Center(
           child: Tooltip(
             message: title,
@@ -929,7 +929,7 @@ class _MainLayoutState extends State<MainLayout> {
                 if (isDrawer) Navigator.pop(context);
               },
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.1) : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
@@ -947,7 +947,7 @@ class _MainLayoutState extends State<MainLayout> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
@@ -1043,7 +1043,7 @@ class _ScrollEdgeShadowState extends State<_ScrollEdgeShadow> {
           height: 22,
           child: IgnorePointer(
             child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 150),
+              duration: Duration(milliseconds: 150),
               opacity: _moreBelow ? 1 : 0,
               child: DecoratedBox(
                 decoration: BoxDecoration(

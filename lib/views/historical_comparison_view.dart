@@ -42,12 +42,12 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Historical Drawing Comparison: ${widget.patient.fullName}', style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text('Historical Drawing Comparison: ${widget.patient.fullName}', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: EdgeInsets.only(right: 16),
             child: SegmentedButton<EyeType>(
-              segments: const [
+              segments: [
                 ButtonSegment(value: EyeType.OD, label: Text('OD (Right)')),
                 ButtonSegment(value: EyeType.OS, label: Text('OS (Left)')),
               ],
@@ -62,7 +62,7 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           children: [
             // Controls & Encounter Selection Bar
@@ -71,15 +71,15 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: AppTheme.borderColor),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     Expanded(
                       child: ClinicalDropdownField<Encounter>(
-                        label: const FieldLabel('Prior Visit', fontSize: 12),
+                        label: FieldLabel('Prior Visit', fontSize: 12),
                         placeholder: 'Select visit...',
                         value: _encounterLeft,
                         displayText: '${formatClinicalDate(_encounterLeft.date)} — ${_encounterLeft.diagnosis}',
@@ -95,14 +95,14 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                       ),
                     ),
 
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Icon(Icons.compare_arrows, color: AppTheme.primaryBlue, size: 28),
                     ),
 
                     Expanded(
                       child: ClinicalDropdownField<Encounter>(
-                        label: const FieldLabel('Recent Visit', fontSize: 12),
+                        label: FieldLabel('Recent Visit', fontSize: 12),
                         placeholder: 'Select visit...',
                         value: _encounterRight,
                         displayText: '${formatClinicalDate(_encounterRight.date)} — ${_encounterRight.diagnosis}',
@@ -122,7 +122,7 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
             // Side-by-Side Comparative Canvas Cards
             Expanded(
@@ -135,22 +135,22 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: AppTheme.borderColor),
+                        side: BorderSide(color: AppTheme.borderColor),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: Column(
                           children: [
                             Text(
                               'Prior Examination (${_encounterLeft.date})',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               'IOP: ${examLeft.iop} mmHg  •  VA: ${examLeft.acuity.uncorrected}  •  C/D: ${drawingLeft?.cdRatio ?? 0.50}',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
 
                             Expanded(
                               child: EyeDrawingCanvas(
@@ -166,7 +166,7 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                     ),
                   ),
 
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
 
                   // Current Visit Canvas & Details
                   Expanded(
@@ -175,22 +175,22 @@ class _HistoricalComparisonViewState extends State<HistoricalComparisonView> {
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: AppTheme.borderColor),
+                        side: BorderSide(color: AppTheme.borderColor),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: Column(
                           children: [
                             Text(
                               'Current Examination (${_encounterRight.date})',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               'IOP: ${examRight.iop} mmHg  •  VA: ${examRight.acuity.uncorrected}  •  C/D: ${drawingRight?.cdRatio ?? 0.50}',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
 
                             Expanded(
                               child: EyeDrawingCanvas(

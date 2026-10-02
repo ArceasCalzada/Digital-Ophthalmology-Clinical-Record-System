@@ -9,7 +9,7 @@ enum TeamRole {
   viewer('Viewer');
 
   final String label;
-  const TeamRole(this.label);
+  TeamRole(this.label);
 
   static TeamRole parse(String? value) {
     if (value == null) return TeamRole.viewer;
@@ -52,9 +52,9 @@ enum TeamRole {
       case TeamRole.owner:
         return AppTheme.primaryBlue;
       case TeamRole.editor:
-        return const Color(0xFF059669); // Green
+        return Color(0xFF059669); // Green
       case TeamRole.assistant:
-        return const Color(0xFFD97706); // Amber
+        return Color(0xFFD97706); // Amber
       case TeamRole.viewer:
         return AppTheme.textSecondary;
     }

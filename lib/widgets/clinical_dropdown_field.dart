@@ -77,7 +77,7 @@ class ClinicalDropdownField<T> extends StatelessWidget {
       children: [
         if (label != null) ...[
           label!,
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
         ],
         LayoutBuilder(
           builder: (context, constraints) {
@@ -85,12 +85,12 @@ class ClinicalDropdownField<T> extends StatelessWidget {
             return MenuAnchor(
               style: MenuStyle(
                 backgroundColor: WidgetStatePropertyAll(AppTheme.cardBg),
-                surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                elevation: const WidgetStatePropertyAll(6),
-                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                elevation: WidgetStatePropertyAll(6),
+                padding: WidgetStatePropertyAll(EdgeInsets.zero),
                 shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               ),
-              alignmentOffset: const Offset(0, 4),
+              alignmentOffset: Offset(0, 4),
               menuChildren: [
                 _DropdownList<T>(
                   width: width,
@@ -117,8 +117,8 @@ class ClinicalDropdownField<T> extends StatelessWidget {
                       borderRadius: BorderRadius.circular(dense ? 8 : 10),
                       border: Border.all(
                         color: invalid
-                            ? const Color(0xFFDC2626)
-                            : (dense ? AppTheme.borderColor : const Color(0xFFCBD5E1)),
+                            ? Color(0xFFDC2626)
+                            : (dense ? AppTheme.borderColor : Color(0xFFCBD5E1)),
                         width: invalid ? 1.5 : 1,
                       ),
                     ),
@@ -130,13 +130,13 @@ class ClinicalDropdownField<T> extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: selected != null ? (dense ? FontWeight.w600 : FontWeight.bold) : FontWeight.normal,
-                              color: selected != null ? AppTheme.textPrimary : const Color(0xFF94A3B8),
+                              color: selected != null ? AppTheme.textPrimary : Color(0xFF94A3B8),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryBlue, size: 20),
+                        SizedBox(width: 8),
+                        Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryBlue, size: 20),
                       ],
                     ),
                   ),
@@ -263,7 +263,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
       offset += _rowHeightOf(i);
     }
     final target = (offset - 40).clamp(0, _scroll.position.maxScrollExtent).toDouble();
-    _scroll.animateTo(target, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    _scroll.animateTo(target, duration: Duration(milliseconds: 250), curve: Curves.easeOut);
   }
 
   Future<void> _confirmRemove(ClinicalPickerItem<T> item) async {
@@ -275,17 +275,17 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete $noun?', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        title: Text('Delete $noun?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
         content: Text(
           '"${item.label}" will be removed from the list. Events that already use it keep it.',
-          style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626)),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFFDC2626)),
+            child: Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -297,20 +297,20 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
     final canEdit = widget.onRemove != null;
     // Snug padding so "+ Add new" and "Done" both fit in a half-width dropdown without an ellipsis.
     final footerButton = TextButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      minimumSize: const Size(0, 36),
+      padding: EdgeInsets.symmetric(horizontal: 10),
+      minimumSize: Size(0, 36),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
     return Container(
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.borderColor))),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.borderColor))),
+      padding: EdgeInsets.symmetric(horizontal: 6),
       height: 46,
       child: _adding
           ? Row(
               children: [
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.only(left: 8),
                     child: TextField(
                       controller: _newName,
                       autofocus: true,
@@ -320,16 +320,16 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                         if (_addRefused) setState(() => _addRefused = false);
                       },
                       onSubmitted: (_) => _submitNew(),
-                      style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'New ${widget.itemNoun} name',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        hintStyle: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                         enabledBorder: _addRefused
                             ? OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFDC2626), width: 1.5),
+                                borderSide: BorderSide(color: Color(0xFFDC2626), width: 1.5),
                               )
                             : null,
                       ),
@@ -338,12 +338,12 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                 ),
                 IconButton(
                   tooltip: 'Add',
-                  icon: const Icon(Icons.check_rounded, size: 20, color: AppTheme.primaryBlue),
+                  icon: Icon(Icons.check_rounded, size: 20, color: AppTheme.primaryBlue),
                   onPressed: _submitNew,
                 ),
                 IconButton(
                   tooltip: 'Cancel',
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
+                  icon: Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
                   onPressed: () => setState(() {
                     _adding = false;
                     _addRefused = false;
@@ -357,7 +357,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                 // Takes all the room the pencil / Done leaves, so it is never squeezed to "+ Add n...".
                 Expanded(
                   child: widget.onAdd == null
-                      ? const SizedBox()
+                      ? SizedBox()
                       : Align(
                           alignment: Alignment.centerLeft,
                           child: TextButton(
@@ -366,7 +366,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                               _editing = false;
                             }),
                             style: footerButton,
-                            child: const Text('+ Add new', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600), softWrap: false),
+                            child: Text('+ Add new', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600), softWrap: false),
                           ),
                         ),
                 ),
@@ -375,11 +375,11 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                       ? TextButton(
                           onPressed: () => setState(() => _editing = false),
                           style: footerButton,
-                          child: const Text('Done', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          child: Text('Done', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         )
                       : IconButton(
                           tooltip: 'Edit list',
-                          icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.textSecondary),
+                          icon: Icon(Icons.edit_outlined, size: 18, color: AppTheme.textSecondary),
                           onPressed: () => setState(() => _editing = true),
                         ),
               ],
@@ -401,22 +401,22 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
         children: [
           if (widget.searchable)
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+              padding: EdgeInsets.fromLTRB(10, 10, 10, 6),
               child: TextField(
                 controller: _search,
                 autofocus: true,
                 onChanged: (v) => setState(() => _query = v),
-                style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                 decoration: InputDecoration(
                   hintText: widget.searchHint,
-                  hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  hintStyle: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
             ),
           if (shown.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Text('No matches', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
             )
@@ -443,8 +443,8 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                         // A new key each time restarts the fade.
                         key: item.value == _flashValue ? ValueKey(_flashCount) : null,
                         active: item.value == _flashValue && _flashCount > 0,
-                        base: isSelected ? const Color(0xFFE2E8F0) : null,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        base: isSelected ? Color(0xFFE2E8F0) : null,
+                        padding: EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           children: [
                             Expanded(
@@ -465,7 +465,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                                     Text(
                                       item.subtitle!,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                     ),
                                 ],
                               ),
@@ -474,7 +474,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                               IconButton(
                                 tooltip: 'Delete ${item.label}',
                                 visualDensity: VisualDensity.compact,
-                                icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFFDC2626)),
+                                icon: Icon(Icons.close_rounded, size: 18, color: Color(0xFFDC2626)),
                                 onPressed: () => _confirmRemove(item),
                               ),
                           ],
@@ -509,7 +509,7 @@ class _FadingHighlight extends StatelessWidget {
     if (!active) return _row(base);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: 0),
-      duration: const Duration(milliseconds: 1600),
+      duration: Duration(milliseconds: 1600),
       curve: Curves.easeIn,
       builder: (context, t, _) => _row(Color.alphaBlend(AppTheme.primaryBlue.withValues(alpha: 0.28 * t), base ?? Colors.transparent)),
     );

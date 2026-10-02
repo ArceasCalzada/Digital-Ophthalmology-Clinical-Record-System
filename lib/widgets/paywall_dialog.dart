@@ -43,35 +43,35 @@ class _PaywallDialog extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          padding: EdgeInsets.fromLTRB(24, 24, 24, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.workspace_premium_rounded, color: AppTheme.primaryBlue, size: 26),
+                child: Icon(Icons.workspace_premium_rounded, color: AppTheme.primaryBlue, size: 26),
               ),
-              const SizedBox(height: 14),
-              Text(_title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-              const SizedBox(height: 6),
-              Text(_lead, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4)),
-              const SizedBox(height: 16),
+              SizedBox(height: 14),
+              Text(_title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              SizedBox(height: 6),
+              Text(_lead, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4)),
+              SizedBox(height: 16),
               _PlanTable(free: free, pro: pro),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Subscriptions are not available yet. This is a preview of how upgrading will look.',
                 style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -80,9 +80,9 @@ class _PaywallDialog extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Not now', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                    child: Text('Not now', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
                   ),
-                  const ElevatedButton(onPressed: null, child: Text('Upgrade — coming soon')),
+                  ElevatedButton(onPressed: null, child: Text('Upgrade — coming soon')),
                 ],
               ),
             ],
@@ -107,7 +107,7 @@ class _PlanTable extends StatelessWidget {
         color: header ? AppTheme.textPrimary : AppTheme.textSecondary,
       );
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             Expanded(flex: 3, child: Text(label, style: style)),
@@ -120,7 +120,7 @@ class _PlanTable extends StatelessWidget {
 
     String n(int v) => _PaywallDialog._number(v);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
         color: AppTheme.lightBg,
         borderRadius: BorderRadius.circular(12),
@@ -129,11 +129,11 @@ class _PlanTable extends StatelessWidget {
       child: Column(
         children: [
           row('', free.name, pro.name, header: true),
-          const Divider(height: 1, color: AppTheme.borderColor),
+          Divider(height: 1, color: AppTheme.borderColor),
           row('Clinics you create', '${free.maxClinics}', '${pro.maxClinics}'),
-          const Divider(height: 1, color: AppTheme.borderColor),
+          Divider(height: 1, color: AppTheme.borderColor),
           row('Members per clinic', '${free.maxMembersPerClinic}', '${pro.maxMembersPerClinic}'),
-          const Divider(height: 1, color: AppTheme.borderColor),
+          Divider(height: 1, color: AppTheme.borderColor),
           row('Patients per clinic', n(free.maxPatientsPerClinic), n(pro.maxPatientsPerClinic)),
         ],
       ),

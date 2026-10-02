@@ -149,20 +149,20 @@ class _ClinicalTimePickerDialogState extends State<ClinicalTimePickerDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 10,
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: BoxConstraints(maxWidth: 340),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+          padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Select time',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
 
               // hour : minute, then AM/PM stacked beside them, centred as one group.
               // FittedBox shrinks the whole group on a very narrow screen instead of overflowing.
@@ -173,53 +173,53 @@ class _ClinicalTimePickerDialogState extends State<ClinicalTimePickerDialog> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _TimeStepper(
-                      fieldKey: const ValueKey('hour-field'),
-                      upKey: const ValueKey('hour-up'),
-                      downKey: const ValueKey('hour-down'),
+                      fieldKey: ValueKey('hour-field'),
+                      upKey: ValueKey('hour-up'),
+                      downKey: ValueKey('hour-down'),
                       controller: _hourController,
                       focusNode: _hourFocus,
                       onUp: () => _nudgeHour(1),
                       onDown: () => _nudgeHour(-1),
                       onSubmitted: _commitHour,
                     ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Text(':', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                     ),
                     _TimeStepper(
-                      fieldKey: const ValueKey('minute-field'),
-                      upKey: const ValueKey('minute-up'),
-                      downKey: const ValueKey('minute-down'),
+                      fieldKey: ValueKey('minute-field'),
+                      upKey: ValueKey('minute-up'),
+                      downKey: ValueKey('minute-down'),
                       controller: _minuteController,
                       focusNode: _minuteFocus,
                       onUp: () => _nudgeMinute(1),
                       onDown: () => _nudgeMinute(-1),
                       onSubmitted: _commitMinute,
                     ),
-                    const SizedBox(width: 18),
+                    SizedBox(width: 18),
                     _PeriodToggle(isPm: _isPm, onChanged: (pm) => setState(() => _isPm = pm)),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
-              const Divider(height: 1, color: AppTheme.borderColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 16),
+              Divider(height: 1, color: AppTheme.borderColor),
+              SizedBox(height: 12),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, null),
-                    child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                    child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () {
@@ -228,7 +228,7 @@ class _ClinicalTimePickerDialogState extends State<ClinicalTimePickerDialog> {
                       _commitMinute();
                       Navigator.pop(context, _time);
                     },
-                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),            ],
@@ -280,13 +280,13 @@ class _TimeStepper extends StatelessWidget {
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
-            style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             onSubmitted: (_) => onSubmitted(),
             decoration: InputDecoration(
               isDense: true,
               filled: true,
               fillColor: AppTheme.lightBg,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              contentPadding: EdgeInsets.symmetric(vertical: 10),
               border: border(AppTheme.borderColor),
               enabledBorder: border(AppTheme.borderColor),
               focusedBorder: border(AppTheme.primaryBlue, 1.8),
@@ -351,7 +351,7 @@ class _NudgeButtonState extends State<_NudgeButton> {
       onTap: _stop,
       onTapCancel: _stop,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(8),
         child: Icon(widget.icon, color: AppTheme.primaryBlue),
       ),
     );
@@ -371,7 +371,7 @@ class _PeriodToggle extends StatelessWidget {
         onTap: () => onChanged(pm),
         borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: Duration(milliseconds: 150),
           width: 56,
           height: 36,
           alignment: Alignment.center,
@@ -392,13 +392,13 @@ class _PeriodToggle extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppTheme.lightBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
       ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [segment('AM', false), const SizedBox(height: 4), segment('PM', true)]),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [segment('AM', false), SizedBox(height: 4), segment('PM', true)]),
     );
   }
 }

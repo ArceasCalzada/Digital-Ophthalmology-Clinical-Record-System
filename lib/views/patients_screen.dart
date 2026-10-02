@@ -98,7 +98,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
       title: 'Create New Prescription (Rx)',
       subtitle: 'Select patient to generate ophthalmic prescription',
       icon: Icons.medication_rounded,
-      color: const Color(0xFF0284C7),
+      color: Color(0xFF0284C7),
       actionLabel: 'Write Rx',
       onSelect: (patient) {
         if (widget.onOpenPrescription != null) {
@@ -135,33 +135,33 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-              contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              titlePadding: EdgeInsets.fromLTRB(24, 20, 16, 12),
+              contentPadding: EdgeInsets.fromLTRB(24, 0, 24, 20),
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(icon, color: color, size: 22),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                          Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                          Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                          Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                         ],
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                    icon: Icon(Icons.close, color: AppTheme.textSecondary),
                     onPressed: () => Navigator.pop(dialogCtx),
                   ),
                 ],
@@ -175,14 +175,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       autofocus: true,
                       decoration: InputDecoration(
                         hintText: 'Type patient name, ID, or phone...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                        prefixIcon: Icon(Icons.search, size: 20),
                         filled: true,
-                        fillColor: const Color(0xFFF1F5F9),
+                        fillColor: Color(0xFFF1F5F9),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
                       onChanged: (text) {
                         setModalState(() {
@@ -190,60 +190,60 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Expanded(
                       child: matchingPatients.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textSecondary),
-                                  const SizedBox(height: 8),
+                                  Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textSecondary),
+                                  SizedBox(height: 8),
                                   Text(
                                     filterText.isEmpty ? 'No patients available' : 'No matching patient found',
-                                    style: const TextStyle(color: AppTheme.textSecondary),
+                                    style: TextStyle(color: AppTheme.textSecondary),
                                   ),
-                                  const SizedBox(height: 12),
+                                  SizedBox(height: 12),
                                   TextButton.icon(
                                     onPressed: () {
                                       Navigator.pop(dialogCtx);
                                       _openNewPatientModal();
                                     },
-                                    icon: const Icon(Icons.person_add),
-                                    label: const Text('+ Register New Patient'),
+                                    icon: Icon(Icons.person_add),
+                                    label: Text('+ Register New Patient'),
                                   ),
                                 ],
                               ),
                             )
                           : ListView.separated(
                               itemCount: matchingPatients.length,
-                              separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                              separatorBuilder: (_, _) => Divider(height: 1, color: Color(0xFFE2E8F0)),
                               itemBuilder: (context, idx) {
                                 final p = matchingPatients[idx];
                                 return ListTile(
                                   dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   leading: CircleAvatar(
                                     radius: 18,
                                     backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                     child: Text(
                                       p.fullName.isNotEmpty ? p.fullName[0] : 'P',
-                                      style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  title: Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  subtitle: Text('${p.mrn} • ${p.gender}, ${p.age}y • Last: ${formatClinicalDate(p.lastVisitDate)}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                                  title: Text(p.fullName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  subtitle: Text('${p.mrn} • ${p.gender}, ${p.age}y • Last: ${formatClinicalDate(p.lastVisitDate)}', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                                   trailing: ElevatedButton.icon(
                                     onPressed: () {
                                       Navigator.pop(dialogCtx);
                                       onSelect(p);
                                     },
                                     icon: Icon(icon, size: 14),
-                                    label: Text(actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    label: Text(actionLabel, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: color,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       elevation: 0,
                                     ),
@@ -285,7 +285,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               title: 'New Prescription',
               subtitle: 'Write digital ophthalmic Rx',
               icon: Icons.medication_rounded,
-              color: const Color(0xFF0284C7),
+              color: Color(0xFF0284C7),
               onTap: _openPatientSelectorForPrescription,
             ),
             ClinicalActionItem(
@@ -293,7 +293,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               title: 'Register New Patient',
               subtitle: 'Add new patient profile',
               icon: Icons.person_add_alt_1_rounded,
-              color: const Color(0xFF10B981),
+              color: Color(0xFF10B981),
               onTap: _openNewPatientModal,
             ),
           ],
@@ -310,11 +310,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
             BoxShadow(
               color: AppTheme.primaryBlue.withValues(alpha: 0.35),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add_rounded, color: Colors.white, size: 20),
@@ -351,7 +351,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
             final isMobile = constraints.maxWidth < 768;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(PageHeader.pagePadding),
+          padding: EdgeInsets.all(PageHeader.pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -369,10 +369,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
             elevation: 1,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppTheme.borderColor),
+              side: BorderSide(color: AppTheme.borderColor),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 children: [
                   Row(
@@ -383,10 +383,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         child: Container(
                           height: 54,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(color: AppTheme.borderColor),
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 4,
@@ -394,18 +394,18 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               ),
                             ],
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          padding: EdgeInsets.symmetric(horizontal: 18),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
-                              const SizedBox(width: 10),
+                              Icon(Icons.search, color: AppTheme.primaryBlue, size: 22),
+                              SizedBox(width: 10),
                               Expanded(
                                 child: TextField(
                                   controller: _searchController,
                                   onChanged: _onSearchChanged,
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                                  decoration: const InputDecoration(
+                                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                                  decoration: InputDecoration(
                                     hintText: 'Search patient by name, phone, or DOB...',
                                     hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                                     filled: false,
@@ -419,7 +419,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               ),
                               if (_searchController.text.isNotEmpty)
                                 IconButton(
-                                  icon: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                                  icon: Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
                                   tooltip: 'Clear search',
                                   onPressed: () {
                                     _searchController.clear();
@@ -430,12 +430,12 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16),
 
                       // View Toggle Buttons (Cards vs Table)
                       Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
@@ -459,11 +459,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
                   // Search Suggestions Dropdown / Quick Matches Box
                   if (_searchController.text.trim().isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
                       ),
@@ -475,11 +475,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.person_search, size: 16, color: AppTheme.primaryBlue),
-                                  const SizedBox(width: 6),
+                                  Icon(Icons.person_search, size: 16, color: AppTheme.primaryBlue),
+                                  SizedBox(width: 6),
                                   Text(
                                     'DATABASE RESULTS (${_patients.length} MATCHES)',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.8,
@@ -493,24 +493,24 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   _searchController.clear();
                                   _onSearchChanged('');
                                 },
-                                child: const Text('Clear', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+                                child: Text('Clear', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           if (_patients.isEmpty)
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              padding: EdgeInsets.symmetric(vertical: 6),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.info_outline, size: 16, color: Color(0xFFE11D48)),
-                                  const SizedBox(width: 8),
-                                  Text('No patient named "${_searchController.text}" found.', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                  const Spacer(),
+                                  Icon(Icons.info_outline, size: 16, color: Color(0xFFE11D48)),
+                                  SizedBox(width: 8),
+                                  Text('No patient named "${_searchController.text}" found.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                  Spacer(),
                                   TextButton.icon(
                                     onPressed: _openNewPatientModal,
-                                    icon: const Icon(Icons.add, size: 14),
-                                    label: const Text('Register New Patient', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    icon: Icon(Icons.add, size: 14),
+                                    label: Text('Register New Patient', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   ),
                                 ],
                               ),
@@ -521,7 +521,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                 onTap: () => widget.onSelectPatient(patient),
                                 borderRadius: BorderRadius.circular(8),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                                   child: Row(
                                     children: [
                                       CircleAvatar(
@@ -529,14 +529,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                         backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                         child: Text(
                                           patient.fullName.isNotEmpty ? patient.fullName[0].toUpperCase() : 'P',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                                         ),
                                       ),
-                                      const SizedBox(width: 10),
+                                      SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           '${patient.fullName} (${patient.mrn}) • ${patient.gender}, ${patient.age}y',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                                         ),
                                       ),
                                       OutlinedButton.icon(
@@ -547,13 +547,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                             widget.onSelectPatient(patient);
                                           }
                                         },
-                                        icon: const Icon(Icons.draw, size: 13),
-                                        label: const Text('Exam', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                        icon: Icon(Icons.draw, size: 13),
+                                        label: Text('Exam', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                         style: OutlinedButton.styleFrom(
                                           visualDensity: VisualDensity.compact,
-                                          side: const BorderSide(color: AppTheme.primaryBlue),
+                                          side: BorderSide(color: AppTheme.primaryBlue),
                                           foregroundColor: AppTheme.primaryBlue,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         ),
                                       ),
                                     ],
@@ -565,7 +565,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   // Filter Chips. A single Wrap, so on a narrow screen the pills drop to the
                   // next line instead of running past the card's edge. Full width so it
@@ -577,7 +577,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(right: 4),
                           child: Text('Quick Filters:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
                         ),
@@ -605,7 +605,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // Patients Display: Modern Grid Cards OR Table List
           _patients.isEmpty
@@ -614,9 +614,9 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   elevation: 1,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppTheme.borderColor),
+                    side: BorderSide(color: AppTheme.borderColor),
                   ),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(48),
                     child: Center(
                       child: Column(
@@ -653,7 +653,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
         final crossCount = math.max(1, (constraints.maxWidth / 420).floor());
         return GridView.builder(
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossCount,
             mainAxisExtent: 220,
@@ -670,10 +670,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: AppTheme.borderColor),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -685,79 +685,79 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           child: Text(
                             patient.fullName.isNotEmpty ? patient.fullName[0] : 'P',
-                            style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 patient.fullName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 '${patient.mrn} • ${patient.gender}, ${patient.age}y',
-                                style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${patient.totalVisits} Visits',
-                            style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
-                            const SizedBox(width: 4),
-                            Text(patient.phone, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
+                            SizedBox(width: 4),
+                            Text(patient.phone, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                           ],
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.history_outlined, size: 12, color: AppTheme.textSecondary),
-                            const SizedBox(width: 4),
-                            Text('Last: ${formatClinicalDate(patient.lastVisitDate)}', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            Icon(Icons.history_outlined, size: 12, color: AppTheme.textSecondary),
+                            SizedBox(width: 4),
+                            Text('Last: ${formatClinicalDate(patient.lastVisitDate)}', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                           ],
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
 
                     Row(
                       children: [
-                        const Icon(Icons.medical_information_outlined, size: 12, color: Color(0xFFD97706)),
-                        const SizedBox(width: 4),
+                        Icon(Icons.medical_information_outlined, size: 12, color: Color(0xFFD97706)),
+                        SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             hasDiagnosis ? patient.previousDiagnoses.first : 'No prior registered conditions',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFFD97706), fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 11, color: Color(0xFFD97706), fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     Row(
                       children: [
@@ -769,14 +769,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppTheme.primaryBlue,
-                              side: const BorderSide(color: AppTheme.borderColor),
-                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              side: BorderSide(color: AppTheme.borderColor),
+                              padding: EdgeInsets.symmetric(vertical: 9),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text('View History', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            child: Text('View History', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           flex: 5,
                           child: _buildPatientCardNewActionsButton(patient),
@@ -820,7 +820,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               title: 'New Prescription (Rx)',
               subtitle: 'Write digital prescription for ${patient.fullName}',
               icon: Icons.medication_rounded,
-              color: const Color(0xFF0284C7),
+              color: Color(0xFF0284C7),
               onTap: () {
                 if (widget.onOpenPrescription != null) {
                   widget.onOpenPrescription!(patient);
@@ -834,12 +834,12 @@ class _PatientsScreenState extends State<PatientsScreen> {
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: AppTheme.primaryBlue,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add, color: Colors.white, size: 15),
@@ -861,32 +861,32 @@ class _PatientsScreenState extends State<PatientsScreen> {
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.borderColor),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Total Patient Records (${_patients.length})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
                 ),
-                const Text('Click "View Profile" to open clinical profile', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                Text('Click "View Profile" to open clinical profile', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ],
             ),
           ),
-          const Divider(height: 1, color: AppTheme.borderColor),
+          Divider(height: 1, color: AppTheme.borderColor),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+              headingRowColor: WidgetStateProperty.all(Color(0xFFF8FAFC)),
               horizontalMargin: 20,
               columnSpacing: 24,
-              columns: const [
+              columns: [
                 DataColumn(label: Text('Patient Name', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Patient ID (MRN)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Age / Sex', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
@@ -906,26 +906,26 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             child: Text(
                               patient.fullName.substring(0, 1),
-                              style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
+                              style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Text(patient.fullName, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                          SizedBox(width: 10),
+                          Text(patient.fullName, style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
                         ],
                       ),
                     ),
-                    DataCell(Text(patient.mrn, style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500))),
-                    DataCell(Text('${patient.age}y / ${patient.gender}', style: const TextStyle(color: AppTheme.textPrimary))),
-                    DataCell(Text(patient.phone, style: const TextStyle(color: AppTheme.textSecondary))),
-                    DataCell(Text(formatClinicalDate(patient.lastVisitDate), style: const TextStyle(color: AppTheme.textPrimary))),
+                    DataCell(Text(patient.mrn, style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500))),
+                    DataCell(Text('${patient.age}y / ${patient.gender}', style: TextStyle(color: AppTheme.textPrimary))),
+                    DataCell(Text(patient.phone, style: TextStyle(color: AppTheme.textSecondary))),
+                    DataCell(Text(formatClinicalDate(patient.lastVisitDate), style: TextStyle(color: AppTheme.textPrimary))),
                     DataCell(
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('${patient.totalVisits} Visits', style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: Text('${patient.totalVisits} Visits', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11)),
                       ),
                     ),
                     DataCell(
@@ -936,11 +936,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryBlue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('View Profile', style: TextStyle(fontSize: 12)),
+                        child: Text('View Profile', style: TextStyle(fontSize: 12)),
                       ),
                     ),
                   ],

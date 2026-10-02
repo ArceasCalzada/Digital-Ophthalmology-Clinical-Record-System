@@ -129,9 +129,9 @@ class _NewPatientModalState extends State<NewPatientModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFDC2626),
+        backgroundColor: Color(0xFFDC2626),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 6),
+        duration: Duration(seconds: 6),
       ),
     );
   }
@@ -158,7 +158,7 @@ class _NewPatientModalState extends State<NewPatientModal> {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.person_add_alt_1, color: AppTheme.primaryBlue),
               SizedBox(width: 8),
@@ -166,7 +166,7 @@ class _NewPatientModalState extends State<NewPatientModal> {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+            icon: Icon(Icons.close, color: AppTheme.textSecondary),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -187,46 +187,46 @@ class _NewPatientModalState extends State<NewPatientModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FieldLabel('First Name', required: true, fontSize: 12),
-                          const SizedBox(height: 6),
+                          FieldLabel('First Name', required: true, fontSize: 12),
+                          SizedBox(height: 6),
                           RequiredTextFormField(
                             controller: _firstNameController,
-                            decoration: const InputDecoration(hintText: 'e.g. Elena'),
+                            decoration: InputDecoration(hintText: 'e.g. Elena'),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FieldLabel('Middle Name', fontSize: 12),
-                          const SizedBox(height: 6),
+                          FieldLabel('Middle Name', fontSize: 12),
+                          SizedBox(height: 6),
                           TextFormField(
                             controller: _middleNameController,
-                            decoration: const InputDecoration(hintText: 'e.g. Marie'),
+                            decoration: InputDecoration(hintText: 'e.g. Marie'),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FieldLabel('Last Name', required: true, fontSize: 12),
-                          const SizedBox(height: 6),
+                          FieldLabel('Last Name', required: true, fontSize: 12),
+                          SizedBox(height: 6),
                           RequiredTextFormField(
                             controller: _lastNameController,
-                            decoration: const InputDecoration(hintText: 'e.g. Rostova'),
+                            decoration: InputDecoration(hintText: 'e.g. Rostova'),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
                 Row(
                   children: [
@@ -234,15 +234,15 @@ class _NewPatientModalState extends State<NewPatientModal> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FieldLabel('Date of Birth', required: true, fontSize: 12),
-                          const SizedBox(height: 6),
+                          FieldLabel('Date of Birth', required: true, fontSize: 12),
+                          SizedBox(height: 6),
                           RequiredTextFormField(
                             controller: _dobController,
                             onChanged: (_) => setState(() {}), // keeps the age line below current
                             decoration: InputDecoration(
                               hintText: 'Jun 15, 1985',
                               suffixIcon: IconButton(
-                                icon: const Icon(Icons.calendar_month_outlined, size: 20, color: AppTheme.primaryBlue),
+                                icon: Icon(Icons.calendar_month_outlined, size: 20, color: AppTheme.primaryBlue),
                                 tooltip: 'Select Date of Birth from Calendar',
                                 onPressed: _selectDob,
                               ),
@@ -257,22 +257,22 @@ class _NewPatientModalState extends State<NewPatientModal> {
                           // The age that goes with the birthday, so a wrong date is easy to spot.
                           if (formatAge(_dobController.text) != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 2),
+                              padding: EdgeInsets.only(top: 6, left: 2),
                               child: Text(
                                 'Age: ${formatAge(_dobController.text)}',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
                               ),
                             ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FieldLabel('Sex / Gender', required: true, fontSize: 12),
-                          const SizedBox(height: 6),
+                          FieldLabel('Sex / Gender', required: true, fontSize: 12),
+                          SizedBox(height: 6),
                           ShakeWidget(
                             key: _genderShake,
                             child: FormField<String>(
@@ -285,7 +285,7 @@ class _NewPatientModalState extends State<NewPatientModal> {
                                 placeholder: 'Select gender',
                                 value: _gender,
                                 invalid: field.hasError,
-                                items: const [
+                                items: [
                                   ClinicalPickerItem(value: 'Male', label: 'Male'),
                                   ClinicalPickerItem(value: 'Female', label: 'Female'),
                                   ClinicalPickerItem(value: 'Other', label: 'Other'),
@@ -302,48 +302,48 @@ class _NewPatientModalState extends State<NewPatientModal> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
-                const Text('Contact Phone Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
+                Text('Contact Phone Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                SizedBox(height: 6),
                 TextFormField(
                   controller: _phoneController,
-                  decoration: const InputDecoration(hintText: '+63 917 123 4567'),
+                  decoration: InputDecoration(hintText: '+63 917 123 4567'),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
-                const Text('Residential Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
+                Text('Residential Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                SizedBox(height: 6),
                 TextFormField(
                   controller: _addressController,
-                  decoration: const InputDecoration(hintText: 'Street Address, City, Province'),
+                  decoration: InputDecoration(hintText: 'Street Address, City, Province'),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
-                const Text('Relevant Medical History (comma separated)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
+                Text('Relevant Medical History (comma separated)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                SizedBox(height: 6),
                 TextFormField(
                   controller: _medHistoryController,
-                  decoration: const InputDecoration(hintText: 'e.g. Type 2 Diabetes, Glaucoma Family History'),
+                  decoration: InputDecoration(hintText: 'e.g. Type 2 Diabetes, Glaucoma Family History'),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
-                const Text('Allergies (comma separated)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                const SizedBox(height: 6),
+                Text('Allergies (comma separated)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                SizedBox(height: 6),
                 TextFormField(
                   controller: _allergiesController,
-                  decoration: const InputDecoration(hintText: 'e.g. Sulfa, Latex, Penicillin'),
+                  decoration: InputDecoration(hintText: 'e.g. Sulfa, Latex, Penicillin'),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
 
-                const FieldLabel('Notes', fontSize: 12),
-                const SizedBox(height: 6),
+                FieldLabel('Notes', fontSize: 12),
+                SizedBox(height: 6),
                 TextFormField(
                   controller: _notesController,
                   minLines: 3,
                   maxLines: 5,
                   maxLength: AppLimits.maxNotesLength,
-                  decoration: const InputDecoration(hintText: 'Anything else worth knowing about this patient'),
+                  decoration: InputDecoration(hintText: 'Anything else worth knowing about this patient'),
                 ),
               ],
             ),
@@ -353,12 +353,12 @@ class _NewPatientModalState extends State<NewPatientModal> {
       actions: [
         OutlinedButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text('Cancel'),
         ),
         ElevatedButton.icon(
           onPressed: _submit,
-          icon: const Icon(Icons.check, size: 18),
-          label: const Text('Register Patient'),
+          icon: Icon(Icons.check, size: 18),
+          label: Text('Register Patient'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryBlue,
             foregroundColor: Colors.white,
@@ -379,26 +379,26 @@ void showPatientCreatedSuccessModal({
     context: context,
     builder: (ctx) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      titlePadding: EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: EdgeInsets.fromLTRB(24, 0, 24, 20),
       title: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+              color: Color(0xFF10B981).withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 42),
+            child: Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 42),
           ),
-          const SizedBox(height: 14),
-          const Text(
+          SizedBox(height: 14),
+          Text(
             'Patient Registered Successfully!',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          const Text(
+          SizedBox(height: 4),
+          Text(
             'Record saved locally & queued for Cloud Firestore sync.',
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             textAlign: TextAlign.center,
@@ -411,9 +411,9 @@ void showPatientCreatedSuccessModal({
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.borderColor),
               ),
@@ -425,30 +425,30 @@ void showPatientCreatedSuccessModal({
                     children: [
                       Text(
                         patient.fullName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           patient.mrn,
-                          style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
+                          style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text('Gender & Age: ${patient.gender}, ${patient.age} years old', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  Text('Registered: ${formatRegistrationDate(patient.createdAt)}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
-                  Text('Contact Phone: ${patient.phone}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  Text('Address: ${patient.address}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  SizedBox(height: 6),
+                  Text('Gender & Age: ${patient.gender}, ${patient.age} years old', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Registered: ${formatRegistrationDate(patient.createdAt)}', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+                  Text('Contact Phone: ${patient.phone}', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text('Address: ${patient.address}', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -457,28 +457,28 @@ void showPatientCreatedSuccessModal({
                       Navigator.pop(ctx);
                       onStartExam();
                     },
-                    icon: const Icon(Icons.draw_rounded, size: 16),
-                    label: const Text('Start Exam', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: Icon(Icons.draw_rounded, size: 16),
+                    label: Text('Start Exam', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primaryBlue,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(ctx);
                       onViewProfile();
                     },
-                    icon: const Icon(Icons.folder_shared_rounded, size: 16),
-                    label: const Text('View Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: Icon(Icons.folder_shared_rounded, size: 16),
+                    label: Text('View Record', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),

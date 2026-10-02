@@ -39,16 +39,16 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-          const SizedBox(height: 4),
-          const Text('Your account, doctor profile and clinic information.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-          const SizedBox(height: 20),
+          Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+          SizedBox(height: 4),
+          Text('Your account, doctor profile and clinic information.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+          SizedBox(height: 20),
           _buildAccountCard(),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -57,7 +57,7 @@ class _ProfileViewState extends State<ProfileView> {
               _tabChip(_ProfileTab.clinic, 'Clinic Information', Icons.local_hospital_outlined),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           if (_tab == _ProfileTab.doctor) _buildDoctorProfile() else _buildClinicInfo(),
         ],
       ),
@@ -91,20 +91,20 @@ class _ProfileViewState extends State<ProfileView> {
             backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
             child: Text(
               ProfileStore.initialsOf(name),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name.isEmpty ? 'Unnamed user' : name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                if (auth.email case final email?) Text(email, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                const SizedBox(height: 4),
+                Text(name.isEmpty ? 'Unnamed user' : name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                if (auth.email case final email?) Text(email, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                SizedBox(height: 4),
                 Text(
                   [?role, if (ClinicStore.instance.active case final clinic?) '${clinic.name} (${clinic.role.label})'].join('  •  '),
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
                 ),
               ],
             ),
@@ -119,7 +119,7 @@ class _ProfileViewState extends State<ProfileView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader('Doctor Profile', 'Manage your personal and professional information.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Profile Photo',
           child: Row(
@@ -129,10 +129,10 @@ class _ProfileViewState extends State<ProfileView> {
                 backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 child: Text(
                   ProfileStore.initialsOf(_store.doctorName.text),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                 ),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,22 +142,22 @@ class _ProfileViewState extends State<ProfileView> {
                       runSpacing: 8,
                       children: [
                         ElevatedButton.icon(
-                          icon: const Icon(Icons.upload, size: 16),
-                          label: const Text('Change Photo'),
+                          icon: Icon(Icons.upload, size: 16),
+                          label: Text('Change Photo'),
                           onPressed: () => _showSaveFeedback('Photo updated successfully.'),
                         ),
-                        OutlinedButton(onPressed: () {}, child: const Text('Remove')),
+                        OutlinedButton(onPressed: () {}, child: Text('Remove')),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text('JPG, PNG or GIF. Max file size 2MB.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                    SizedBox(height: 6),
+                    Text('JPG, PNG or GIF. Max file size 2MB.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Personal Information',
           child: Column(
@@ -166,14 +166,14 @@ class _ProfileViewState extends State<ProfileView> {
                 _field('Full Name', _store.doctorName, Icons.person_outline),
                 _field('Email Address', _store.doctorEmail, Icons.email_outlined),
               ]),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _responsiveRow([
                 _field('Contact Number', _store.doctorPhone, Icons.phone_outlined),
               ]),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Professional Information',
           child: Column(
@@ -182,14 +182,14 @@ class _ProfileViewState extends State<ProfileView> {
                 _field('Professional Title', _store.doctorTitle, Icons.badge_outlined),
                 _field('Specialization', _store.specialization, Icons.medical_services_outlined),
               ]),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _responsiveRow([
                 _field('License Number', _store.license, Icons.assignment_ind_outlined),
               ]),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         _actionButtons(onSave: () => _save('Doctor profile changes saved successfully.')),
       ],
     );
@@ -200,7 +200,7 @@ class _ProfileViewState extends State<ProfileView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionHeader('Clinic Information', 'Manage the clinic details displayed on prescriptions and documents.'),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Clinic Branding',
           child: Column(
@@ -216,37 +216,37 @@ class _ProfileViewState extends State<ProfileView> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
                     ),
-                    child: const Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
+                    child: Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
                   ),
-                  const SizedBox(width: 20),
+                  SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ElevatedButton.icon(
-                          icon: const Icon(Icons.cloud_upload_outlined, size: 16),
-                          label: const Text('Upload Logo'),
+                          icon: Icon(Icons.cloud_upload_outlined, size: 16),
+                          label: Text('Upload Logo'),
                           onPressed: () => _showSaveFeedback('Clinic logo uploaded.'),
                         ),
-                        const SizedBox(height: 6),
-                        const Text('Recommended: 300x300 PNG with transparent background.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        SizedBox(height: 6),
+                        Text('Recommended: 300x300 PNG with transparent background.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _field('Clinic Name', _store.clinicName, Icons.local_hospital_outlined),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Contact Information',
           child: Column(
             children: [
               _field('Clinic Address', _store.clinicAddress, Icons.location_on_outlined),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _responsiveRow([
                 _field('Contact Number', _store.clinicPhone, Icons.phone_outlined),
                 _field('Email Address', _store.clinicEmail, Icons.email_outlined),
@@ -254,38 +254,38 @@ class _ProfileViewState extends State<ProfileView> {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Optional Information',
           child: _responsiveRow([
             _field('Clinic Website', _store.clinicWebsite, Icons.language_outlined),
-            const SizedBox.shrink(),
+            SizedBox.shrink(),
           ]),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
         _card(
           title: 'Prescription Header Live Preview',
           child: ListenableBuilder(
             listenable: Listenable.merge([_store.clinicName, _store.clinicAddress, _store.clinicPhone, _store.clinicEmail]),
             builder: (context, _) => Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.borderColor),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
-                  const SizedBox(width: 14),
+                  Icon(Icons.remove_red_eye_rounded, size: 36, color: AppTheme.primaryBlue),
+                  SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_store.clinicName.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryBlue)),
-                        const SizedBox(height: 2),
-                        Text(_store.clinicAddress.text, style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
-                        Text('Tel: ${_store.clinicPhone.text} • Email: ${_store.clinicEmail.text}', style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                        Text(_store.clinicName.text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryBlue)),
+                        SizedBox(height: 2),
+                        Text(_store.clinicAddress.text, style: TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
+                        Text('Tel: ${_store.clinicPhone.text} • Email: ${_store.clinicEmail.text}', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
                       ],
                     ),
                   ),
@@ -294,7 +294,7 @@ class _ProfileViewState extends State<ProfileView> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24),
         _actionButtons(onSave: () => _save('Clinic information updated successfully.')),
       ],
     );
@@ -306,9 +306,9 @@ class _ProfileViewState extends State<ProfileView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-        const SizedBox(height: 4),
-        Text(subtitle, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+        SizedBox(height: 4),
+        Text(subtitle, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
       ],
     );
   }
@@ -320,15 +320,15 @@ class _ProfileViewState extends State<ProfileView> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.borderColor),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-            const SizedBox(height: 16),
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            SizedBox(height: 16),
             child,
           ],
         ),
@@ -343,7 +343,7 @@ class _ProfileViewState extends State<ProfileView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final c in children)
-            if (c is! SizedBox) Padding(padding: const EdgeInsets.only(bottom: 12), child: c),
+            if (c is! SizedBox) Padding(padding: EdgeInsets.only(bottom: 12), child: c),
         ],
       );
     }
@@ -351,7 +351,7 @@ class _ProfileViewState extends State<ProfileView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(width: 16),
+          if (i > 0) SizedBox(width: 16),
           Expanded(child: children[i]),
         ],
       ],
@@ -362,14 +362,14 @@ class _ProfileViewState extends State<ProfileView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, size: 18, color: AppTheme.primaryBlue),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],
@@ -380,8 +380,8 @@ class _ProfileViewState extends State<ProfileView> {
     return Row(
       children: [
         ElevatedButton.icon(
-          icon: const Icon(Icons.save_outlined, size: 16),
-          label: const Text('Save Changes'),
+          icon: Icon(Icons.save_outlined, size: 16),
+          label: Text('Save Changes'),
           onPressed: onSave,
         ),
       ],

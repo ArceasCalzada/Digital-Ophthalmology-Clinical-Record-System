@@ -42,7 +42,7 @@ class AddEventModal extends StatefulWidget {
         builder: (ctx) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+            constraints: BoxConstraints(maxWidth: 520),
             child: AddEventModal(initialDate: initialDate, event: event),
           ),
         ),
@@ -90,7 +90,7 @@ class _AddEventModalState extends State<AddEventModal> {
       return;
     }
     _selectedDate = widget.initialDate ?? DateTime.now();
-    _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 1)));
+    _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(Duration(hours: 1)));
     if (patients.isNotEmpty) {
       _selectedPatient = patients.first;
     }
@@ -107,7 +107,7 @@ class _AddEventModalState extends State<AddEventModal> {
   /// An event saved with a name that has since been deleted still shows it when edited.
   List<ClinicalPickerItem<String>> _choices(List<String> saved, String? selected) {
     return [
-      const ClinicalPickerItem<String>(value: '', label: 'None', removable: false),
+      ClinicalPickerItem<String>(value: '', label: 'None', removable: false),
       for (final name in saved) ClinicalPickerItem<String>(value: name, label: name),
       if (selected != null && !saved.contains(selected))
         ClinicalPickerItem<String>(value: selected, label: selected, removable: false),
@@ -216,11 +216,11 @@ class _AddEventModalState extends State<AddEventModal> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: isMobile
-            ? const BorderRadius.vertical(top: Radius.circular(24))
+            ? BorderRadius.vertical(top: Radius.circular(24))
             : BorderRadius.circular(20),
       ),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Form(
           key: _formKey,
           child: Column(
@@ -233,7 +233,7 @@ class _AddEventModalState extends State<AddEventModal> {
                   child: Container(
                     width: 40,
                     height: 5,
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
                       color: AppTheme.borderColor,
                       borderRadius: BorderRadius.circular(10),
@@ -254,7 +254,7 @@ class _AddEventModalState extends State<AddEventModal> {
                             children: [
                               Text(
                                 widget.event != null ? 'Edit Clinical Event' : 'Add Clinical Event',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.textPrimary,
@@ -265,7 +265,7 @@ class _AddEventModalState extends State<AddEventModal> {
                                 widget.event != null
                                     ? 'Modify appointment or procedure'
                                     : 'Schedule appointment or procedure',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -275,27 +275,27 @@ class _AddEventModalState extends State<AddEventModal> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                    icon: Icon(Icons.close, color: AppTheme.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
 
               // Event Title Field
-              const FieldLabel('Event Title', required: true),
-              const SizedBox(height: 6),
+              FieldLabel('Event Title', required: true),
+              SizedBox(height: 6),
               RequiredTextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'e.g. Glaucoma Consultation & IOP Check',
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Patient: a dropdown with a search box (there can be hundreds of patients)
               ClinicalDropdownField<Patient>(
-                label: const FieldLabel('Patient Name'),
+                label: FieldLabel('Patient Name'),
                 placeholder: 'Select patient...',
                 value: _selectedPatient,
                 displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : null,
@@ -311,7 +311,7 @@ class _AddEventModalState extends State<AddEventModal> {
                 ],
                 onChanged: (patient) => setState(() => _selectedPatient = patient),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Event Type & Location (Row on wider screens, stacked on narrow mobile)
               ListenableBuilder(
@@ -321,7 +321,7 @@ class _AddEventModalState extends State<AddEventModal> {
                   final isNarrow = constraints.maxWidth < 360;
                   // The clinic's own lists can be added to and deleted from right in the dropdown.
                   final typeField = ClinicalDropdownField<String>(
-                    label: const FieldLabel('Event Type'),
+                    label: FieldLabel('Event Type'),
                     placeholder: 'None',
                     value: _selectedEventType,
                     items: _choices(_options.types, _selectedEventType),
@@ -336,7 +336,7 @@ class _AddEventModalState extends State<AddEventModal> {
                   );
 
                   final locationField = ClinicalDropdownField<String>(
-                    label: const FieldLabel('Location'),
+                    label: FieldLabel('Location'),
                     placeholder: 'None',
                     value: _selectedLocation,
                     items: _choices(_options.locations, _selectedLocation),
@@ -354,7 +354,7 @@ class _AddEventModalState extends State<AddEventModal> {
                     return Column(
                       children: [
                         typeField,
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         locationField,
                       ],
                     );
@@ -364,18 +364,18 @@ class _AddEventModalState extends State<AddEventModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: typeField),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(child: locationField),
                     ],
                   );
                 },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Date & Time Touch Pickers
-              const FieldLabel('Schedule Date & Time', required: true),
-              const SizedBox(height: 6),
+              FieldLabel('Schedule Date & Time', required: true),
+              SizedBox(height: 6),
               Row(
                 children: [
                   Expanded(
@@ -383,20 +383,20 @@ class _AddEventModalState extends State<AddEventModal> {
                       onTap: _pickDate,
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_rounded, size: 18, color: AppTheme.primaryBlue),
-                            const SizedBox(width: 10),
+                            Icon(Icons.calendar_today_rounded, size: 18, color: AppTheme.primaryBlue),
+                            SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.textPrimary,
@@ -408,26 +408,26 @@ class _AddEventModalState extends State<AddEventModal> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
                       onTap: _pickTime,
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.access_time_rounded, size: 18, color: AppTheme.primaryBlue),
-                            const SizedBox(width: 10),
+                            Icon(Icons.access_time_rounded, size: 18, color: AppTheme.primaryBlue),
+                            SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 _selectedTime.format(context),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.textPrimary,
@@ -441,11 +441,11 @@ class _AddEventModalState extends State<AddEventModal> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
 
               // Notes Input
-              const Text(
+              Text(
                 'Clinical Notes / Reason for Visit',
                 style: TextStyle(
                   fontSize: 13,
@@ -453,25 +453,25 @@ class _AddEventModalState extends State<AddEventModal> {
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               TextFormField(
                 controller: _notesController,
                 maxLines: 2,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Add clinical instructions or special equipment requests...',
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Save Action Button
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _saveEvent,
-                  icon: const Icon(Icons.check_rounded, size: 22),
+                  icon: Icon(Icons.check_rounded, size: 22),
                   label: Text(
                     widget.event != null ? 'Save Changes' : 'Confirm & Save Event',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,

@@ -44,13 +44,13 @@ class SyncStatusIndicator extends StatelessWidget {
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isOffline
-                          ? const Color(0xFFD97706).withValues(alpha: 0.1)
+                          ? Color(0xFFD97706).withValues(alpha: 0.1)
                           : (isSyncing
                               ? AppTheme.primaryBlue.withValues(alpha: 0.1)
-                              : const Color(0xFF10B981).withValues(alpha: 0.1)),
+                              : Color(0xFF10B981).withValues(alpha: 0.1)),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -58,13 +58,13 @@ class SyncStatusIndicator extends StatelessWidget {
                           ? Icons.wifi_off_rounded
                           : (isSyncing ? Icons.sync_rounded : Icons.cloud_done_rounded),
                       color: isOffline
-                          ? const Color(0xFFD97706)
-                          : (isSyncing ? AppTheme.primaryBlue : const Color(0xFF10B981)),
+                          ? Color(0xFFD97706)
+                          : (isSyncing ? AppTheme.primaryBlue : Color(0xFF10B981)),
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  const Expanded(
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Text(
                       'Offline-First & Cloud Sync',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -78,9 +78,9 @@ class SyncStatusIndicator extends StatelessWidget {
                 children: [
                   // Status Summary Card
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
@@ -90,14 +90,14 @@ class SyncStatusIndicator extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Connectivity State:',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: isOffline ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
+                                color: isOffline ? Color(0xFFFEF3C7) : Color(0xFFD1FAE5),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -105,37 +105,37 @@ class SyncStatusIndicator extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isOffline ? const Color(0xFFB45309) : const Color(0xFF047857),
+                                  color: isOffline ? Color(0xFFB45309) : Color(0xFF047857),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Pending Queue:',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                             ),
                             Text(
                               '$pendingCount mutations',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Last Synced:',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                             ),
                             Text(
                               lastSyncedText,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                             ),
                           ],
                         ),
@@ -143,36 +143,36 @@ class SyncStatusIndicator extends StatelessWidget {
                     ),
                   ),
                   if (syncService.failedMutations.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEF2F2),
+                        color: Color(0xFFFEF2F2),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                        border: Border.all(color: Color(0xFFFCA5A5)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${syncService.failedMutations.length} change(s) were NOT saved to the cloud',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             syncService.lastError ?? 'The server rejected the change.',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+                            style: TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Row(
                             children: [
                               TextButton(
                                 onPressed: syncService.retryFailed,
-                                child: const Text('Retry'),
+                                child: Text('Retry'),
                               ),
                               TextButton(
                                 onPressed: syncService.discardFailed,
-                                child: const Text('Discard'),
+                                child: Text('Discard'),
                               ),
                             ],
                           ),
@@ -180,26 +180,26 @@ class SyncStatusIndicator extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
 
-                  const Text(
+                  Text(
                     'Local-First Guarantee',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     'All reads and writes execute locally first without blocking on network requests. Changes saved offline are queued and auto-synced when online.',
                     style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
 
                   // Toggle Network Connection Switch (for offline testing)
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Simulate Network Connection', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    title: Text('Simulate Network Connection', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     subtitle: Text(
                       isOffline ? 'Currently Offline (Saving locally)' : 'Currently Online (Background sync active)',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                     ),
                     value: !isOffline,
                     activeTrackColor: AppTheme.primaryBlue,
@@ -212,7 +212,7 @@ class SyncStatusIndicator extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: Text('Close'),
                 ),
                 ElevatedButton.icon(
                   onPressed: isSyncing
@@ -221,13 +221,13 @@ class SyncStatusIndicator extends StatelessWidget {
                           await syncService.syncNow();
                         },
                   icon: isSyncing
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.sync_rounded, size: 16),
-                  label: Text(isSyncing ? 'Syncing...' : 'Sync Now', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      : Icon(Icons.sync_rounded, size: 16),
+                  label: Text(isSyncing ? 'Syncing...' : 'Sync Now', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
@@ -263,15 +263,15 @@ class SyncStatusIndicator extends StatelessWidget {
           badgeIcon = Icons.sync_rounded;
           statusLabel = 'Syncing...';
         } else if (syncService.failedMutations.isNotEmpty) {
-          badgeColor = const Color(0xFFDC2626);
+          badgeColor = Color(0xFFDC2626);
           badgeIcon = Icons.error_outline_rounded;
           statusLabel = 'Not saved (${syncService.failedMutations.length})';
         } else if (isOffline) {
-          badgeColor = const Color(0xFFD97706);
+          badgeColor = Color(0xFFD97706);
           badgeIcon = Icons.wifi_off_rounded;
           statusLabel = pendingCount > 0 ? 'Offline ($pendingCount saved)' : 'Offline (Saved locally)';
         } else {
-          badgeColor = const Color(0xFF10B981);
+          badgeColor = Color(0xFF10B981);
           badgeIcon = Icons.cloud_done_rounded;
           statusLabel = 'Up to date';
         }
@@ -309,7 +309,7 @@ class SyncStatusIndicator extends StatelessWidget {
                   else
                     Icon(badgeIcon, size: 14, color: badgeColor),
                   if (!iconOnly) ...[
-                    const SizedBox(width: 5),
+                    SizedBox(width: 5),
                     Text(
                       statusLabel,
                       style: TextStyle(

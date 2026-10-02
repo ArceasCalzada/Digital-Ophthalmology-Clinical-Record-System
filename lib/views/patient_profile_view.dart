@@ -105,11 +105,11 @@ class _PatientProfileViewState extends State<PatientProfileView> {
           backgroundColor: AppTheme.cardBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.borderColor),
+            side: BorderSide(color: AppTheme.borderColor),
           ),
           child: Container(
             width: 720,
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,26 +122,26 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                       children: [
                         Text(
                           'Examination Vector Drawing — ${encounter.date}',
-                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        Text('Patient: ${_patient.fullName} (${_patient.mrn})', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        Text('Patient: ${_patient.fullName} (${_patient.mrn})', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                      icon: Icon(Icons.close, color: AppTheme.textSecondary),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const Divider(color: AppTheme.borderColor),
-                const SizedBox(height: 12),
+                Divider(color: AppTheme.borderColor),
+                SizedBox(height: 12),
 
                 // Display OD / OS Drawings Side by Side or Tabs
                 DefaultTabController(
                   length: 2,
                   child: Column(
                     children: [
-                      const TabBar(
+                      TabBar(
                         tabs: [
                           Tab(text: 'Right Eye (OD) Drawing'),
                           Tab(text: 'Left Eye (OS) Drawing'),
@@ -149,7 +149,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                         indicatorColor: AppTheme.primaryBlue,
                         labelColor: AppTheme.primaryBlue,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       SizedBox(
                         height: 520,
                         child: TabBarView(
@@ -161,7 +161,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                     drawingData: encounter.drawingOD,
                                     onDrawingSaved: (_) {},
                                   )
-                                : const Center(child: Text('No drawing recorded for OD.', style: TextStyle(color: AppTheme.textSecondary))),
+                                : Center(child: Text('No drawing recorded for OD.', style: TextStyle(color: AppTheme.textSecondary))),
                             encounter.drawingOS != null
                                 ? EyeDrawingCanvas(
                                     eye: EyeType.OS,
@@ -169,7 +169,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                     drawingData: encounter.drawingOS,
                                     onDrawingSaved: (_) {},
                                   )
-                                : const Center(child: Text('No drawing recorded for OS.', style: TextStyle(color: AppTheme.textSecondary))),
+                                : Center(child: Text('No drawing recorded for OS.', style: TextStyle(color: AppTheme.textSecondary))),
                           ],
                         ),
                       ),
@@ -198,18 +198,18 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     if (_patientNullable == null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person_off_outlined, size: 48, color: AppTheme.textSecondary),
-              const SizedBox(height: 12),
-              const Text('Patient Record Not Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-              const SizedBox(height: 12),
+              Icon(Icons.person_off_outlined, size: 48, color: AppTheme.textSecondary),
+              SizedBox(height: 12),
+              Text('Patient Record Not Found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back, size: 16),
-                label: const Text('Back to Patient Directory'),
+                icon: Icon(Icons.arrow_back, size: 16),
+                label: Text('Back to Patient Directory'),
               ),
             ],
           ),
@@ -234,7 +234,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   elevation: 1,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppTheme.borderColor),
+                    side: BorderSide(color: AppTheme.borderColor),
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(isMobile ? 14 : 20),
@@ -246,10 +246,10 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                               children: [
                                 if (widget.onBack != null) ...[
                                   IconButton(
-                                    icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                                     onPressed: widget.onBack,
                                   ),
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: 4),
                                 ],
                                 CircleAvatar(
                                   radius: isMobile ? 20 : 26,
@@ -259,7 +259,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                     style: TextStyle(fontSize: isMobile ? 16 : 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,29 +271,29 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                         children: [
                                           Text(_patient.fullName, style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                             decoration: BoxDecoration(
                                               color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               _patient.mrn,
-                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontFamily: 'monospace'),
+                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontFamily: 'monospace'),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 2),
+                                      SizedBox(height: 2),
                                       Text(
                                         '${_patient.gender}, ${_patient.age}y  •  DOB: ${formatClinicalDate(_patient.dateOfBirth)}',
-                                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
-                            if (isMobile) const SizedBox(height: 14),
+                            if (isMobile) SizedBox(height: 14),
                             Row(
                               mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.end,
                               children: [
@@ -307,19 +307,19 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                         ),
                                       );
                                     },
-                                    icon: const Icon(Icons.compare, size: 14),
-                                    label: const Text('Compare', style: TextStyle(fontSize: 12)),
+                                    icon: Icon(Icons.compare, size: 14),
+                                    label: Text('Compare', style: TextStyle(fontSize: 12)),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppTheme.primaryBlue,
-                                      side: const BorderSide(color: AppTheme.borderColor),
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      side: BorderSide(color: AppTheme.borderColor),
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     ),
                                   ),
-                                if (_patient.encounters.length >= 2) const SizedBox(width: 10),
+                                if (_patient.encounters.length >= 2) SizedBox(width: 10),
                                 ElevatedButton.icon(
                                   onPressed: _startNewExamination,
-                                  icon: const Icon(Icons.draw, size: 14),
-                                  label: const Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  icon: Icon(Icons.draw, size: 14),
+                                  label: Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppTheme.primaryBlue,
                                     foregroundColor: Colors.white,
@@ -339,20 +339,20 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                 children: [
                                   if (widget.onBack != null) ...[
                                     IconButton(
-                                      icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                                       onPressed: widget.onBack,
                                     ),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                   ],
                                   CircleAvatar(
                                     radius: 26,
                                     backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                     child: Text(
                                       _patient.fullName.isNotEmpty ? _patient.fullName.substring(0, 1) : 'P',
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,24 +362,24 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                           spacing: 8,
                                           runSpacing: 4,
                                           children: [
-                                            Text(_patient.fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                                            Text(_patient.fullName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                               decoration: BoxDecoration(
                                                 color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
                                                 _patient.mrn,
-                                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontFamily: 'monospace'),
+                                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue, fontFamily: 'monospace'),
                                               ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 2),
+                                        SizedBox(height: 2),
                                         Text(
                                           '${_patient.gender}, ${_patient.age}y  •  DOB: ${formatClinicalDate(_patient.dateOfBirth)}',
-                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -387,7 +387,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            SizedBox(width: 16),
                             Row(
                               children: [
                                 if (_patient.encounters.length >= 2) ...[
@@ -400,24 +400,24 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                                         ),
                                       );
                                     },
-                                    icon: const Icon(Icons.compare, size: 14),
-                                    label: const Text('Compare', style: TextStyle(fontSize: 12)),
+                                    icon: Icon(Icons.compare, size: 14),
+                                    label: Text('Compare', style: TextStyle(fontSize: 12)),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppTheme.primaryBlue,
-                                      side: const BorderSide(color: AppTheme.borderColor),
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      side: BorderSide(color: AppTheme.borderColor),
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  SizedBox(width: 10),
                                 ],
                                 ElevatedButton.icon(
                                   onPressed: _startNewExamination,
-                                  icon: const Icon(Icons.draw, size: 14),
-                                  label: const Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  icon: Icon(Icons.draw, size: 14),
+                                  label: Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppTheme.primaryBlue,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                                   ),
                                 ),
                               ],
@@ -426,7 +426,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                         ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
             // Profile Tabs: Overview | Examination History | Prescriptions
             Card(
@@ -434,11 +434,11 @@ class _PatientProfileViewState extends State<PatientProfileView> {
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppTheme.borderColor),
+                side: BorderSide(color: AppTheme.borderColor),
               ),
               child: Column(
                 children: [
-                  const TabBar(
+                  TabBar(
                     tabs: [
                       Tab(text: 'Overview'),
                       Tab(text: 'Examination History'),
@@ -448,7 +448,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                     labelColor: AppTheme.primaryBlue,
                     unselectedLabelColor: AppTheme.textSecondary,
                   ),
-                  const Divider(height: 1, color: AppTheme.borderColor),
+                  Divider(height: 1, color: AppTheme.borderColor),
                   SizedBox(
                     height: 580,
                     child: TabBarView(
@@ -477,7 +477,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   Widget _buildOverviewTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -488,17 +488,17 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Demographics & Contact Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 12),
-                    Text('Date of Birth: ${_patient.dateOfBirth}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 6),
-                    Text('Registered: ${formatRegistrationDate(_patient.createdAt)}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    Text('Contact Phone: ${_patient.phone}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 6),
-                    Text('Address: ${_patient.address}', style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 6),
-                    Text('Referring Doctor: ${_patient.referringDoctor ?? 'Self-referred'}', style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
+                    Text('Demographics & Contact Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    SizedBox(height: 12),
+                    Text('Date of Birth: ${_patient.dateOfBirth}', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                    SizedBox(height: 6),
+                    Text('Registered: ${formatRegistrationDate(_patient.createdAt)}', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+                    SizedBox(height: 6),
+                    Text('Contact Phone: ${_patient.phone}', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                    SizedBox(height: 6),
+                    Text('Address: ${_patient.address}', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                    SizedBox(height: 6),
+                    Text('Referring Doctor: ${_patient.referringDoctor ?? 'Self-referred'}', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
                   ],
                 ),
               ),
@@ -506,32 +506,32 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Medical History & Allergies', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                    const SizedBox(height: 12),
+                    Text('Medical History & Allergies', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    SizedBox(height: 12),
                     _patient.medicalHistory.isEmpty
-                        ? const Text('No prior medical history recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
+                        ? Text('No prior medical history recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
                         : Wrap(
                             spacing: 6,
                             runSpacing: 6,
                             children: _patient.medicalHistory.map((item) {
                               return Chip(
-                                label: Text(item, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
-                                backgroundColor: const Color(0xFFF1F5F9),
+                                label: Text(item, style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                                backgroundColor: Color(0xFFF1F5F9),
                                 side: BorderSide.none,
                               );
                             }).toList(),
                           ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     _patient.allergies.isEmpty
-                        ? const Text('No known allergies recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
+                        ? Text('No known allergies recorded.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
                         : Wrap(
                             spacing: 6,
                             runSpacing: 6,
                             children: _patient.allergies.map((item) {
                               return Chip(
-                                label: Text(item, style: const TextStyle(fontSize: 12, color: Colors.redAccent)),
+                                label: Text(item, style: TextStyle(fontSize: 12, color: Colors.redAccent)),
                                 backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-                                side: const BorderSide(color: Colors.redAccent),
+                                side: BorderSide(color: Colors.redAccent),
                               );
                             }).toList(),
                           ),
@@ -541,25 +541,25 @@ class _PatientProfileViewState extends State<PatientProfileView> {
             ],
           ),
           if (_patient.notes.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-            const SizedBox(height: 8),
-            Text(_patient.notes, style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4)),
+            SizedBox(height: 16),
+            Text('Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+            SizedBox(height: 8),
+            Text(_patient.notes, style: TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4)),
           ],
-          const SizedBox(height: 24),
-          const Divider(color: AppTheme.borderColor),
-          const SizedBox(height: 16),
-          const Text('Latest Recorded Diagnosis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-          const SizedBox(height: 8),
+          SizedBox(height: 24),
+          Divider(color: AppTheme.borderColor),
+          SizedBox(height: 16),
+          Text('Latest Recorded Diagnosis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+          SizedBox(height: 8),
           _patient.previousDiagnoses.isEmpty
-              ? const Text('No prior diagnosis recorded.', style: TextStyle(color: AppTheme.textSecondary))
+              ? Text('No prior diagnosis recorded.', style: TextStyle(color: AppTheme.textSecondary))
               : Wrap(
                   spacing: 8,
                   children: _patient.previousDiagnoses.map((d) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
-                      child: Text(d, style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
+                      child: Text(d, style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
                     );
                   }).toList(),
                 ),
@@ -570,28 +570,28 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   Widget _buildExamHistoryTab() {
     if (_patient.encounters.isEmpty) {
-      return const Center(
+      return Center(
         child: Text('No historical examinations recorded yet.', style: TextStyle(color: AppTheme.textSecondary)),
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       itemCount: _patient.encounters.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
+      separatorBuilder: (context, index) => SizedBox(height: 16),
       itemBuilder: (context, index) {
         final enc = _patient.encounters[index];
         final hasDrawing = enc.drawingOD != null || enc.drawingOS != null;
 
         return Card(
-          color: const Color(0xFFF8FAFC),
+          color: Color(0xFFF8FAFC),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: AppTheme.borderColor),
+            side: BorderSide(color: AppTheme.borderColor),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -600,62 +600,62 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.event_available, color: AppTheme.primaryBlue, size: 18),
-                        const SizedBox(width: 8),
-                        Text(formatClinicalDate(enc.date), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                        const SizedBox(width: 8),
-                        Text('— ${enc.doctorName}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                        Icon(Icons.event_available, color: AppTheme.primaryBlue, size: 18),
+                        SizedBox(width: 8),
+                        Text(formatClinicalDate(enc.date), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        SizedBox(width: 8),
+                        Text('— ${enc.doctorName}', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                       ],
                     ),
                     Row(
                       children: [
                         OutlinedButton.icon(
                           onPressed: () => _openExamDetail(enc),
-                          icon: const Icon(Icons.visibility, size: 14),
-                          label: const Text('View Examination', style: TextStyle(fontSize: 11)),
+                          icon: Icon(Icons.visibility, size: 14),
+                          label: Text('View Examination', style: TextStyle(fontSize: 11)),
                         ),
                         if (hasDrawing) ...[
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           OutlinedButton.icon(
                             onPressed: () => _openDrawingModal(context, enc),
-                            icon: const Icon(Icons.draw, size: 14),
-                            label: const Text('View Drawing', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            icon: Icon(Icons.draw, size: 14),
+                            label: Text('View Drawing', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text('Chief Complaint: ${enc.chiefComplaint}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
+                Text('Chief Complaint: ${enc.chiefComplaint}', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
                         child: Text(
                           'OD: VA ${enc.examOD.acuity.uncorrected} | IOP ${enc.examOD.iop} mmHg',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
                         child: Text(
                           'OS: VA ${enc.examOS.acuity.uncorrected} | IOP ${enc.examOS.iop} mmHg',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text('Diagnosis: ${enc.diagnosis}', style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
+                SizedBox(height: 8),
+                Text('Diagnosis: ${enc.diagnosis}', style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
               ],
             ),
           ),
@@ -671,7 +671,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: 640,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,11 +680,11 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 RxPadWidget(
                   patient: _patient,
                   items: rx.items,
@@ -692,7 +692,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
                   showBorder: true,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -705,10 +705,10 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                           icon: Icons.file_download_outlined,
                         );
                       },
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('Download PDF'),
+                      icon: Icon(Icons.download, size: 16),
+                      label: Text('Download PDF'),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
@@ -719,8 +719,8 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                           icon: Icons.print_rounded,
                         );
                       },
-                      icon: const Icon(Icons.print, size: 16),
-                      label: const Text('Print Prescription'),
+                      icon: Icon(Icons.print, size: 16),
+                      label: Text('Print Prescription'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
@@ -738,15 +738,15 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   Widget _buildPrescriptionsTab() {
     if (_patient.prescriptions.isEmpty) {
-      return const Center(
+      return Center(
         child: Text('No recorded prescriptions for this patient.', style: TextStyle(color: AppTheme.textSecondary)),
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       itemCount: _patient.prescriptions.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 20),
+      separatorBuilder: (context, index) => SizedBox(height: 20),
       itemBuilder: (context, index) {
         final rx = _patient.prescriptions[index];
 
@@ -755,10 +755,10 @@ class _PatientProfileViewState extends State<PatientProfileView> {
           elevation: 1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppTheme.borderColor),
+            side: BorderSide(color: AppTheme.borderColor),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -767,9 +767,9 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.local_pharmacy_rounded, color: AppTheme.primaryBlue, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Prescription Record — ${rx.date}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        Icon(Icons.local_pharmacy_rounded, color: AppTheme.primaryBlue, size: 20),
+                        SizedBox(width: 8),
+                        Text('Prescription Record — ${rx.date}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                       ],
                     ),
                     Wrap(
@@ -784,13 +784,13 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.edit_note_rounded, size: 16),
-                          label: const Text('Open in Workspace', style: TextStyle(fontSize: 12)),
+                          icon: Icon(Icons.edit_note_rounded, size: 16),
+                          label: Text('Open in Workspace', style: TextStyle(fontSize: 12)),
                         ),
                         ElevatedButton.icon(
                           onPressed: () => _showPdfPreviewModal(rx),
-                          icon: const Icon(Icons.picture_as_pdf, size: 14),
-                          label: const Text('View / Print PDF', style: TextStyle(fontSize: 12)),
+                          icon: Icon(Icons.picture_as_pdf, size: 14),
+                          label: Text('View / Print PDF', style: TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryBlue,
                             foregroundColor: Colors.white,
@@ -800,7 +800,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // Live Prescription Pad Preview Layout
                 RxPadWidget(

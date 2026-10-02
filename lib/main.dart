@@ -22,7 +22,7 @@ import 'widgets/inactivity_guard.dart';
 
 /// reCAPTCHA v3 site key for App Check on web. Pass at build time:
 /// `flutter build web --dart-define=DOCRS_RECAPTCHA_SITE_KEY=<key>`
-const String _recaptchaSiteKey = String.fromEnvironment('DOCRS_RECAPTCHA_SITE_KEY');
+String _recaptchaSiteKey = String.fromEnvironment('DOCRS_RECAPTCHA_SITE_KEY');
 
 /// UI-only mode: no Firebase, no real data, any login works. See [DevAuthBackend].
 /// Run with `--dart-define=DOCRS_UI_DEV=true`.
@@ -38,7 +38,7 @@ void main() async {
   }
 
   await PatientRepository.init();
-  runApp(const OphthalmologyApp());
+  runApp(OphthalmologyApp());
 }
 
 Future<void> _initFirebase() async {
@@ -64,10 +64,10 @@ Future<void> _initFirebase() async {
       await FirebaseAppCheck.instance
           .activate(
             providerWeb: kIsWeb ? ReCaptchaV3Provider(_recaptchaSiteKey) : null,
-            providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
-            providerApple: kDebugMode ? const AppleDebugProvider() : const AppleDeviceCheckProvider(),
+            providerAndroid: kDebugMode ? AndroidDebugProvider() : AndroidPlayIntegrityProvider(),
+            providerApple: kDebugMode ? AppleDebugProvider() : AppleDeviceCheckProvider(),
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(Duration(seconds: 8));
     }
   } catch (e) {
     debugPrint('App Check activation skipped: $e');
@@ -163,7 +163,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeController.instance.themeMode,
           home: auth.isResolving
-              ? const Scaffold(
+              ? Scaffold(
                   backgroundColor: AppTheme.lightBg,
                   body: Center(
                     child: CircularProgressIndicator(

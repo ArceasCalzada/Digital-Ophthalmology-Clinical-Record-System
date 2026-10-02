@@ -52,7 +52,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
   late int _displayMonth;
   late DateTime _selectedDate;
 
-  static const List<String> _monthNames = [
+  static final List<String> _monthNames = [
     'January',
     'February',
     'March',
@@ -67,7 +67,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
     'December',
   ];
 
-  static const List<String> _weekDayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  static final List<String> _weekDayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   @override
   void initState() {
@@ -182,11 +182,11 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 10,
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 350),
+        constraints: BoxConstraints(maxWidth: 350),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -204,7 +204,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                       onChanged: (m) => setState(() => _displayMonth = m),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   SizedBox(
                     width: 104,
                     child: ClinicalDropdownField<int>(
@@ -220,7 +220,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
 
               // Row 2: previous / next month arrows around the month being shown.
               Row(
@@ -230,7 +230,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                     height: 32,
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.chevron_left, size: 22),
+                      icon: Icon(Icons.chevron_left, size: 22),
                       color: _canGoPrevious ? AppTheme.textPrimary : Colors.grey.shade300,
                       onPressed: _canGoPrevious ? _previousMonth : null,
                       tooltip: 'Previous month',
@@ -240,7 +240,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                     child: Center(
                       child: Text(
                         '${_monthNames[_displayMonth - 1]} $_displayYear',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.textPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -253,7 +253,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                     height: 32,
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.chevron_right, size: 22),
+                      icon: Icon(Icons.chevron_right, size: 22),
                       color: _canGoNext ? AppTheme.textPrimary : Colors.grey.shade300,
                       onPressed: _canGoNext ? _nextMonth : null,
                       tooltip: 'Next month',
@@ -262,7 +262,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                 ],
               ),
 
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
 
               // Weekday Headers: S M T W T F S
               Row(
@@ -274,7 +274,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                       child: Text(
                         label,
                         style: TextStyle(
-                          color: label == 'S' ? const Color(0xFFEF4444) : AppTheme.textSecondary,
+                          color: label == 'S' ? Color(0xFFEF4444) : AppTheme.textSecondary,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -284,16 +284,16 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                 }).toList(),
               ),
 
-              const SizedBox(height: 6),
-              const Divider(height: 1, color: AppTheme.borderColor),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
+              Divider(height: 1, color: AppTheme.borderColor),
+              SizedBox(height: 6),
 
               // Calendar Days Grid
               SizedBox(
                 height: 230,
                 child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 7,
                     mainAxisSpacing: 4,
                     crossAxisSpacing: 4,
@@ -303,7 +303,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                   itemBuilder: (context, index) {
                     final dayNumber = index - firstDayOfWeek + 1;
                     if (dayNumber < 1 || dayNumber > daysInCurrentMonth) {
-                      return const SizedBox.shrink();
+                      return SizedBox.shrink();
                     }
 
                     final cellDate = DateTime(_displayYear, _displayMonth, dayNumber);
@@ -328,7 +328,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                               },
                         borderRadius: BorderRadius.circular(10),
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
+                          duration: Duration(milliseconds: 150),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppTheme.primaryBlue
@@ -363,9 +363,9 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                 ),
               ),
 
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: AppTheme.borderColor),
-              const SizedBox(height: 12),
+              SizedBox(height: 8),
+              Divider(height: 1, color: AppTheme.borderColor),
+              SizedBox(height: 12),
 
               // Bottom Action Buttons
               Row(
@@ -381,19 +381,19 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                             });
                           }
                         : null,
-                    icon: const Icon(Icons.today, size: 16, color: AppTheme.primaryBlue),
-                    label: const Text('Today', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+                    icon: Icon(Icons.today, size: 16, color: AppTheme.primaryBlue),
+                    label: Text('Today', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
 
-                  const Spacer(),
+                  Spacer(),
 
                   // Cancel Button
                   TextButton(
                     onPressed: () => Navigator.pop(context, null),
-                    child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                    child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
                   ),
 
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
 
                   // OK Button
                   ElevatedButton(
@@ -401,11 +401,11 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: () => Navigator.pop(context, _selectedDate),
-                    child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

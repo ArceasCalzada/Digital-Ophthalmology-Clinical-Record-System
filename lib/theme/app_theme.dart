@@ -84,15 +84,17 @@ class AppTheme {
   static const Color odColor = Color(0xFF2563EB);    // Blue for OD (Right Eye)
   static const Color osColor = Color(0xFFD97706);    // Amber for OS (Left Eye)
 
-  // White Theme Backgrounds & Surfaces (Default Light Mode Tokens)
-  static const Color primaryNavy = Color(0xFFFFFFFF);
-  static const Color cardBg = Color(0xFFFFFFFF);
-  static const Color lightBg = Color(0xFFF8FAFC);
+  static bool get _isDark => ThemeController.instance.isDarkMode;
 
-  // Text & Border Colors (Default Light Mode Tokens)
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color borderColor = Color(0xFFE2E8F0);
+  // Dynamic Theme Backgrounds & Surfaces
+  static Color get primaryNavy => _isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF);
+  static Color get cardBg => _isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF);
+  static Color get lightBg => _isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+
+  // Dynamic Text & Border Colors
+  static Color get textPrimary => _isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+  static Color get textSecondary => _isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  static Color get borderColor => _isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
   // Light Theme Configuration (Modern & Simple UI)
   static ThemeData get lightTheme {

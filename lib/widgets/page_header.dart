@@ -18,13 +18,13 @@ class PageHeader extends StatelessWidget {
 
   // No letter-spacing tweak: tightened letters made titles look like a different
   // font from the rest of the app.
-  static const TextStyle titleStyle = TextStyle(
+  static TextStyle get titleStyle => TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     color: AppTheme.textPrimary,
   );
 
-  static const TextStyle subtitleStyle = TextStyle(fontSize: 14, color: AppTheme.textSecondary);
+  static TextStyle get subtitleStyle => TextStyle(fontSize: 14, color: AppTheme.textSecondary);
 
   final String title;
   final String subtitle;
@@ -47,13 +47,13 @@ class PageHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: titleStyle),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(subtitle, style: subtitleStyle),
       ],
     );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: bottomGap),
+      padding: EdgeInsets.only(bottom: bottomGap),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final action = this.action;
@@ -62,14 +62,14 @@ class PageHeader extends StatelessWidget {
           if (constraints.maxWidth < (stackBelow ?? 600)) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [titles, const SizedBox(height: 12), action],
+              children: [titles, SizedBox(height: 12), action],
             );
           }
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(child: titles),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               action,
             ],
           );
