@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Global ThemeController for dynamic Light, Dark, and System Default theme switching
 class ThemeController extends ChangeNotifier {
   static final ThemeController instance = ThemeController._();
-  ThemeController._();
+  ThemeController._() {
+    _load();
+    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
+      if (_themeMode == ThemeMode.system) {
+        notifyListeners();
+      }
+    };
+  }
+
+  static const _key = 'docrs_appearance_preference';
 
   ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
+
+  bool get isDarkMode {
+    if (_themeMode == ThemeMode.dark) return true;
+    if (_themeMode == ThemeMode.light) return false;
+    // System Default: match OS-level preference
+    return WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+  }
 
   void setThemeMode(ThemeMode mode) {
     if (_themeMode != mode) {
       _themeMode = mode;
       notifyListeners();
+      _save();
     }
   }
 
@@ -40,6 +58,23 @@ class ThemeController extends ChangeNotifier {
         return 'Light';
     }
   }
+
+  Future<void> _save() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, currentModeName);
+    } catch (_) {}
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_key);
+      if (saved != null) {
+        setThemeModeByName(saved);
+      }
+    } catch (_) {}
+  }
 }
 
 class AppTheme {
@@ -49,12 +84,12 @@ class AppTheme {
   static const Color odColor = Color(0xFF2563EB);    // Blue for OD (Right Eye)
   static const Color osColor = Color(0xFFD97706);    // Amber for OS (Left Eye)
 
-  // White Theme Backgrounds & Surfaces
+  // White Theme Backgrounds & Surfaces (Default Light Mode Tokens)
   static const Color primaryNavy = Color(0xFFFFFFFF);
   static const Color cardBg = Color(0xFFFFFFFF);
   static const Color lightBg = Color(0xFFF8FAFC);
 
-  // Text & Border Colors
+  // Text & Border Colors (Default Light Mode Tokens)
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color borderColor = Color(0xFFE2E8F0);
@@ -63,28 +98,40 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData.light().copyWith(
       splashFactory: InkRipple.splashFactory,
-      scaffoldBackgroundColor: lightBg,
-      cardColor: cardBg,
+      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      cardColor: const Color(0xFFFFFFFF),
       primaryColor: primaryBlue,
-      dividerColor: borderColor,
+      dividerColor: const Color(0xFFE2E8F0),
       appBarTheme: const AppBarTheme(
-        backgroundColor: cardBg,
-        foregroundColor: textPrimary,
+        backgroundColor: Color(0xFFFFFFFF),
+        foregroundColor: Color(0xFF0F172A),
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: Color(0xFF0F172A),
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
       ),
       cardTheme: CardThemeData(
-        color: cardBg,
+        color: const Color(0xFFFFFFFF),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: borderColor, width: 1),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFFFFFFFF),
+        disabledColor: const Color(0xFFF8FAFC),
+        selectedColor: primaryBlue,
+        secondarySelectedColor: primaryBlue,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        labelStyle: const TextStyle(color: Color(0xFF0F172A)),
+        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        brightness: Brightness.light,
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -99,7 +146,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryBlue,
-          side: const BorderSide(color: borderColor, width: 1),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
@@ -109,7 +156,7 @@ class AppTheme {
         filled: true,
         fillColor: const Color(0xFFF1F5F9),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: const TextStyle(color: textSecondary, fontSize: 14),
+        hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -126,7 +173,7 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: primaryBlue,
         secondary: odColor,
-        surface: cardBg,
+        surface: Color(0xFFFFFFFF),
       ),
     );
   }
@@ -163,6 +210,18 @@ class AppTheme {
           side: const BorderSide(color: darkBorder, width: 1),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: darkCardBg,
+        disabledColor: darkBg,
+        selectedColor: primaryBlue,
+        secondarySelectedColor: primaryBlue,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        labelStyle: const TextStyle(color: darkTextPrimary),
+        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        brightness: Brightness.dark,
+        side: const BorderSide(color: darkBorder),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
@@ -184,7 +243,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: darkCardBg,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(color: darkTextSecondary, fontSize: 14),
         border: OutlineInputBorder(

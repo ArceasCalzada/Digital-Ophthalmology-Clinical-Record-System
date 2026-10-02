@@ -55,6 +55,29 @@ class _SettingsViewState extends State<SettingsView> {
   String _defaultDrawingTemplate = 'Fundus / Retina Map';
   String _defaultPatientView = 'Patient EHR Profile';
 
+  @override
+  void initState() {
+    super.initState();
+    ThemeController.instance.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    ThemeController.instance.removeListener(_onThemeChanged);
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {
+        _appearanceMode = ThemeController.instance.currentModeName;
+      });
+    }
+  }
+
   void _showSaveFeedback(String message) {
     showActionSuccessModal(
       context: context,
@@ -1064,8 +1087,11 @@ class _SettingsViewState extends State<SettingsView> {
                 padding: const EdgeInsets.only(right: 16),
                 child: ChoiceChip(
                   selected: isSelected,
-                  label: Text(fmt),
+                  showCheckmark: false,
+                  backgroundColor: AppTheme.cardBg,
                   selectedColor: AppTheme.primaryBlue,
+                  side: BorderSide(color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor),
+                  label: Text(fmt),
                   labelStyle: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
                   onSelected: (_) => setState(() => _dateFormat = fmt),
                 ),
@@ -1086,8 +1112,11 @@ class _SettingsViewState extends State<SettingsView> {
                 padding: const EdgeInsets.only(right: 16),
                 child: ChoiceChip(
                   selected: isSelected,
-                  label: Text(fmt),
+                  showCheckmark: false,
+                  backgroundColor: AppTheme.cardBg,
                   selectedColor: AppTheme.primaryBlue,
+                  side: BorderSide(color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor),
+                  label: Text(fmt),
                   labelStyle: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
                   onSelected: (_) => setState(() => _timeFormat = fmt),
                 ),
@@ -1180,7 +1209,7 @@ class _SettingsViewState extends State<SettingsView> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.08) : Colors.white,
+          color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.12) : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor,

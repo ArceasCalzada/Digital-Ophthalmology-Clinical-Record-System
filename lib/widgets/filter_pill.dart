@@ -34,7 +34,7 @@ class FilterPill extends StatelessWidget {
       selected: selected,
       showCheckmark: false,
       selectedColor: selectedColor,
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.cardBg,
       side: BorderSide(color: selected ? selectedColor : AppTheme.borderColor),
       // Tapping the chosen pill again does nothing: one option is always active.
       onSelected: (isSelected) {

@@ -56,9 +56,9 @@ Future<void> showClinicalActionModal({
 
   Widget content = Container(
     padding: const EdgeInsets.only(top: 20, bottom: 20, left: 20, right: 20),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    decoration: BoxDecoration(
+      color: AppTheme.cardBg,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,

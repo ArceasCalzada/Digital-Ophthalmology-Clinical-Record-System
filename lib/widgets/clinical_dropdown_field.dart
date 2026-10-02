@@ -84,7 +84,7 @@ class ClinicalDropdownField<T> extends StatelessWidget {
             final width = constraints.maxWidth;
             return MenuAnchor(
               style: MenuStyle(
-                backgroundColor: const WidgetStatePropertyAll(Colors.white),
+                backgroundColor: WidgetStatePropertyAll(AppTheme.cardBg),
                 surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                 elevation: const WidgetStatePropertyAll(6),
                 padding: const WidgetStatePropertyAll(EdgeInsets.zero),
@@ -113,7 +113,7 @@ class ClinicalDropdownField<T> extends StatelessWidget {
                     height: height,
                     padding: EdgeInsets.symmetric(horizontal: dense ? 10 : 14),
                     decoration: BoxDecoration(
-                      color: dense ? AppTheme.lightBg : Colors.white,
+                      color: dense ? AppTheme.lightBg : AppTheme.cardBg,
                       borderRadius: BorderRadius.circular(dense ? 8 : 10),
                       border: Border.all(
                         color: invalid

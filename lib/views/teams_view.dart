@@ -78,7 +78,7 @@ class _Card extends StatelessWidget {
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             const SizedBox(height: 16),

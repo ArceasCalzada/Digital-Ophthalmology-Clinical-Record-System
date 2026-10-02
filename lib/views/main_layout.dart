@@ -43,14 +43,20 @@ class _MainLayoutState extends State<MainLayout> {
     _activeTeamId = TeamService.instance.activeTeam?.id;
     TeamService.instance.addListener(_onTeamServiceChanged);
     PatientRepository.changeNotifier.addListener(_onPatientRepoChanged);
+    ThemeController.instance.addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
     TeamService.instance.removeListener(_onTeamServiceChanged);
     PatientRepository.changeNotifier.removeListener(_onPatientRepoChanged);
+    ThemeController.instance.removeListener(_onThemeChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onTeamServiceChanged() {
@@ -530,10 +536,10 @@ class _MainLayoutState extends State<MainLayout> {
         final isMobile = constraints.maxWidth < 600;
 
         return Scaffold(
-          backgroundColor: AppTheme.lightBg,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: isMobile
               ? AppBar(
-                  backgroundColor: AppTheme.cardBg,
+                  backgroundColor: Theme.of(context).cardColor,
                   elevation: 0.5,
                   title: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -581,9 +587,9 @@ class _MainLayoutState extends State<MainLayout> {
                           curve: Curves.easeInOut,
                           height: constraints.maxHeight,
                           width: _isSidebarCollapsed ? 72 : 240,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.cardBg,
-                            border: Border(right: BorderSide(color: AppTheme.borderColor)),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
                           ),
                           // While the width animates, keep the expanded layout at its full 240px and
                           // let the shrinking box clip it. Squeezing it into the in-between widths
