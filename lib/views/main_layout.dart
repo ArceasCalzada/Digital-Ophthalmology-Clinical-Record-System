@@ -305,9 +305,7 @@ class _MainLayoutState extends State<MainLayout> {
               patientId: _selectedPatient!.id,
               patient: _selectedPatient,
               onBack: () => setState(() => _selectedPatient = null),
-              onStartNewExam: () {
-                setState(() => _isExamMode = true);
-              },
+              onStartNewExam: () => _startExamForPatient(_selectedPatient, isMobileScreen: false),
             );
           } else {
             WidgetsBinding.instance.addPostFrameCallback((_) {

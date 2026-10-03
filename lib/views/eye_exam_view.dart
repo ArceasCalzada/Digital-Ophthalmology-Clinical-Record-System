@@ -101,12 +101,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       }
       _populateFromEncounter(widget.encounter!);
     } else if (widget.patient != null) {
-      _activePatient = widget.patient!;
-      if (_activePatient.encounters.isNotEmpty) {
-        _populateFromEncounter(_activePatient.encounters.first);
-      } else {
-        _populateFromPatient(_activePatient);
-      }
+      _populateFromPatient(widget.patient!);
     } else {
       _initEmptyPatient();
       _clearAllFieldsForNewPatient();
@@ -250,10 +245,6 @@ class _EyeExamViewState extends State<EyeExamView> {
 
   void _populateFromPatient(Patient p) {
     _activePatient = p;
-    if (p.encounters.isNotEmpty) {
-      _populateFromEncounter(p.encounters.first);
-      return;
-    }
 
     _nameController.text = p.fullName;
     _middleNameController.text = p.middleName;
