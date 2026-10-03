@@ -55,28 +55,24 @@ service cloud.firestore {
     function canViewPatients(teamId) {
       return request.auth != null && (
         isStaff() ||
-        teamId == null || teamId == '' ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant', 'viewer'])
       );
     }
     function canEditPatients(teamId) {
       return request.auth != null && (
         isStaff() ||
-        teamId == null || teamId == '' ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant'])
       );
     }
     function canViewVisits(teamId) {
       return request.auth != null && (
         isPhysician() ||
-        teamId == null || teamId == '' ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'viewer'])
       );
     }
     function canWriteVisits(teamId) {
       return request.auth != null && (
         isPhysician() ||
-        teamId == null || teamId == '' ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor'])
       );
     }
@@ -185,13 +181,14 @@ service cloud.firestore {
 
     match /patients/{pid} {
       allow get: if canViewPatients(resource.data.get('teamId', ''));
-      allow list: if request.auth != null && request.query.limit <= 1000;
+      allow list: if isStaff() && request.query.limit <= 1000;
       allow create: if canEditPatients(request.resource.data.get('teamId', ''))
                     && validPatient(request.resource.data, pid)
                     && (bumped('patientCount', 1000) || request.resource.data.get('teamId', '') != '');
       allow update: if canEditPatients(request.resource.data.get('teamId', ''))
-                    && validPatient(request.resource.data, pid);
-      allow delete: if isTeamOwner(resource.data.get('teamId', ''));
+                    && validPatient(request.resource.data, pid)
+                    && unchanged('patientCount');
+      allow delete: if false;
 
       // -------------------------------------------------------------- visits --
       function validExam(e) {
@@ -233,8 +230,9 @@ service cloud.firestore {
                       && validEncounter(request.resource.data, pid, eid)
                       && (bumped('encounterCount', 20000) || request.resource.data.get('teamId', '') != '');
         allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
-                      && validEncounter(request.resource.data, pid, eid);
-        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
+                      && validEncounter(request.resource.data, pid, eid)
+                      && unchanged('encounterCount');
+        allow delete: if false;
       }
 
       // -------------------------------------------------------- prescriptions --
@@ -268,8 +266,9 @@ service cloud.firestore {
                       && validPrescription(request.resource.data, pid, rid)
                       && (bumped('prescriptionCount', 20000) || request.resource.data.get('teamId', '') != '');
         allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
-                      && validPrescription(request.resource.data, pid, rid);
-        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
+                      && validPrescription(request.resource.data, pid, rid)
+                      && unchanged('prescriptionCount');
+        allow delete: if false;
       }
     }
 
@@ -314,8 +313,9 @@ service cloud.firestore {
 
     match /calendarEvents/{id} {
       allow get: if isStaff() || canViewPatients(resource.data.get('teamId', ''));
-      allow list: if (isStaff() || request.auth != null) && request.query.limit <= 500;
-      allow create, update: if isStaff() || canEditPatients(request.resource.data.get('teamId', ''));
+      allow list: if isStaff() && request.query.limit <= 500;
+      allow create, update: if (isStaff() || canEditPatients(request.resource.data.get('teamId', '')))
+                            && validEvent(request.resource.data, id);
       allow delete: if isStaff() || isTeamOwner(resource.data.get('teamId', ''));
     }
 
@@ -332,8 +332,9 @@ service cloud.firestore {
 
     match /notifications/{id} {
       allow get: if isStaff() || canViewPatients(resource.data.get('teamId', ''));
-      allow list: if (isStaff() || request.auth != null) && request.query.limit <= 500;
-      allow create, update: if isStaff() || canEditPatients(request.resource.data.get('teamId', ''));
+      allow list: if isStaff() && request.query.limit <= 500;
+      allow create, update: if (isStaff() || canEditPatients(request.resource.data.get('teamId', '')))
+                            && validNotification(request.resource.data, id);
       allow delete: if isStaff() || isTeamOwner(resource.data.get('teamId', ''));
     }
 
