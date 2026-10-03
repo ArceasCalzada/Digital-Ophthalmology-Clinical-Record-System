@@ -882,15 +882,21 @@ class _PatientsScreenState extends State<PatientsScreen> {
           Divider(height: 1, color: AppTheme.borderColor),
           LayoutBuilder(
             builder: (context, constraints) {
+              final double cardWidth = constraints.maxWidth;
+              final double minContentWidth = 780.0;
+              final double dynamicSpacing = cardWidth > minContentWidth
+                  ? 24.0 + ((cardWidth - minContentWidth) / 6.0).clamp(0.0, 60.0)
+                  : 24.0;
+
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  constraints: BoxConstraints(minWidth: cardWidth),
                   child: DataTable(
                     headingRowColor: WidgetStateProperty.all(AppTheme.cardBg),
-                    horizontalMargin: 20,
-                    columnSpacing: 24,
-              columns: [
+                    horizontalMargin: 24,
+                    columnSpacing: dynamicSpacing,
+                    columns: [
                 DataColumn(label: Text('Patient Name', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Patient ID (MRN)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Age / Sex', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),

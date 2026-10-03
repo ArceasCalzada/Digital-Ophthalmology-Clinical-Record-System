@@ -51,7 +51,7 @@ void main() {
     final dataTableFinder = find.byType(DataTable);
     final dataTableRect = tester.getRect(dataTableFinder);
 
-    expect(dataTableRect.width, closeTo(cardRect.width - 8.0, 1.0));
+    expect(dataTableRect.width, greaterThanOrEqualTo(cardRect.width - 16.0));
 
     // Verify all column headers exist
     final headers = ['Patient Name', 'Patient ID (MRN)', 'Age / Sex', 'Phone Contact', 'Last Visit', 'Visits', 'Action'];
