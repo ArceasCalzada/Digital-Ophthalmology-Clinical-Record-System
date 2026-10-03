@@ -239,7 +239,7 @@ class _MainLayoutState extends State<MainLayout> {
         builder: (ctx) => Container(
           height: MediaQuery.of(ctx).size.height * 0.85,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.cardBg,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: ClipRRect(
@@ -253,6 +253,8 @@ class _MainLayoutState extends State<MainLayout> {
         context: context,
         builder: (ctx) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: AppTheme.cardBg,
+          clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 680, maxHeight: 720),
             child: NotificationCenterView(),

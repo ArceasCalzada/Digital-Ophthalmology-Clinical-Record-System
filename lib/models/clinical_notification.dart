@@ -30,21 +30,48 @@ class ClinicalNotification {
   });
 
   factory ClinicalNotification.fromJson(Map<String, dynamic> json) {
+    final rawSeverity = json['severity']?.toString().toLowerCase() ?? json['urgency']?.toString().toLowerCase();
+    NotificationSeverity severity = NotificationSeverity.info;
+    if (rawSeverity != null) {
+      if (rawSeverity.contains('urgent') || rawSeverity.contains('high') || rawSeverity.contains('critical')) {
+        severity = NotificationSeverity.urgent;
+      } else if (rawSeverity.contains('warn') || rawSeverity.contains('medium')) {
+        severity = NotificationSeverity.warning;
+      }
+    }
+
+    final title = json['title'] as String? ??
+        json['subject'] as String? ??
+        json['name'] as String? ??
+        json['header'] as String? ??
+        '';
+
+    final message = json['message'] as String? ??
+        json['body'] as String? ??
+        json['content'] as String? ??
+        json['description'] as String? ??
+        json['details'] as String? ??
+        json['text'] as String? ??
+        json['note'] as String? ??
+        '';
+
+    final category = json['category'] as String? ??
+        json['type'] as String? ??
+        json['kind'] as String? ??
+        (severity == NotificationSeverity.urgent ? 'Urgent Alert' : 'Reminder');
+
     return ClinicalNotification(
       id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      message: json['message'] as String? ?? '',
-      category: json['category'] as String? ?? 'Reminder',
-      severity: NotificationSeverity.values.firstWhere(
-        (s) => s.name == json['severity'],
-        orElse: () => NotificationSeverity.info,
-      ),
+      title: title.isNotEmpty ? title : (message.isNotEmpty ? message : 'Clinical Alert'),
+      message: message,
+      category: category,
+      severity: severity,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      patientName: json['patientName'] as String?,
-      patientId: json['patientId'] as String?,
-      isRead: json['isRead'] as bool? ?? false,
+      patientName: json['patientName'] as String? ?? json['patient_name'] as String? ?? json['patient'] as String?,
+      patientId: json['patientId'] as String? ?? json['patient_id'] as String? ?? json['mrn'] as String?,
+      isRead: json['isRead'] as bool? ?? json['read'] as bool? ?? false,
     );
   }
 }
