@@ -107,12 +107,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!await ensureClinic(context) || !mounted) return;
     showDialog(
       context: context,
-      builder: (context) => NewPatientModal(
+      builder: (dialogCtx) => NewPatientModal(
         onPatientCreated: (newPatient) {
           _loadDashboardData();
-          if (widget.onSelectPatient != null) {
-            widget.onSelectPatient!(newPatient);
-          }
+          showPatientCreatedSuccessModal(
+            context: context,
+            patient: newPatient,
+            onViewProfile: () {
+              if (widget.onSelectPatient != null) {
+                widget.onSelectPatient!(newPatient);
+              }
+            },
+            onStartExam: () {
+              if (widget.onStartExam != null) {
+                widget.onStartExam!(newPatient);
+              } else if (widget.onSelectPatient != null) {
+                widget.onSelectPatient!(newPatient);
+              }
+            },
+          );
         },
       ),
     );
