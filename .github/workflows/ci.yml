@@ -36,13 +36,13 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
       - name: Install
         working-directory: firebase-rules-tests
         run: npm ci
       - name: Run rules tests against the emulator
         working-directory: firebase-rules-tests
-        run: npm test
+        run: npx firebase emulators:exec --only firestore --project demo-docrs "node --test --test-concurrency=1 firestore.rules.test.mjs app-payloads.test.mjs indexes.test.mjs" --config ../firebase.json
 
   web:
     name: Build web
