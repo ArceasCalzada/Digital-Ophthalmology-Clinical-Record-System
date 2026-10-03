@@ -625,13 +625,15 @@ class _MainLayoutState extends State<MainLayout> {
                       left: (_isSidebarCollapsed ? 72 : 240) - 14,
                       top: (constraints.maxHeight / 2) - 15,
                       child: Material(
-                        color: Colors.white,
+                        color: AppTheme.cardBg,
                         elevation: 4,
                         shape: CircleBorder(
                           side: BorderSide(color: AppTheme.borderColor, width: 1.2),
                         ),
                         child: InkWell(
                           customBorder: CircleBorder(),
+                          hoverColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          splashColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
                           onTap: _toggleSidebar,
                           child: Padding(
                             padding: EdgeInsets.all(6),
