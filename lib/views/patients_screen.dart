@@ -880,12 +880,16 @@ class _PatientsScreenState extends State<PatientsScreen> {
             ),
           ),
           Divider(height: 1, color: AppTheme.borderColor),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: WidgetStateProperty.all(AppTheme.cardBg),
-              horizontalMargin: 20,
-              columnSpacing: 24,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: DataTable(
+                    headingRowColor: WidgetStateProperty.all(AppTheme.cardBg),
+                    horizontalMargin: 20,
+                    columnSpacing: 24,
               columns: [
                 DataColumn(label: Text('Patient Name', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Patient ID (MRN)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
@@ -948,8 +952,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
               }).toList(),
             ),
           ),
-        ],
-      ),
-    );
+        );
+      },
+    ),
+  ],
+),
+);
   }
 }
