@@ -537,20 +537,22 @@ class _ActiveTeamMembersCard extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text('Change Role for ${member.displayName}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final r in [TeamRole.editor, TeamRole.assistant, TeamRole.viewer])
-                RadioListTile<TeamRole>(
-                  title: Text(r.label, style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(_roleDescription(r), style: TextStyle(fontSize: 12)),
-                  value: r,
-                  groupValue: selected,
-                  onChanged: (val) {
-                    if (val != null) setState(() => selected = val);
-                  },
-                ),
-            ],
+          content: RadioGroup<TeamRole>(
+            groupValue: selected,
+            onChanged: (val) {
+              if (val != null) setState(() => selected = val);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final r in [TeamRole.editor, TeamRole.assistant, TeamRole.viewer])
+                  RadioListTile<TeamRole>(
+                    title: Text(r.label, style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(_roleDescription(r), style: TextStyle(fontSize: 12)),
+                    value: r,
+                  ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
