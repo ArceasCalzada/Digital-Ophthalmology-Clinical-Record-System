@@ -267,36 +267,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
     return InkWell(
       onTap: () {
-        showClinicalActionModal(
+        showNewRecordActionModal(
           context: context,
-          title: 'New Patient Action',
-          subtitle: 'Select an action to perform in patient records',
-          actions: [
-            ClinicalActionItem(
-              id: 'exam',
-              title: 'New Examination',
-              subtitle: 'Open consultation sheet & exam',
-              icon: Icons.draw_rounded,
-              color: AppTheme.primaryBlue,
-              onTap: _openPatientSelectorForExam,
-            ),
-            ClinicalActionItem(
-              id: 'rx',
-              title: 'New Prescription',
-              subtitle: 'Write digital ophthalmic Rx',
-              icon: Icons.medication_rounded,
-              color: Color(0xFF0284C7),
-              onTap: _openPatientSelectorForPrescription,
-            ),
-            ClinicalActionItem(
-              id: 'patient',
-              title: 'Register New Patient',
-              subtitle: 'Add new patient profile',
-              icon: Icons.person_add_alt_1_rounded,
-              color: Color(0xFF10B981),
-              onTap: _openNewPatientModal,
-            ),
-          ],
+          onNewExam: _openPatientSelectorForExam,
+          onNewRx: _openPatientSelectorForPrescription,
+          onRegisterPatient: _openNewPatientModal,
         );
       },
       borderRadius: BorderRadius.circular(14),

@@ -165,3 +165,44 @@ Future<void> showClinicalActionModal({
     );
   }
 }
+
+/// Displays the unified "+ New" action modal sheet/dialog across Dashboard and Patient Directory screens.
+Future<void> showNewRecordActionModal({
+  required BuildContext context,
+  required VoidCallback onNewExam,
+  required VoidCallback onNewRx,
+  required VoidCallback onRegisterPatient,
+}) async {
+  return showClinicalActionModal(
+    context: context,
+    title: 'New Patient Action',
+    subtitle: 'Select an action to perform in patient records',
+    actions: [
+      ClinicalActionItem(
+        id: 'exam',
+        title: 'New Examination',
+        subtitle: 'Open consultation sheet & exam',
+        icon: Icons.draw_rounded,
+        color: AppTheme.primaryBlue,
+        onTap: onNewExam,
+      ),
+      ClinicalActionItem(
+        id: 'rx',
+        title: 'New Prescription',
+        subtitle: 'Write digital ophthalmic Rx',
+        icon: Icons.medication_rounded,
+        color: const Color(0xFF0284C7),
+        onTap: onNewRx,
+      ),
+      ClinicalActionItem(
+        id: 'patient',
+        title: 'Register New Patient',
+        subtitle: 'Add new patient profile',
+        icon: Icons.person_add_alt_1_rounded,
+        color: const Color(0xFF10B981),
+        onTap: onRegisterPatient,
+      ),
+    ],
+  );
+}
+

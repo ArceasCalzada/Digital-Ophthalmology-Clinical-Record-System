@@ -319,36 +319,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNewActionsDropdownButton({double? width}) {
     return InkWell(
       onTap: () {
-        showClinicalActionModal(
+        showNewRecordActionModal(
           context: context,
-          title: 'Create New Record',
-          subtitle: 'Choose an action to create a clinical entry',
-          actions: [
-            ClinicalActionItem(
-              id: 'new_patient',
-              title: 'New Patient',
-              subtitle: 'Register a new patient record in the system',
-              icon: Icons.person_add_rounded,
-              color: Color(0xFF10B981),
-              onTap: _openNewPatientModal,
-            ),
-            ClinicalActionItem(
-              id: 'new_exam',
-              title: 'New Examination',
-              subtitle: 'Open clinical consultation paper sheet',
-              icon: Icons.draw_rounded,
-              color: AppTheme.primaryBlue,
-              onTap: _openPatientSelectorForExam,
-            ),
-            ClinicalActionItem(
-              id: 'new_rx',
-              title: 'New Prescription',
-              subtitle: 'Write digital prescription (Rx) for patient',
-              icon: Icons.medication_rounded,
-              color: Color(0xFF0284C7),
-              onTap: _openPatientSelectorForPrescription,
-            ),
-          ],
+          onNewExam: _openPatientSelectorForExam,
+          onNewRx: _openPatientSelectorForPrescription,
+          onRegisterPatient: _openNewPatientModal,
         );
       },
       borderRadius: BorderRadius.circular(14),
