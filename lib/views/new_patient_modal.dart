@@ -32,6 +32,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
   final _dobController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final _occupationController = TextEditingController();
+  final _phicController = TextEditingController();
   final _medHistoryController = TextEditingController();
   final _allergiesController = TextEditingController();
   final _notesController = TextEditingController();
@@ -46,6 +48,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
     _dobController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _occupationController.dispose();
+    _phicController.dispose();
     _medHistoryController.dispose();
     _allergiesController.dispose();
     _notesController.dispose();
@@ -94,6 +98,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
         gender: _gender!, // validated as chosen before we get here
         phone: _phoneController.text.trim().isEmpty ? '+63 900 000 0000' : _phoneController.text.trim(),
         address: _addressController.text.trim().isEmpty ? 'Metro Manila, Philippines' : _addressController.text.trim(),
+        occupation: _occupationController.text.trim(),
+        phicNumber: _phicController.text.trim(),
         medicalHistory: medHistory.isEmpty ? ['No Prior Medical Conditions'] : medHistory,
         allergies: allergies.isEmpty ? ['No Known Drug Allergies (NKDA)'] : allergies,
         notes: _notesController.text.trim(),
@@ -317,6 +323,39 @@ class _NewPatientModalState extends State<NewPatientModal> {
                 TextFormField(
                   controller: _addressController,
                   decoration: InputDecoration(hintText: 'Street Address, City, Province'),
+                ),
+                SizedBox(height: 14),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FieldLabel('Occupation', fontSize: 12),
+                          SizedBox(height: 6),
+                          TextFormField(
+                            controller: _occupationController,
+                            decoration: InputDecoration(hintText: 'e.g. Civil Servant'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FieldLabel('PHIC #', fontSize: 12),
+                          SizedBox(height: 6),
+                          TextFormField(
+                            controller: _phicController,
+                            decoration: InputDecoration(hintText: 'e.g. 19-02581024-8'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 14),
 

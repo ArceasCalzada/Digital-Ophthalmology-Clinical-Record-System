@@ -173,8 +173,8 @@ class Patient {
     required this.gender,
     required this.phone,
     required this.address,
-    this.occupation = 'Civil Servant',
-    this.phicNumber = '19-02581024-8',
+    this.occupation = '',
+    this.phicNumber = '',
     this.referringDoctor,
     this.notes = '',
     required this.medicalHistory,
@@ -368,6 +368,8 @@ class Patient {
     String? middleName,
     String? lastName,
     String? fullName,
+    String? occupation,
+    String? phicNumber,
     List<String>? previousDiagnoses,
     List<Prescription>? prescriptions,
     List<Encounter>? encounters,
@@ -387,8 +389,8 @@ class Patient {
         gender: gender,
         phone: phone,
         address: address,
-        occupation: occupation,
-        phicNumber: phicNumber,
+        occupation: occupation ?? this.occupation,
+        phicNumber: phicNumber ?? this.phicNumber,
         referringDoctor: referringDoctor,
         notes: notes,
         medicalHistory: medicalHistory,
@@ -467,8 +469,8 @@ class Patient {
     final gender = extractString(['gender', 'sex'], 'Unspecified');
     final phone = extractString(['phone', 'contactNumber', 'phoneNumber', 'mobile', 'contact'], 'N/A');
     final address = extractString(['address', 'location'], 'N/A');
-    final occupation = extractString(['occupation'], 'Civil Servant');
-    final phicNumber = extractString(['phicNumber', 'phic'], '19-02581024-8');
+    final occupation = extractString(['occupation', 'job'], '');
+    final phicNumber = extractString(['phicNumber', 'phic', 'phic_number', 'phicNo', 'phic_no'], '');
     final referringDoctor = json['referringDoctor']?.toString() ?? json['doctor']?.toString();
     final notes = extractString(['notes'], '');
     final teamId = extractString(['teamId', 'team_id'], '');

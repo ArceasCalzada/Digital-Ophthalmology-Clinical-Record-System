@@ -178,6 +178,34 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('occupation and phic number fields are optional and saved to patient record when provided', (tester) async {
+    final created = await openModal(tester);
+    addTearDown(PatientRepository.disconnect);
+
+    expect(find.text('Occupation'), findsOneWidget);
+    expect(find.text('PHIC #'), findsOneWidget);
+    expect(hasRedAsterisk(tester, 'Occupation'), isFalse);
+    expect(hasRedAsterisk(tester, 'PHIC #'), isFalse);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Elena'), 'Maria');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Rostova'), 'Santos');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Jun 15, 1985'), '1995-04-12');
+    await tester.tap(find.text('Select gender'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Female'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Civil Servant'), 'Teacher');
+    await tester.enterText(find.widgetWithText(TextFormField, 'e.g. 19-02581024-8'), '12-34567890-1');
+
+    await tester.tap(find.text('Register Patient'));
+    await tester.pumpAndSettle();
+
+    expect(created.single.occupation, 'Teacher');
+    expect(created.single.phicNumber, '12-34567890-1');
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('quick filters wrap onto a second line on a narrow screen instead of running off the card', (tester) async {
     tester.view.physicalSize = const Size(420, 900);
     tester.view.devicePixelRatio = 1.0;
