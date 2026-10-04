@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart';
 import 'package:ophthalmology_clinical_record_system/views/patients_screen.dart';
-import 'package:ophthalmology_clinical_record_system/widgets/clinical_modal_picker.dart';
 
 void main() {
   testWidgets('Dashboard and Patient Directory + New modals render identical titles, actions, and order', (tester) async {
