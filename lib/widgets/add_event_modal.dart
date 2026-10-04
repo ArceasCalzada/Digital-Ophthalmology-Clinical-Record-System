@@ -5,6 +5,7 @@ import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../services/event_options_store.dart';
 import '../services/reminder_settings_store.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import 'clinical_date_picker.dart';
 import 'clinical_dropdown_field.dart';
@@ -63,11 +64,21 @@ class _AddEventModalState extends State<AddEventModal> {
   late TimeOfDay _selectedTime;
   // Not assumed: the user picks these, and both are optional.
   String? _selectedEventType;
-  String? _selectedLocation;
   Patient? _selectedPatient;
 
   final _options = EventOptionsStore.instance;
 
+  String get _inheritedLocation {
+    final activeTeam = TeamService.instance.activeTeam;
+    if (activeTeam != null && activeTeam.location.trim().isNotEmpty) {
+      return activeTeam.location;
+    }
+    final editing = widget.event;
+    if (editing != null && editing.location.trim().isNotEmpty) {
+      return editing.location;
+    }
+    return 'Metro Eye Center, Main Branch';
+  }
 
   @override
   void initState() {
@@ -80,7 +91,6 @@ class _AddEventModalState extends State<AddEventModal> {
       _selectedDate = editing.dateTime;
       _selectedTime = TimeOfDay.fromDateTime(editing.dateTime);
       _selectedEventType = editing.eventType.isEmpty ? null : editing.eventType;
-      _selectedLocation = editing.location.isEmpty ? null : editing.location;
       for (final p in patients) {
         if (p.mrn == editing.patientId) {
           _selectedPatient = p;
@@ -158,7 +168,7 @@ class _AddEventModalState extends State<AddEventModal> {
         id: editing?.id ?? 'evt-${DateTime.now().millisecondsSinceEpoch}',
         title: title,
         eventType: _selectedEventType ?? '',
-        location: _selectedLocation ?? '',
+        location: _inheritedLocation,
         dateTime: dt,
         patientName: _selectedPatient?.fullName ?? editing?.patientName ?? 'Scheduled Patient',
         patientId: _selectedPatient?.mrn ?? editing?.patientId,
@@ -335,19 +345,38 @@ class _AddEventModalState extends State<AddEventModal> {
                     },
                   );
 
-                  final locationField = ClinicalDropdownField<String>(
-                    label: FieldLabel('Location'),
-                    placeholder: 'None',
-                    value: _selectedLocation,
-                    items: _choices(_options.locations, _selectedLocation),
-                    onChanged: (v) => setState(() => _selectedLocation = v.isEmpty ? null : v),
-                    itemNoun: 'location',
-                    maxNameLength: EventOptionsStore.maxNameLength,
-                    onAdd: _options.addLocation,
-                    onRemove: (v) {
-                      _options.removeLocation(v);
-                      if (_selectedLocation == v) setState(() => _selectedLocation = null);
-                    },
+                  final locationDisplay = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FieldLabel('Location'),
+                      SizedBox(height: 6),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_on_rounded, size: 18, color: AppTheme.primaryBlue),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _inheritedLocation,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Icon(Icons.lock_outline_rounded, size: 16, color: AppTheme.textSecondary),
+                          ],
+                        ),
+                      ),
+                    ],
                   );
 
                   if (isNarrow) {
@@ -355,7 +384,7 @@ class _AddEventModalState extends State<AddEventModal> {
                       children: [
                         typeField,
                         SizedBox(height: 16),
-                        locationField,
+                        locationDisplay,
                       ],
                     );
                   }
@@ -365,7 +394,7 @@ class _AddEventModalState extends State<AddEventModal> {
                     children: [
                       Expanded(child: typeField),
                       SizedBox(width: 12),
-                      Expanded(child: locationField),
+                      Expanded(child: locationDisplay),
                     ],
                   );
                 },

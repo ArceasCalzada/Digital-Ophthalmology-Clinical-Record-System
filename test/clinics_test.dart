@@ -227,7 +227,8 @@ void main() {
       await tester.tap(find.text('Create a Team'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(EditableText), 'Clinic Two');
+      await tester.enterText(find.byType(TextFormField).first, 'Clinic Two');
+      await tester.enterText(find.byType(TextFormField).last, 'Davao City');
       await tester.tap(find.text('Create'));
       await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
       await tester.pumpAndSettle();

@@ -189,6 +189,7 @@ class TeamService extends ChangeNotifier {
     final defaultTeam = Team(
       id: defaultTeamId,
       name: 'Primary Clinic Team',
+      location: 'Metro Eye Center, Main Branch',
       ownerId: uid,
       inviteCode: 'DOC-1000',
       createdAt: DateTime.now().toIso8601String(),
@@ -210,7 +211,7 @@ class TeamService extends ChangeNotifier {
 
   Future<void> _createInitialDefaultTeam(String uid) async {
     final name = '${_displayName ?? 'Doctor'}\'s Clinical Team';
-    await createTeam(name);
+    await createTeam(name, location: 'Metro Eye Center, Main Branch');
   }
 
   Future<void> _connectActiveTeamMembers(String teamId) async {
@@ -245,7 +246,7 @@ class TeamService extends ChangeNotifier {
   }
 
   /// Creates a new team with creator as Owner.
-  Future<Team> createTeam(String name) async {
+  Future<Team> createTeam(String name, {String location = ''}) async {
     final uid = _uid ?? 'dev-user';
     final teamId = _generateTeamId();
     final inviteCode = _generateInviteCode();
@@ -254,6 +255,7 @@ class TeamService extends ChangeNotifier {
     final team = Team(
       id: teamId,
       name: name.trim(),
+      location: location.trim(),
       ownerId: uid,
       inviteCode: inviteCode,
       createdAt: now,

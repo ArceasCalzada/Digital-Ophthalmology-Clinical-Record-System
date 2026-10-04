@@ -48,7 +48,7 @@ void main() {
   });
 
   group('in the Add Event dropdowns', () {
-    testWidgets('event type offers only Surgery, Checkup and Follow-up; location Bukidnon and Cebu', (tester) async {
+    testWidgets('event type offers only Surgery, Checkup and Follow-up', (tester) async {
       await openModal(tester);
 
       await tester.tap(find.text('None').first);
@@ -61,12 +61,7 @@ void main() {
       expect(find.text('Laser Procedure'), findsNothing);
       await tester.tap(find.text('Surgery')); // choosing one closes the list
       await tester.pumpAndSettle();
-
-      await tester.tap(find.text('None'));
-      await tester.pumpAndSettle();
-      expect(find.text('Bukidnon'), findsOneWidget);
-      expect(find.text('Cebu'), findsOneWidget);
-      expect(find.text('Davao'), findsNothing);
+      expect(find.text('Surgery'), findsOneWidget);
     });
 
     testWidgets('the pencil reveals an X beside each entry (not None), and Done hides them again', (tester) async {
@@ -127,7 +122,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Surgery'));
       await tester.pumpAndSettle();
-      expect(find.text('None'), findsOneWidget, reason: 'only location is still None');
+      expect(find.text('Surgery'), findsOneWidget);
 
       await tester.tap(find.text('Surgery'));
       await tester.pumpAndSettle();
@@ -140,33 +135,34 @@ void main() {
 
       expect(options.types, ['Checkup', 'Follow-up']);
       expect(find.text('Surgery'), findsNothing, reason: 'gone from the list and from the field');
+      expect(find.text('None'), findsWidgets);
     });
 
-    testWidgets('a new location can be typed in and joins the list', (tester) async {
+    testWidgets('a new event type can be typed in and joins the list', (tester) async {
       await openModal(tester);
-      await tester.tap(find.text('None').last);
+      await tester.tap(find.text('None').first);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('+ Add new'));
       await tester.pumpAndSettle();
       // A name already on the list is refused: the existing entry lights up, then fades.
-      Color rowColor() => tester.widget<ColoredBox>(find.ancestor(of: find.text('Cebu'), matching: find.byType(ColoredBox)).first).color;
+      Color rowColor() => tester.widget<ColoredBox>(find.ancestor(of: find.text('Checkup'), matching: find.byType(ColoredBox)).first).color;
       expect(rowColor().a, 0);
-      await tester.enterText(find.widgetWithText(TextField, 'New location name'), ' cebu ');
+      await tester.enterText(find.widgetWithText(TextField, 'New event type name'), ' checkup ');
       await tester.tap(find.byTooltip('Add'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       expect(rowColor().a, greaterThan(0.05), reason: 'the matching entry is highlighted');
       await tester.pumpAndSettle();
       expect(rowColor().a, 0, reason: 'and fades back');
-      expect(options.locations, ['Bukidnon', 'Cebu']);
-      expect(find.widgetWithText(TextField, 'New location name'), findsOneWidget, reason: 'the box stays open to correct the name');
+      expect(options.types, ['Surgery', 'Checkup', 'Follow-up']);
+      expect(find.widgetWithText(TextField, 'New event type name'), findsOneWidget, reason: 'the box stays open to correct the name');
 
-      await tester.enterText(find.widgetWithText(TextField, 'New location name'), 'Davao');
+      await tester.enterText(find.widgetWithText(TextField, 'New event type name'), 'Laser Procedure');
       await tester.tap(find.byTooltip('Add'));
       await tester.pumpAndSettle();
-      expect(options.locations, ['Bukidnon', 'Cebu', 'Davao']);
-      expect(find.text('Davao'), findsOneWidget, reason: 'the open list shows it straight away');
+      expect(options.types, ['Surgery', 'Checkup', 'Follow-up', 'Laser Procedure']);
+      expect(find.text('Laser Procedure'), findsOneWidget, reason: 'the open list shows it straight away');
     });
 
     testWidgets('an event whose type was deleted later still shows that type when edited', (tester) async {

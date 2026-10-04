@@ -31,26 +31,26 @@ Future<void> openModal(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('only the date and time fields keep an icon; type and location start as None', (tester) async {
+  testWidgets('date, time and location keep icons; type starts as None', (tester) async {
     await openModal(tester);
 
     expect(find.byIcon(Icons.calendar_today_rounded), findsOneWidget);
     expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.location_on_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
     for (final removed in [
       Icons.calendar_month_rounded,
       Icons.event_note,
       Icons.person_rounded,
       Icons.event_rounded,
-      Icons.location_on_rounded,
       Icons.notifications_active_rounded,
     ]) {
       expect(find.byIcon(removed), findsNothing, reason: '$removed should be gone');
     }
 
-    // Event type and location are not assumed.
-    expect(find.text('None'), findsNWidgets(2));
-    expect(find.text('Checkup'), findsNothing);
-    expect(find.text('Davao'), findsNothing);
+    // Event type is not assumed. Location auto-populates from active team.
+    expect(find.text('None'), findsOneWidget);
+    expect(find.text('Metro Eye Center, Main Branch'), findsOneWidget);
   });
 
   testWidgets('title and date & time are marked required with a red asterisk', (tester) async {
@@ -74,7 +74,7 @@ void main() {
     expect(find.textContaining('Event Type *'), findsNothing);
   });
 
-  testWidgets('a title is required, but event type and location may stay empty', (tester) async {
+  testWidgets('a title is required, and location inherits active team location', (tester) async {
     final repo = CalendarEventRepository();
     await openModal(tester);
     final before = repo.events.length;
@@ -97,11 +97,11 @@ void main() {
     final saved = repo.events.last;
     expect(saved.title, 'Lens follow-up');
     expect(saved.eventType, isEmpty);
-    expect(saved.location, isEmpty);
+    expect(saved.location, 'Metro Eye Center, Main Branch');
     expect(saved.dateTime.year, 2030);
   });
 
-  testWidgets('an event without a type or location renders cleanly in the agenda and master schedule', (tester) async {
+  testWidgets('an event without a type renders cleanly in the agenda and master schedule', (tester) async {
     tester.view.physicalSize = const Size(1400, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -128,20 +128,12 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('patient, type and location are dropdowns under their field, not pop-ups', (tester) async {
+  testWidgets('location field is auto-populated and read-only from active workspace', (tester) async {
     await openModal(tester);
-    final dialogsBefore = find.byType(Dialog).evaluate().length;
 
-    // Location: the list opens right below the field and choosing an entry fills it in.
-    final locationField = tester.getRect(find.ancestor(of: find.text('None').last, matching: find.byType(InkWell)).first);
-    await tester.tap(find.text('None').last);
-    await tester.pumpAndSettle();
-    expect(find.byType(Dialog).evaluate().length, dialogsBefore, reason: 'no pop-up opened');
-    expect(tester.getTopLeft(find.text('Bukidnon')).dy, greaterThanOrEqualTo(locationField.bottom));
-    await tester.tap(find.text('Bukidnon'));
-    await tester.pumpAndSettle();
-    expect(find.text('Bukidnon'), findsOneWidget);
-
+    expect(find.text('Location'), findsOneWidget);
+    expect(find.text('Metro Eye Center, Main Branch'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
   });
 
   testWidgets('the form no longer asks for a reminder; a new event takes the one set in Settings', (tester) async {

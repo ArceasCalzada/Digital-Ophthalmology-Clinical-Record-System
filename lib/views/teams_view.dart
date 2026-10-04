@@ -242,30 +242,57 @@ class _TeamsListCard extends StatelessWidget {
   }
 
   void _showCreateTeamDialog(BuildContext context) {
-    final controller = TextEditingController();
+    final nameController = TextEditingController();
+    final locationController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Create New Team'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter a name for your clinical team or practice. You will be assigned as Team Owner.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: 'Team Name',
-                hintText: 'e.g. Metro Eye Clinic',
-                border: OutlineInputBorder(),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter a name and physical location for your clinical team or practice. You will be assigned as Team Owner.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
-              autofocus: true,
-            ),
-          ],
+              SizedBox(height: 16),
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Team Name',
+                  hintText: 'e.g. Metro Eye Clinic',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Team Name is required';
+                  }
+                  return null;
+                },
+                autofocus: true,
+              ),
+              SizedBox(height: 14),
+              TextFormField(
+                controller: locationController,
+                decoration: InputDecoration(
+                  labelText: 'Clinic Location',
+                  hintText: 'e.g. Suite 402, Medical Arts Bldg, Davao City',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Clinic Location is required';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -274,16 +301,17 @@ class _TeamsListCard extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
+              if (!formKey.currentState!.validate()) return;
+              final name = nameController.text.trim();
+              final location = locationController.text.trim();
               Navigator.pop(ctx);
               try {
-                await TeamService.instance.createTeam(name);
+                await TeamService.instance.createTeam(name, location: location);
                 if (context.mounted) {
                   showActionSuccessModal(
                     context: context,
                     title: 'Team Created Successfully',
-                    message: 'Team "$name" has been created. You are now the Team Owner.',
+                    message: 'Team "$name" at "$location" has been created. You are now the Team Owner.',
                     icon: Icons.groups_rounded,
                   );
                 }

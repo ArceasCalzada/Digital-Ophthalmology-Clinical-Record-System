@@ -100,6 +100,7 @@ class TeamMember {
 class Team {
   final String id;
   final String name;
+  final String location;
   final String ownerId;
   final String inviteCode;
   final String createdAt;
@@ -110,6 +111,7 @@ class Team {
   const Team({
     required this.id,
     required this.name,
+    this.location = '',
     required this.ownerId,
     required this.inviteCode,
     required this.createdAt,
@@ -121,6 +123,7 @@ class Team {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'location': location,
         'ownerId': ownerId,
         'inviteCode': inviteCode,
         'createdAt': createdAt,
@@ -133,6 +136,7 @@ class Team {
     return Team(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? 'Clinic Team',
+      location: json['location'] as String? ?? json['clinicLocation'] as String? ?? json['address'] as String? ?? '',
       ownerId: json['ownerId'] as String? ?? '',
       inviteCode: json['inviteCode'] as String? ?? '',
       createdAt: json['createdAt'] as String? ?? DateTime.now().toIso8601String(),
@@ -145,6 +149,7 @@ class Team {
   Team copyWith({
     String? id,
     String? name,
+    String? location,
     String? ownerId,
     String? inviteCode,
     String? createdAt,
@@ -155,6 +160,7 @@ class Team {
     return Team(
       id: id ?? this.id,
       name: name ?? this.name,
+      location: location ?? this.location,
       ownerId: ownerId ?? this.ownerId,
       inviteCode: inviteCode ?? this.inviteCode,
       createdAt: createdAt ?? this.createdAt,
