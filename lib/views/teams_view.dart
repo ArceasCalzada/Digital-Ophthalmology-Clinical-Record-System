@@ -32,6 +32,10 @@ class TeamsView extends StatelessWidget {
               ),
               _TeamsListCard(teamService: teamService),
               SizedBox(height: 20),
+              if (teamService.canManageMembers) ...[
+                _PendingApprovalsCard(teamService: teamService),
+                SizedBox(height: 20),
+              ],
               if (activeTeam != null) ...[
                 _ActiveTeamMembersCard(teamService: teamService, team: activeTeam),
                 SizedBox(height: 20),
@@ -836,5 +840,286 @@ class _PermissionsMatrixCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _PendingApprovalsCard extends StatefulWidget {
+  final TeamService teamService;
+  const _PendingApprovalsCard({required this.teamService});
+
+  @override
+  State<_PendingApprovalsCard> createState() => _PendingApprovalsCardState();
+}
+
+class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
+  final Map<String, TeamRole> _selectedRoles = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = widget.teamService.pendingMembers;
+
+    return _Card(
+      title: 'Pending Approvals (${pending.length})',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Review newly registered user accounts and join requests. Assign an access role and approve to grant entry to the clinic database.',
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+          ),
+          SizedBox(height: 16),
+          if (pending.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.lightBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 22),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'No pending approval requests. Newly registered users will appear here for administrator review.',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (final member in pending) ...[
+              _buildPendingRow(context, member),
+              if (member != pending.last) Divider(height: 24, color: AppTheme.borderColor),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingRow(BuildContext context, TeamMember member) {
+    final selectedRole = _selectedRoles[member.uid] ?? (member.role == TeamRole.viewer ? TeamRole.editor : member.role);
+    final dateStr = _formatDate(member.joinedAt);
+
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 800;
+
+          final memberDetails = Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Color(0xFFD97706).withValues(alpha: 0.15),
+                child: Text(
+                  ProfileStore.initialsOf(member.displayName),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFD97706),
+                  ),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          member.displayName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFD97706).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Pending Review',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFD97706),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      member.email,
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                    if (dateStr.isNotEmpty)
+                      Text(
+                        'Requested: $dateStr',
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final roleDropdown = Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderColor),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<TeamRole>(
+                value: selectedRole,
+                isDense: true,
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                items: [
+                  for (final r in [TeamRole.editor, TeamRole.assistant, TeamRole.viewer, TeamRole.owner])
+                    DropdownMenuItem(
+                      value: r,
+                      child: Text('Role: ${r.label}'),
+                    ),
+                ],
+                onChanged: (newRole) {
+                  if (newRole != null) {
+                    setState(() => _selectedRoles[member.uid] = newRole);
+                  }
+                },
+              ),
+            ),
+          );
+
+          final actionButtons = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              roleDropdown,
+              OutlinedButton.icon(
+                icon: Icon(Icons.close_rounded, size: 16, color: Colors.red),
+                label: Text('Reject', style: TextStyle(color: Colors.red, fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                ),
+                onPressed: () => _confirmRejectMember(context, member),
+              ),
+              ElevatedButton.icon(
+                icon: Icon(Icons.check_rounded, size: 16, color: Colors.white),
+                label: Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF059669),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+                onPressed: () async {
+                  try {
+                    await widget.teamService.approvePendingMember(member.uid, selectedRole);
+                    if (context.mounted) {
+                      showActionSuccessModal(
+                        context: context,
+                        title: 'User Approved Successfully',
+                        message: '${member.displayName} (${member.email}) has been approved as ${selectedRole.label} and added to active team members.',
+                        icon: Icons.verified_user_rounded,
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to approve member: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+
+          if (isWide) {
+            return Row(
+              children: [
+                Expanded(child: memberDetails),
+                SizedBox(width: 16),
+                actionButtons,
+              ],
+            );
+          } else {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                memberDetails,
+                SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: actionButtons,
+                ),
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _confirmRejectMember(BuildContext context, TeamMember member) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reject Request for ${member.displayName}?'),
+        content: Text('This will decline their request to join the clinic database. They will not be granted system access.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await widget.teamService.rejectPendingMember(member.uid);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Declined access request for ${member.displayName}.')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to decline request: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Reject Account', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString);
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return isoString;
+    }
   }
 }

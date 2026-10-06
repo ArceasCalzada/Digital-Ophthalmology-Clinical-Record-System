@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,6 +22,7 @@ class TeamService extends ChangeNotifier {
   Team? _activeTeam;
   TeamRole _activeRole = TeamRole.owner;
   List<TeamMember> _members = [];
+  List<TeamMember> _pendingMembers = [];
 
   StreamSubscription? _teamsSub;
   StreamSubscription? _membersSub;
@@ -30,6 +32,7 @@ class TeamService extends ChangeNotifier {
   Team? get activeTeam => _activeTeam;
   TeamRole get activeRole => _activeRole;
   List<TeamMember> get members => List.unmodifiable(_members);
+  List<TeamMember> get pendingMembers => List.unmodifiable(_pendingMembers);
 
   /// Helper permission getters based on active role
   bool get canViewPatients => _activeRole.canViewPatients;
@@ -197,6 +200,7 @@ class TeamService extends ChangeNotifier {
     _teams = [defaultTeam];
     _activeTeam = defaultTeam;
     _activeRole = TeamRole.owner;
+    _pendingMembers = [];
     _members = [
       TeamMember(
         uid: uid,
@@ -224,20 +228,50 @@ class TeamService extends ChangeNotifier {
         .doc(teamId)
         .collection('members')
         .snapshots()
-        .listen((snapshot) {
-      final list = <TeamMember>[];
+        .listen((snapshot) async {
+      final activeList = <TeamMember>[];
+      final pendingList = <TeamMember>[];
       TeamRole myRole = TeamRole.viewer;
 
       for (final doc in snapshot.docs) {
         final data = FirebaseGate.decode(doc.data());
         final member = TeamMember.fromJson(data);
-        list.add(member);
-        if (member.uid == _uid) {
-          myRole = member.role;
+        if (member.isPending) {
+          pendingList.add(member);
+        } else {
+          activeList.add(member);
+          if (member.uid == _uid) {
+            myRole = member.role;
+          }
         }
       }
 
-      _members = list;
+      // Also query pending users from users collection if user has admin permissions
+      try {
+        final pendingUsersSnap = await firestore
+            .collection('users')
+            .where('status', isEqualTo: 'pending')
+            .get();
+        for (final uDoc in pendingUsersSnap.docs) {
+          final uData = FirebaseGate.decode(uDoc.data());
+          final uid = uDoc.id;
+          if (!pendingList.any((m) => m.uid == uid) && !activeList.any((m) => m.uid == uid)) {
+            pendingList.add(TeamMember(
+              uid: uid,
+              email: uData['email'] as String? ?? 'user@docrs.app',
+              displayName: uData['displayName'] as String? ?? uData['name'] as String? ?? 'Pending Account',
+              role: TeamRole.viewer,
+              joinedAt: uData['createdAt'] as String? ?? DateTime.now().toIso8601String(),
+              status: 'pending',
+            ));
+          }
+        }
+      } catch (e) {
+        debugPrint('Pending users fetch error: $e');
+      }
+
+      _members = activeList;
+      _pendingMembers = pendingList;
       _activeRole = myRole;
       notifyListeners();
     }, onError: (Object e) {
@@ -515,6 +549,109 @@ class TeamService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Approves a pending user request, assigning them a team role and updating Firestore status.
+  Future<void> approvePendingMember(String memberUid, TeamRole assignedRole) async {
+    if (!canManageMembers) {
+      throw const FormatException('Only team admins/owners can approve pending members.');
+    }
+    final active = _activeTeam;
+    if (active == null) return;
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      final batch = firestore.batch();
+
+      final memberRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('members')
+          .doc(memberUid);
+      batch.set(memberRef, {
+        'uid': memberUid,
+        'role': assignedRole.name,
+        'status': 'active',
+        'isApproved': true,
+        'joinedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+
+      final userRoleStr = (assignedRole == TeamRole.owner)
+          ? 'admin'
+          : (assignedRole == TeamRole.editor ? 'physician' : 'staff');
+
+      final userRef = firestore.collection('users').doc(memberUid);
+      batch.set(userRef, {
+        'role': userRoleStr,
+        'teamRole': assignedRole.name,
+        'status': 'active',
+        'isApproved': true,
+        'teamId': active.id,
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    }
+
+    final idx = _pendingMembers.indexWhere((m) => m.uid == memberUid);
+    TeamMember target;
+    if (idx != -1) {
+      target = _pendingMembers.removeAt(idx);
+    } else {
+      target = TeamMember(
+        uid: memberUid,
+        email: 'user@docrs.app',
+        displayName: 'Approved Member',
+        role: assignedRole,
+        joinedAt: DateTime.now().toIso8601String(),
+        status: 'active',
+      );
+    }
+
+    final approvedMember = target.copyWith(
+      role: assignedRole,
+      status: 'active',
+    );
+
+    _members.removeWhere((m) => m.uid == memberUid);
+    _members.add(approvedMember);
+    notifyListeners();
+  }
+
+  /// Declines/rejects a pending member request.
+  Future<void> rejectPendingMember(String memberUid) async {
+    if (!canManageMembers) {
+      throw const FormatException('Only team admins/owners can decline member requests.');
+    }
+    final active = _activeTeam;
+    if (active == null) return;
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      final batch = firestore.batch();
+      final memberRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('members')
+          .doc(memberUid);
+      batch.delete(memberRef);
+
+      final userRef = firestore.collection('users').doc(memberUid);
+      batch.set(userRef, {
+        'status': 'rejected',
+        'isApproved': false,
+      }, SetOptions(merge: true));
+
+      await batch.commit();
+    }
+
+    _pendingMembers.removeWhere((m) => m.uid == memberUid);
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void addPendingMemberForTesting(TeamMember member) {
+    _pendingMembers.add(member);
+    notifyListeners();
+  }
+
   void unload() {
     _uid = null;
     _teamsSub?.cancel();
@@ -525,6 +662,7 @@ class TeamService extends ChangeNotifier {
     _activeTeam = null;
     _activeRole = TeamRole.owner;
     _members = [];
+    _pendingMembers = [];
     _loading = false;
     PatientRepository.disconnect();
     notifyListeners();

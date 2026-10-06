@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/team.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
@@ -5,6 +6,7 @@ import 'package:ophthalmology_clinical_record_system/models/encounter.dart';
 import 'package:ophthalmology_clinical_record_system/models/prescription.dart';
 import 'package:ophthalmology_clinical_record_system/models/eye_exam.dart';
 import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
+import 'package:ophthalmology_clinical_record_system/views/teams_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -261,6 +263,127 @@ void main() {
       final teamAPatients = PatientRepository.getAllPatients();
       expect(teamAPatients.any((p) => p.id == 'pat-alpha-1'), isTrue);
       expect(teamAPatients.any((p) => p.id == 'pat-beta-1'), isFalse);
+    });
+  });
+
+  group('Pending Approvals Workflow Tests', () {
+    test('TeamMember detects pending status correctly from JSON', () {
+      final m1 = TeamMember.fromJson({
+        'uid': 'p-1',
+        'email': 'newuser@clinic.com',
+        'displayName': 'Dr. Pending',
+        'status': 'pending',
+      });
+      expect(m1.isPending, isTrue);
+
+      final m2 = TeamMember.fromJson({
+        'uid': 'p-2',
+        'email': 'unapproved@clinic.com',
+        'displayName': 'Staff Pending',
+        'isApproved': false,
+      });
+      expect(m2.isPending, isTrue);
+
+      final m3 = TeamMember.fromJson({
+        'uid': 'a-1',
+        'email': 'active@clinic.com',
+        'displayName': 'Active Doctor',
+        'role': 'editor',
+        'status': 'active',
+      });
+      expect(m3.isPending, isFalse);
+      expect(m3.role, TeamRole.editor);
+    });
+
+    test('TeamService approves pending member and updates active team members', () async {
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      const pendingUser = TeamMember(
+        uid: 'user-pending-1',
+        email: 'applicant@clinic.com',
+        displayName: 'Applicant Doctor',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-06T12:00:00.000',
+        status: 'pending',
+      );
+
+      service.addPendingMemberForTesting(pendingUser);
+      expect(service.pendingMembers.length, 1);
+      expect(service.pendingMembers.first.uid, 'user-pending-1');
+
+      // Approve as Editor
+      await service.approvePendingMember('user-pending-1', TeamRole.editor);
+
+      expect(service.pendingMembers.isEmpty, isTrue);
+      expect(service.members.any((m) => m.uid == 'user-pending-1'), isTrue);
+
+      final approved = service.members.firstWhere((m) => m.uid == 'user-pending-1');
+      expect(approved.role, TeamRole.editor);
+      expect(approved.status, 'active');
+      expect(approved.isPending, isFalse);
+    });
+
+    test('TeamService rejects pending member request', () async {
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      const unauth = TeamMember(
+        uid: 'unauth-user',
+        email: 'hacker@unknown.com',
+        displayName: 'Unknown User',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-06T12:00:00.000',
+        status: 'pending',
+      );
+
+      service.addPendingMemberForTesting(unauth);
+      expect(service.pendingMembers.any((m) => m.uid == 'unauth-user'), isTrue);
+
+      // Reject access request
+      await service.rejectPendingMember('unauth-user');
+
+      expect(service.pendingMembers.any((m) => m.uid == 'unauth-user'), isFalse);
+      expect(service.members.any((m) => m.uid == 'unauth-user'), isFalse);
+    });
+
+    testWidgets('TeamsView renders Pending Approvals section for admins and processes approval', (tester) async {
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      const pendingMember = TeamMember(
+        uid: 'user-widget-1',
+        email: 'dr.new@clinic.com',
+        displayName: 'Dr. New Registrant',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-06T10:00:00.000',
+        status: 'pending',
+      );
+      service.addPendingMemberForTesting(pendingMember);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: TeamsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Pending Approvals (1)'), findsOneWidget);
+      expect(find.text('Dr. New Registrant'), findsOneWidget);
+      expect(find.text('dr.new@clinic.com'), findsOneWidget);
+      expect(find.text('Approve'), findsOneWidget);
+      expect(find.text('Reject'), findsOneWidget);
+
+      // Tap Approve button
+      await tester.tap(find.text('Approve'));
+      await tester.pumpAndSettle();
+
+      // Check success modal
+      expect(find.text('User Approved Successfully'), findsOneWidget);
+      expect(service.pendingMembers.isEmpty, isTrue);
+      expect(service.members.any((m) => m.uid == 'user-widget-1'), isTrue);
     });
   });
 }

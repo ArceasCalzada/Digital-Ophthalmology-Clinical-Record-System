@@ -68,6 +68,9 @@ class TeamMember {
   final String displayName;
   final TeamRole role;
   final String joinedAt;
+  final String status; // 'active' or 'pending'
+
+  bool get isPending => status == 'pending';
 
   const TeamMember({
     required this.uid,
@@ -75,6 +78,7 @@ class TeamMember {
     required this.displayName,
     required this.role,
     required this.joinedAt,
+    this.status = 'active',
   });
 
   Map<String, dynamic> toJson() => {
@@ -83,15 +87,45 @@ class TeamMember {
         'displayName': displayName,
         'role': role.name,
         'joinedAt': joinedAt,
+        'status': status,
       };
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
+    final statusStr = (json['status'] as String?)?.toLowerCase();
+    final isApproved = json['isApproved'] as bool?;
+    final roleRaw = json['role'] as String?;
+    final isPending = statusStr == 'pending' ||
+        statusStr == 'pending_approval' ||
+        statusStr == 'awaiting_approval' ||
+        isApproved == false ||
+        roleRaw == 'pending' ||
+        roleRaw == null;
+
     return TeamMember(
       uid: json['uid'] as String? ?? '',
       email: json['email'] as String? ?? '',
       displayName: json['displayName'] as String? ?? 'Team Member',
-      role: TeamRole.parse(json['role'] as String?),
+      role: TeamRole.parse(roleRaw),
       joinedAt: json['joinedAt'] as String? ?? DateTime.now().toIso8601String(),
+      status: isPending ? 'pending' : (statusStr ?? 'active'),
+    );
+  }
+
+  TeamMember copyWith({
+    String? uid,
+    String? email,
+    String? displayName,
+    TeamRole? role,
+    String? joinedAt,
+    String? status,
+  }) {
+    return TeamMember(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      role: role ?? this.role,
+      joinedAt: joinedAt ?? this.joinedAt,
+      status: status ?? this.status,
     );
   }
 }
