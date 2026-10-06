@@ -6,6 +6,7 @@ import '../services/profile_store.dart';
 import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/page_header.dart';
+import '../widgets/skeleton_loader.dart';
 import '../widgets/success_modal.dart';
 
 /// The Teams Management View: create teams, join via code, manage members, roles,
@@ -130,15 +131,23 @@ class _TeamsListCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (teamService.teams.isEmpty)
+          if (teamService.loading)
+            Column(
+              children: const [
+                SkeletonTeamCard(),
+                SkeletonTeamCard(),
+              ],
+            )
+          else if (teamService.teams.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 'No teams found. Create a team or join with an invite code.',
                 style: TextStyle(color: AppTheme.textSecondary),
               ),
-            ),
-          for (final team in teamService.teams)
+            )
+          else
+            for (final team in teamService.teams)
             Padding(
               padding: EdgeInsets.only(bottom: 10),
               child: Container(
@@ -487,7 +496,24 @@ class _ActiveTeamMembersCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          for (final member in teamService.members)
+          if (teamService.loading)
+            Column(
+              children: const [
+                SkeletonMemberTile(),
+                SkeletonMemberTile(),
+                SkeletonMemberTile(),
+              ],
+            )
+          else if (teamService.members.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No members found for this team.',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
+          else
+            for (final member in teamService.members)
             Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Row(
@@ -868,7 +894,14 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
           SizedBox(height: 16),
-          if (pending.isEmpty)
+          if (widget.teamService.loading)
+            Column(
+              children: const [
+                SkeletonMemberTile(),
+                SkeletonMemberTile(),
+              ],
+            )
+          else if (pending.isEmpty)
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(16),

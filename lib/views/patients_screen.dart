@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/page_header.dart';
+import '../widgets/skeleton_loader.dart';
 import '../services/team_service.dart';
 import 'new_patient_modal.dart';
 
@@ -315,8 +316,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([PatientRepository.changeNotifier, TeamService.instance]),
+      listenable: Listenable.merge([
+        PatientRepository.changeNotifier,
+        PatientRepository.isLoading,
+        TeamService.instance,
+      ]),
       builder: (context, child) {
+        final isLoading = PatientRepository.isLoading.value;
         final query = _searchController.text.trim();
         final paginatedResult = PatientRepository.getPaginatedPatients(
           page: _currentPage,
@@ -588,38 +594,40 @@ class _PatientsScreenState extends State<PatientsScreen> {
           ),
           SizedBox(height: 24),
 
-          // Patients Display: Modern Grid Cards OR Table List
-          paginatedResult.items.isEmpty
-              ? Card(
-                  color: AppTheme.cardBg,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: AppTheme.borderColor),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(48),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(Icons.person_search_outlined, size: 48, color: AppTheme.textSecondary),
-                          SizedBox(height: 12),
-                          Text(
-                            'No matching patient records found.',
-                            style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          SizedBox(height: 4),
-                          Text('Try searching with a different name or phone number.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                        ],
+          // Patients Display: Skeleton Loaders OR Modern Grid Cards OR Table List
+          isLoading
+              ? (_isGridView ? _buildSkeletonGrid() : _buildSkeletonTable())
+              : paginatedResult.items.isEmpty
+                  ? Card(
+                      color: AppTheme.cardBg,
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: AppTheme.borderColor),
                       ),
-                    ),
-                  ),
-                )
-              : _isGridView
-                  ? _buildModernCardGrid(paginatedResult.items)
-                  : _buildTableView(paginatedResult.items, paginatedResult.totalCount),
+                      child: Padding(
+                        padding: EdgeInsets.all(48),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.person_search_outlined, size: 48, color: AppTheme.textSecondary),
+                              SizedBox(height: 12),
+                              Text(
+                                'No matching patient records found.',
+                                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              SizedBox(height: 4),
+                              Text('Try searching with a different name or phone number.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : _isGridView
+                      ? _buildModernCardGrid(paginatedResult.items)
+                      : _buildTableView(paginatedResult.items, paginatedResult.totalCount),
 
-          if (paginatedResult.totalCount > 0)
+          if (!isLoading && paginatedResult.totalCount > 0)
             _buildPaginationControls(paginatedResult),
             ],
           ),
@@ -628,6 +636,48 @@ class _PatientsScreenState extends State<PatientsScreen> {
     );
   },
 );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossCount = math.max(1, (constraints.maxWidth / 420).floor());
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            mainAxisExtent: 220,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: 6,
+          itemBuilder: (context, index) => const SkeletonPatientCard(),
+        );
+      },
+    );
+  }
+
+  Widget _buildSkeletonTable() {
+    return Card(
+      color: AppTheme.cardBg,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        children: List.generate(
+          6,
+          (index) => Column(
+            children: [
+              const SkeletonTableRow(),
+              Divider(height: 1, color: AppTheme.borderColor),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Modern Cards Grid Layout (Unified with Dashboard Homepage)

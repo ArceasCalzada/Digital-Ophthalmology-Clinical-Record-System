@@ -581,6 +581,7 @@ class PatientRepository {
   static const int maxEncountersPerPatient = AppLimits.maxEncountersPerPatient;
 
   static final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
+  static final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
   static final List<Patient> _patients = [];
 
   /// Patients created on this device that the cloud snapshot has not shown yet.
@@ -629,7 +630,11 @@ class PatientRepository {
       changeNotifier.value++;
     }
 
-    if (firestore == null) return;
+    if (firestore == null) {
+      isLoading.value = false;
+      return;
+    }
+    isLoading.value = true;
     _patientsSub?.cancel();
 
     Query<Map<String, dynamic>> query = firestore.collection('patients');
@@ -640,6 +645,7 @@ class PatientRepository {
 
     _patientsSub = query.snapshots().listen(_onPatientsSnapshot, onError: (Object e) {
       debugPrint('Firestore patients stream error: $e');
+      isLoading.value = false;
     });
 
     if (targetTeamId != null && targetTeamId.isNotEmpty) {
@@ -677,6 +683,7 @@ class PatientRepository {
     _cancelDetails();
     _patients.clear();
     _pendingPatients.clear();
+    isLoading.value = false;
     changeNotifier.value++;
   }
 
@@ -711,6 +718,7 @@ class PatientRepository {
       ..clear()
       ..addAll(_pendingPatients.values)
       ..addAll(fromCloud);
+    isLoading.value = false;
     changeNotifier.value++;
   }
 
