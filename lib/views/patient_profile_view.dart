@@ -9,6 +9,7 @@ import 'historical_comparison_view.dart';
 import 'examination_detail_view.dart';
 import 'prescription_view.dart';
 import '../models/prescription.dart';
+import '../services/prescription_pdf_service.dart';
 import '../services/team_service.dart';
 import '../widgets/rx_pad_widget.dart';
 import '../widgets/success_modal.dart';
@@ -680,7 +681,13 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    Expanded(
+                      child: Text(
+                        'Official Prescription Document Preview',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
@@ -697,26 +704,34 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {
-                        showActionSuccessModal(
-                          context: context,
-                          title: 'Prescription PDF Downloaded',
-                          message: 'The official prescription document for ${_patient.fullName} has been exported to PDF.',
-                          icon: Icons.file_download_outlined,
+                      onPressed: () async {
+                        await PrescriptionPdfService.downloadPdf(
+                          patient: _patient,
+                          items: rx.items,
+                          date: rx.date,
+                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
                         );
+                        if (context.mounted) {
+                          showActionSuccessModal(
+                            context: context,
+                            title: 'Prescription PDF Downloaded',
+                            message: 'The official prescription document for ${_patient.fullName} has been exported to PDF.',
+                            icon: Icons.file_download_outlined,
+                          );
+                        }
                       },
                       icon: Icon(Icons.download, size: 16),
                       label: Text('Download PDF'),
                     ),
                     SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        showActionSuccessModal(
-                          context: context,
-                          title: 'Prescription Sent to Printer',
-                          message: 'The prescription sheet has been queued to the local clinic printer.',
-                          icon: Icons.print_rounded,
+                        await PrescriptionPdfService.printPrescription(
+                          patient: _patient,
+                          items: rx.items,
+                          date: rx.date,
+                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
                         );
                       },
                       icon: Icon(Icons.print, size: 16),

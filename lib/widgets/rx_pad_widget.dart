@@ -252,51 +252,56 @@ class RxPadWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               // Left: Follow Up Check Up
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Follow Up Check Up:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
-                  SizedBox(height: 4),
-                  Container(
-                    width: 140,
-                    padding: EdgeInsets.only(bottom: 2),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Color(0xFF0F172A), width: 1)),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Follow Up Check Up:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
+                    SizedBox(height: 4),
+                    Container(
+                      width: 130,
+                      padding: EdgeInsets.only(bottom: 2),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Color(0xFF0F172A), width: 1)),
+                      ),
+                      child: Text(followUpDate, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis),
                     ),
-                    child: Text(followUpDate, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
-                  ),
-                ],
+                  ],
+                ),
               ),
-
+              SizedBox(width: 12),
               // Right: Doctor Credentials & Signature Block
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Sigrid Robillos-Calzada M.D.',
-                    style: TextStyle(
-                      fontFamily: 'serif',
-                      fontStyle: FontStyle.italic,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade900,
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Sigrid Robillos-Calzada M.D.',
+                      style: TextStyle(
+                        fontFamily: 'serif',
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Container(
-                    width: 190,
-                    height: 1,
-                    color: Color(0xFF0F172A),
-                  ),
-                  SizedBox(height: 4),
-                  Text('License No. $licenseNo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('PTR No. ', style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
-                      Text(ptrNo, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
-                    ],
-                  ),
-                ],
+                    Container(
+                      width: 180,
+                      height: 1,
+                      color: Color(0xFF0F172A),
+                    ),
+                    SizedBox(height: 4),
+                    Text('License No. $licenseNo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('PTR No. ', style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
+                        Flexible(child: Text(ptrNo, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

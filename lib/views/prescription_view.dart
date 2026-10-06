@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/prescription_pdf_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
@@ -137,7 +138,13 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Official Prescription Document Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                    Expanded(
+                      child: Text(
+                        'Official Prescription Document Preview',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
                 ),
@@ -154,26 +161,34 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {
-                        showActionSuccessModal(
-                          context: context,
-                          title: 'Prescription PDF Downloaded',
-                          message: 'The official prescription document for ${_selectedPatient?.fullName ?? "patient"} has been exported to PDF.',
-                          icon: Icons.file_download_outlined,
+                      onPressed: () async {
+                        await PrescriptionPdfService.downloadPdf(
+                          patient: _selectedPatient,
+                          items: rx.items,
+                          date: rx.date,
+                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
                         );
+                        if (context.mounted) {
+                          showActionSuccessModal(
+                            context: context,
+                            title: 'Prescription PDF Downloaded',
+                            message: 'The official prescription document for ${_selectedPatient?.fullName ?? "patient"} has been exported to PDF.',
+                            icon: Icons.file_download_outlined,
+                          );
+                        }
                       },
                       icon: Icon(Icons.download, size: 16),
                       label: Text('Download PDF'),
                     ),
                     SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        showActionSuccessModal(
-                          context: context,
-                          title: 'Prescription Sent to Printer',
-                          message: 'The prescription sheet has been queued to the local clinic printer.',
-                          icon: Icons.print_rounded,
+                        await PrescriptionPdfService.printPrescription(
+                          patient: _selectedPatient,
+                          items: rx.items,
+                          date: rx.date,
+                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
                         );
                       },
                       icon: Icon(Icons.print, size: 16),
@@ -376,7 +391,13 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Live Prescription Pad Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                        Expanded(
+                          child: Text(
+                            'Live Prescription Pad Preview',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (_medications.isNotEmpty)
                           TextButton.icon(
                             onPressed: () => setState(() => _medications.clear()),
