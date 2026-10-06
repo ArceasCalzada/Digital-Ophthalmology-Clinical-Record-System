@@ -547,6 +547,28 @@ class PatientLimitReachedException implements Exception {
 
 /// In-memory view of the clinic's patients, backed by Cloud Firestore.
 ///
+class PaginatedResult<T> {
+  final List<T> items;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final int totalPages;
+  final bool hasNext;
+  final bool hasPrevious;
+
+  PaginatedResult({
+    required this.items,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.totalPages,
+    required this.hasNext,
+    required this.hasPrevious,
+  });
+}
+
+/// In-memory view of the clinic's patients, backed by Cloud Firestore.
+///
 /// * `patients/{id}` holds demographics only and is streamed for the directory
 ///   (at most [AppLimits.maxPatients] documents).
 /// * Encounters and prescriptions are loaded per patient on demand with
@@ -783,6 +805,82 @@ class PatientRepository {
       final addressMatch = p.address.toLowerCase().contains(q);
 
       return nameMatch || mrnMatch || idMatch || phoneMatch || addressMatch;
+    }).toList();
+  }
+
+  /// Fetches a paginated slice of patients based on page number, page size, search query, and filter.
+  static PaginatedResult<Patient> getPaginatedPatients({
+    int page = 1,
+    int pageSize = 20,
+    String searchQuery = '',
+    String filter = 'All',
+  }) {
+    List<Patient> base = getAllPatients();
+    if (filter != 'All') {
+      base = searchPatients(filter);
+    }
+    if (searchQuery.trim().isNotEmpty) {
+      final q = searchQuery.trim().toLowerCase();
+      final cleanDigitsQuery = q.replaceAll(RegExp(r'\D'), '');
+      base = base.where((p) {
+        final nameMatch = p.fullName.toLowerCase().contains(q) ||
+            p.middleName.toLowerCase().contains(q);
+        final mrnMatch = p.mrn.toLowerCase().contains(q);
+        final idMatch = p.id.toLowerCase().contains(q);
+        final phoneClean = p.phone.replaceAll(RegExp(r'\D'), '');
+        final phoneMatch = p.phone.toLowerCase().contains(q) ||
+            (cleanDigitsQuery.isNotEmpty && phoneClean.contains(cleanDigitsQuery));
+        final addressMatch = p.address.toLowerCase().contains(q);
+        return nameMatch || mrnMatch || idMatch || phoneMatch || addressMatch;
+      }).toList();
+    }
+
+    final totalCount = base.length;
+    final totalPages = (totalCount / pageSize).ceil().clamp(1, 99999);
+    final currentPage = page.clamp(1, totalPages);
+    final startIndex = (currentPage - 1) * pageSize;
+    final endIndex = (startIndex + pageSize).clamp(0, totalCount);
+
+    final items = (startIndex < totalCount) ? base.sublist(startIndex, endIndex) : <Patient>[];
+
+    return PaginatedResult<Patient>(
+      items: items,
+      totalCount: totalCount,
+      page: currentPage,
+      pageSize: pageSize,
+      totalPages: totalPages,
+      hasNext: currentPage < totalPages,
+      hasPrevious: currentPage > 1,
+    );
+  }
+
+  /// Direct Firestore cursor query for batched patient loading using limit & cursor.
+  static Future<List<Patient>> fetchPatientsBatch({
+    int limit = 20,
+    dynamic lastDocumentSnapshot,
+    String? teamId,
+  }) async {
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) {
+      return getAllPatients().take(limit).toList();
+    }
+
+    Query<Map<String, dynamic>> query = firestore.collection('patients');
+    final targetTeamId = teamId ?? _activeTeamId;
+    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+      query = query.where('teamId', isEqualTo: targetTeamId);
+    }
+    query = query.orderBy('createdAt', descending: true).limit(limit);
+
+    if (lastDocumentSnapshot != null) {
+      query = query.startAfterDocument(lastDocumentSnapshot);
+    }
+
+    final snapshot = await query.get();
+    return snapshot.docs.map((doc) {
+      final data = FirebaseGate.decode(doc.data());
+      data['id'] = doc.id;
+      return Patient.fromJson(data);
     }).toList();
   }
 

@@ -30,6 +30,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
   List<Patient> _patients = [];
   bool _isGridView = true; // Toggle between Modern Cards & Table
   String _selectedFilter = 'All';
+  int _currentPage = 1;
+  int _pageSize = 20;
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
   void _onSearchChanged(String query) {
     setState(() {
+      _currentPage = 1;
       _patients = PatientRepository.searchPatients(query);
     });
   }
@@ -315,11 +318,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
       listenable: Listenable.merge([PatientRepository.changeNotifier, TeamService.instance]),
       builder: (context, child) {
         final query = _searchController.text.trim();
-        if (query.isEmpty && _selectedFilter == 'All') {
-          _patients = PatientRepository.getAllPatients();
-        } else if (query.isNotEmpty) {
-          _patients = PatientRepository.searchPatients(query);
-        }
+        final paginatedResult = PatientRepository.getPaginatedPatients(
+          page: _currentPage,
+          pageSize: _pageSize,
+          searchQuery: query,
+          filter: _selectedFilter,
+        );
+        _patients = PatientRepository.searchPatients(query);
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -564,6 +569,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             onSelected: () {
                               setState(() {
                                 _selectedFilter = filter;
+                                _currentPage = 1;
                                 if (filter == 'All') {
                                   _patients = PatientRepository.getAllPatients();
                                 } else {
@@ -583,7 +589,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
           SizedBox(height: 24),
 
           // Patients Display: Modern Grid Cards OR Table List
-          _patients.isEmpty
+          paginatedResult.items.isEmpty
               ? Card(
                   color: AppTheme.cardBg,
                   elevation: 1,
@@ -610,8 +616,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   ),
                 )
               : _isGridView
-                  ? _buildModernCardGrid()
-                  : _buildTableView(),
+                  ? _buildModernCardGrid(paginatedResult.items)
+                  : _buildTableView(paginatedResult.items, paginatedResult.totalCount),
+
+          if (paginatedResult.totalCount > 0)
+            _buildPaginationControls(paginatedResult),
             ],
           ),
         );
@@ -622,7 +631,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   // Modern Cards Grid Layout (Unified with Dashboard Homepage)
-  Widget _buildModernCardGrid() {
+  Widget _buildModernCardGrid(List<Patient> patients) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossCount = math.max(1, (constraints.maxWidth / 420).floor());
@@ -635,9 +644,9 @@ class _PatientsScreenState extends State<PatientsScreen> {
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
-          itemCount: _patients.length,
+          itemCount: patients.length,
           itemBuilder: (context, index) {
-            final patient = _patients[index];
+            final patient = patients[index];
             final hasDiagnosis = patient.previousDiagnoses.isNotEmpty;
 
             return Card(
@@ -830,7 +839,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   // Classic Table View Fallback
-  Widget _buildTableView() {
+  Widget _buildTableView(List<Patient> patients, int totalCount) {
     return Card(
       color: AppTheme.cardBg,
       elevation: 1,
@@ -847,7 +856,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total Patient Records (${_patients.length})',
+                  'Total Patient Records ($totalCount)',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
                 ),
                 Text('Click "View Profile" to open clinical profile', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
@@ -880,7 +889,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                 DataColumn(label: Text('Visits', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
                 DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary))),
               ],
-              rows: _patients.map((patient) {
+              rows: patients.map((patient) {
                 return DataRow(
                   cells: [
                     DataCell(
@@ -890,7 +899,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             radius: 14,
                             backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
                             child: Text(
-                              patient.fullName.substring(0, 1),
+                              patient.fullName.isNotEmpty ? patient.fullName.substring(0, 1) : 'P',
                               style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ),
@@ -939,5 +948,162 @@ class _PatientsScreenState extends State<PatientsScreen> {
   ],
 ),
 );
+  }
+
+  Widget _buildPaginationControls(PaginatedResult<Patient> result) {
+    if (result.totalCount == 0) return SizedBox.shrink();
+
+    final startItem = (result.page - 1) * result.pageSize + 1;
+    final endItem = math.min(result.page * result.pageSize, result.totalCount);
+
+    return Card(
+      color: AppTheme.cardBg,
+      elevation: 1,
+      margin: EdgeInsets.only(top: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 600;
+
+            final infoText = Text(
+              'Showing $startItem–$endItem of ${result.totalCount} records',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            );
+
+            final pageSizeSelector = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Rows per page: ',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.borderColor),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _pageSize,
+                      isDense: true,
+                      items: const [10, 20, 50].map((size) {
+                        return DropdownMenuItem<int>(
+                          value: size,
+                          child: Text('$size', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        );
+                      }).toList(),
+                      onChanged: (newSize) {
+                        if (newSize != null) {
+                          setState(() {
+                            _pageSize = newSize;
+                            _currentPage = 1;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            );
+
+            final pageNavControls = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.first_page_rounded),
+                  tooltip: 'First Page',
+                  iconSize: 20,
+                  visualDensity: VisualDensity.standard,
+                  onPressed: result.hasPrevious
+                      ? () => setState(() => _currentPage = 1)
+                      : null,
+                ),
+                IconButton(
+                  icon: Icon(Icons.chevron_left_rounded),
+                  tooltip: 'Previous Page',
+                  iconSize: 20,
+                  visualDensity: VisualDensity.standard,
+                  onPressed: result.hasPrevious
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'Page ${result.page} of ${result.totalPages}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.chevron_right_rounded),
+                  tooltip: 'Next Page',
+                  iconSize: 20,
+                  visualDensity: VisualDensity.standard,
+                  onPressed: result.hasNext
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                ),
+                IconButton(
+                  icon: Icon(Icons.last_page_rounded),
+                  tooltip: 'Last Page',
+                  iconSize: 20,
+                  visualDensity: VisualDensity.standard,
+                  onPressed: result.hasNext
+                      ? () => setState(() => _currentPage = result.totalPages)
+                      : null,
+                ),
+              ],
+            );
+
+            if (isNarrow) {
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      infoText,
+                      pageSizeSelector,
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  Divider(height: 1, color: AppTheme.borderColor),
+                  SizedBox(height: 6),
+                  pageNavControls,
+                ],
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                infoText,
+                Row(
+                  children: [
+                    pageSizeSelector,
+                    SizedBox(width: 16),
+                    pageNavControls,
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }
