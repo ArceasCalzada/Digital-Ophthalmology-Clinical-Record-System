@@ -198,6 +198,9 @@ void main() {
     });
 
     testWidgets('MainLayout includes Calendar navigation tab and Notification bell indicator', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         MaterialApp(
           home: MainLayout(onLogout: () {}),

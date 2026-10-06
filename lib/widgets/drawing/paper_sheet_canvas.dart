@@ -268,7 +268,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                 child: LayoutBuilder(
                   builder: (context, outerConstraints) {
                     // Standard Paper Record Dimension (Aspect ratio matching clinical paper chart: 8.5 x 11 in)
-                    final double sheetWidth = math.min(900.0, math.max(680.0, outerConstraints.maxWidth - 32));
+                    final double sheetWidth = math.min(900.0, math.max(320.0, outerConstraints.maxWidth - 32));
                     final double sheetHeight = sheetWidth * 1.32; // Standard clinical paper aspect ratio
 
                     return Container(

@@ -77,12 +77,39 @@ class ThemeController extends ChangeNotifier {
   }
 }
 
+/// Standard responsive breakpoints for tablet portrait, tablet landscape, desktop, and mobile.
+class ResponsiveBreakpoints {
+  ResponsiveBreakpoints._();
+
+  static const double mobileMax = 599.0;
+  static const double tabletPortraitMax = 768.0;
+  static const double tabletLandscapeMax = 1024.0;
+  static const double desktopMin = 1025.0;
+
+  static bool isMobile(BuildContext context) => MediaQuery.of(context).size.width < 600;
+
+  static bool isTabletPortrait(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return w >= 600 && w <= 768;
+  }
+
+  static bool isTablet(BuildContext context) => MediaQuery.of(context).size.width < 1024;
+
+  static bool isDesktop(BuildContext context) => MediaQuery.of(context).size.width >= 1024;
+}
+
 class AppTheme {
   // Primary Vibrant Blue & Accent Colors
   static const Color primaryBlue = Color(0xFF2563EB);
   static const Color accentCyan = Color(0xFF38BDF8);
   static const Color odColor = Color(0xFF2563EB);    // Blue for OD (Right Eye)
   static const Color osColor = Color(0xFFD97706);    // Amber for OS (Left Eye)
+
+  /// Global Responsive Breakpoint Helpers
+  static bool isMobile(BuildContext context) => ResponsiveBreakpoints.isMobile(context);
+  static bool isTabletPortrait(BuildContext context) => ResponsiveBreakpoints.isTabletPortrait(context);
+  static bool isTablet(BuildContext context) => ResponsiveBreakpoints.isTablet(context);
+  static bool isDesktop(BuildContext context) => ResponsiveBreakpoints.isDesktop(context);
 
   static bool get _isDark => ThemeController.instance.isDarkMode;
 

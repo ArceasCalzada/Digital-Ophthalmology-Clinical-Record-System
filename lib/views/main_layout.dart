@@ -32,7 +32,17 @@ class _MainLayoutState extends State<MainLayout> {
   int _mobileTabIndex = 0; // 0: Calendar, 1: Agenda, 2: Alerts, 3: Records/Menu
   Patient? _selectedPatient;
   bool _isExamMode = false;
-  bool _isSidebarCollapsed = false;
+  bool? _userSidebarCollapsed;
+
+  bool _getIsSidebarCollapsed(double width) {
+    return _userSidebarCollapsed ?? (width < 1024);
+  }
+
+  void _toggleSidebar(double width) {
+    setState(() {
+      _userSidebarCollapsed = !_getIsSidebarCollapsed(width);
+    });
+  }
   DateTime? _calendarStartDate; // day picked on the dashboard calendar, if any
   final _searchController = TextEditingController();
   String? _activeTeamId;
@@ -177,11 +187,6 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  void _toggleSidebar() {
-    setState(() {
-      _isSidebarCollapsed = !_isSidebarCollapsed;
-    });
-  }
 
   void _showMobileSearchDialog(BuildContext context) {
     showDialog(
@@ -577,76 +582,81 @@ class _MainLayoutState extends State<MainLayout> {
               : null,
           body: isMobile
               ? _buildMobileBody()
-              : Stack(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              : Builder(
+                  builder: (context) {
+                    final isSidebarCollapsed = _getIsSidebarCollapsed(constraints.maxWidth);
+                    return Stack(
                       children: [
-                        AnimatedContainer(
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedContainer(
+                              duration: Duration(milliseconds: 250),
+                              curve: Curves.easeInOut,
+                              height: constraints.maxHeight,
+                              width: isSidebarCollapsed ? 72 : 240,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
+                              ),
+                              // While the width animates, keep the expanded layout at its full 240px and
+                              // let the shrinking box clip it. Squeezing it into the in-between widths
+                              // wrapped the labels ("Notificatio ns"). The icon-only layout is used only
+                              // once the sidebar has actually reached its collapsed width.
+                              child: LayoutBuilder(
+                                builder: (context, sidebar) {
+                                  if (isSidebarCollapsed && sidebar.maxWidth <= 72.5) {
+                                    return _buildSidebarContent(constraints.maxWidth, isDrawer: false, collapsed: true);
+                                  }
+                                  return ClipRect(
+                                    child: OverflowBox(
+                                      alignment: Alignment.centerLeft,
+                                      minWidth: 240,
+                                      maxWidth: 240,
+                                      child: _buildSidebarContent(constraints.maxWidth, isDrawer: false),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: SizedBox(
+                                height: constraints.maxHeight,
+                                child: _buildDesktopBody(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AnimatedPositioned(
                           duration: Duration(milliseconds: 250),
                           curve: Curves.easeInOut,
-                          height: constraints.maxHeight,
-                          width: _isSidebarCollapsed ? 72 : 240,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            border: Border(right: BorderSide(color: Theme.of(context).dividerColor)),
-                          ),
-                          // While the width animates, keep the expanded layout at its full 240px and
-                          // let the shrinking box clip it. Squeezing it into the in-between widths
-                          // wrapped the labels ("Notificatio ns"). The icon-only layout is used only
-                          // once the sidebar has actually reached its collapsed width.
-                          child: LayoutBuilder(
-                            builder: (context, sidebar) {
-                              if (_isSidebarCollapsed && sidebar.maxWidth <= 72.5) {
-                                return _buildSidebarContent(isDrawer: false, collapsed: true);
-                              }
-                              return ClipRect(
-                                child: OverflowBox(
-                                  alignment: Alignment.centerLeft,
-                                  minWidth: 240,
-                                  maxWidth: 240,
-                                  child: _buildSidebarContent(isDrawer: false),
+                          left: (isSidebarCollapsed ? 72 : 240) - 14,
+                          top: (constraints.maxHeight / 2) - 15,
+                          child: Material(
+                            color: AppTheme.cardBg,
+                            elevation: 4,
+                            shape: CircleBorder(
+                              side: BorderSide(color: AppTheme.borderColor, width: 1.2),
+                            ),
+                            child: InkWell(
+                              customBorder: CircleBorder(),
+                              hoverColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              splashColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                              onTap: () => _toggleSidebar(constraints.maxWidth),
+                              child: Padding(
+                                padding: EdgeInsets.all(6),
+                                child: Icon(
+                                  isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                                  color: AppTheme.primaryBlue,
+                                  size: 16,
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: SizedBox(
-                            height: constraints.maxHeight,
-                            child: _buildDesktopBody(),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedPositioned(
-                      duration: Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      left: (_isSidebarCollapsed ? 72 : 240) - 14,
-                      top: (constraints.maxHeight / 2) - 15,
-                      child: Material(
-                        color: AppTheme.cardBg,
-                        elevation: 4,
-                        shape: CircleBorder(
-                          side: BorderSide(color: AppTheme.borderColor, width: 1.2),
-                        ),
-                        child: InkWell(
-                          customBorder: CircleBorder(),
-                          hoverColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                          splashColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                          onTap: _toggleSidebar,
-                          child: Padding(
-                            padding: EdgeInsets.all(6),
-                            child: Icon(
-                              _isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                              color: AppTheme.primaryBlue,
-                              size: 16,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
           bottomNavigationBar: isMobile
               ? ListenableBuilder(
@@ -703,7 +713,7 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  Widget _buildSidebarContent({bool isDrawer = false, bool collapsed = false}) {
+  Widget _buildSidebarContent(double screenWidth, {bool isDrawer = false, bool collapsed = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -715,7 +725,7 @@ class _MainLayoutState extends State<MainLayout> {
             mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               InkWell(
-                onTap: collapsed ? _toggleSidebar : null,
+                onTap: collapsed ? () => _toggleSidebar(screenWidth) : null,
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: EdgeInsets.all(8),

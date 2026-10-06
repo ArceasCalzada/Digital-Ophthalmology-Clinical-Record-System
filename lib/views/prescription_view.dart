@@ -243,181 +243,271 @@ class _PrescriptionViewState extends State<PrescriptionView> {
             ),
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.person, color: AppTheme.primaryBlue),
-                  SizedBox(width: 12),
-                  Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: ClinicalDropdownField<Patient>(
-                      placeholder: 'Search & select patient...',
-                      value: _selectedPatient,
-                      displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : null,
-                      searchable: true,
-                      searchHint: 'Type patient name...',
-                      items: [
-                        for (final p in allPatients)
-                          ClinicalPickerItem<Patient>(
-                            value: p,
-                            label: p.fullName,
-                            subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}',
-                          ),
+              child: LayoutBuilder(
+                builder: (context, selectorConstraints) {
+                  final isNarrow = selectorConstraints.maxWidth < 500;
+                  final dropdown = ClinicalDropdownField<Patient>(
+                    placeholder: 'Search & select patient...',
+                    value: _selectedPatient,
+                    displayText: _selectedPatient != null ? '${_selectedPatient!.fullName} (${_selectedPatient!.mrn})' : null,
+                    searchable: true,
+                    searchHint: 'Type patient name...',
+                    items: [
+                      for (final p in allPatients)
+                        ClinicalPickerItem<Patient>(
+                          value: p,
+                          label: p.fullName,
+                          subtitle: '${p.mrn} • ${p.gender}, ${p.age} yrs • ${p.phone}',
+                        ),
+                    ],
+                    onChanged: (patient) {
+                      setState(() {
+                        _selectedPatient = patient;
+                        _loadPatientPrescriptionData(patient);
+                      });
+                    },
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.person, color: AppTheme.primaryBlue),
+                            SizedBox(width: 12),
+                            Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        dropdown,
                       ],
-                      onChanged: (patient) {
-                        setState(() {
-                          _selectedPatient = patient;
-                          _loadPatientPrescriptionData(patient);
-                        });
-                      },
-                    ),
-                  ),
-                ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Icon(Icons.person, color: AppTheme.primaryBlue),
+                      SizedBox(width: 12),
+                      Text('Select Patient:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                      SizedBox(width: 16),
+                      Expanded(child: dropdown),
+                    ],
+                  );
+                },
               ),
             ),
           ),
           SizedBox(height: 24),
 
-          // Add Medication Form & Active Items
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Add Medication Form
-              Expanded(
-                flex: 5,
-                child: Card(
-                  color: AppTheme.cardBg,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: AppTheme.borderColor),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Add Ophthalmic Medication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                        SizedBox(height: 16),
-                        Text('Medication Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                        SizedBox(height: 6),
-                        TextFormField(
-                          controller: _medNameController,
-                          decoration: InputDecoration(hintText: 'e.g. Timolol 0.5% Maleate Drops'),
-                        ),
-                        SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Strength', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  SizedBox(height: 6),
-                                  TextFormField(controller: _strengthController, decoration: InputDecoration(hintText: '0.5%')),
-                                ],
+          // Add Medication Form & Active Items (Responsive Stacking)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isStacked = constraints.maxWidth < 1024;
+
+              final medicationFormCard = Card(
+                color: AppTheme.cardBg,
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: AppTheme.borderColor),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Add Ophthalmic Medication', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+                      SizedBox(height: 16),
+                      Text('Medication Name *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                      SizedBox(height: 6),
+                      TextFormField(
+                        controller: _medNameController,
+                        decoration: InputDecoration(hintText: 'e.g. Timolol 0.5% Maleate Drops'),
+                      ),
+                      SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (ctx, formConstraints) {
+                          final isNarrowForm = formConstraints.maxWidth < 450;
+                          if (isNarrowForm) {
+                            return Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Strength', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _strengthController, decoration: InputDecoration(hintText: '0.5%')),
+                                  ],
+                                ),
+                                SizedBox(height: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _dosageController, decoration: InputDecoration(hintText: '1 drop OU')),
+                                  ],
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Strength', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _strengthController, decoration: InputDecoration(hintText: '0.5%')),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  SizedBox(height: 6),
-                                  TextFormField(controller: _dosageController, decoration: InputDecoration(hintText: '1 drop OU')),
-                                ],
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Dosage', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _dosageController, decoration: InputDecoration(hintText: '1 drop OU')),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  SizedBox(height: 6),
-                                  TextFormField(controller: _frequencyController, decoration: InputDecoration(hintText: 'Twice daily (BID)')),
-                                ],
+                            ],
+                          );
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (ctx, formConstraints) {
+                          final isNarrowForm = formConstraints.maxWidth < 450;
+                          if (isNarrowForm) {
+                            return Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _frequencyController, decoration: InputDecoration(hintText: 'Twice daily (BID)')),
+                                  ],
+                                ),
+                                SizedBox(height: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _durationController, decoration: InputDecoration(hintText: '30 days')),
+                                  ],
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _frequencyController, decoration: InputDecoration(hintText: 'Twice daily (BID)')),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                                  SizedBox(height: 6),
-                                  TextFormField(controller: _durationController, decoration: InputDecoration(hintText: '30 days')),
-                                ],
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                                    SizedBox(height: 6),
+                                    TextFormField(controller: _durationController, decoration: InputDecoration(hintText: '30 days')),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          );
+                        },
+                      ),
+                      SizedBox(height: 12),
+                      Text('Special Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                      SizedBox(height: 6),
+                      TextFormField(
+                        controller: _instructionsController,
+                        decoration: InputDecoration(hintText: 'Instill 1 drop in morning and evening.'),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: _addMedicationFromInput,
+                        icon: Icon(Icons.add, size: 16),
+                        label: Text('Add Medication to Prescription'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(double.infinity, 44),
                         ),
-                        SizedBox(height: 12),
-                        Text('Special Instructions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                        SizedBox(height: 6),
-                        TextFormField(
-                          controller: _instructionsController,
-                          decoration: InputDecoration(hintText: 'Instill 1 drop in morning and evening.'),
-                        ),
-                        SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: _addMedicationFromInput,
-                          icon: Icon(Icons.add, size: 16),
-                          label: Text('Add Medication to Prescription'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(double.infinity, 44),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              SizedBox(width: 20),
+              );
 
-              // Live Prescription Pad Preview Pane
-              Expanded(
-                flex: 6,
-                child: Column(
+              final livePreviewColumn = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Live Prescription Pad Preview',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_medications.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => setState(() => _medications.clear()),
+                          icon: Icon(Icons.clear_all, size: 16, color: Colors.redAccent),
+                          label: Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  RxPadWidget(
+                    patient: _selectedPatient,
+                    items: _medications,
+                    date: DateTime.now().toString().substring(0, 10),
+                    doctorName: 'Dr. Sigrid T. Robillos',
+                    showBorder: true,
+                  ),
+                ],
+              );
+
+              if (isStacked) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Live Prescription Pad Preview',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_medications.isNotEmpty)
-                          TextButton.icon(
-                            onPressed: () => setState(() => _medications.clear()),
-                            icon: Icon(Icons.clear_all, size: 16, color: Colors.redAccent),
-                            label: Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                          ),
-                      ],
-                    ),
-                    SizedBox(height: 12),
-                    RxPadWidget(
-                      patient: _selectedPatient,
-                      items: _medications,
-                      date: DateTime.now().toString().substring(0, 10),
-                      doctorName: 'Dr. Sigrid T. Robillos',
-                      showBorder: true,
-                    ),
+                    medicationFormCard,
+                    SizedBox(height: 24),
+                    livePreviewColumn,
                   ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: medicationFormCard),
+                  SizedBox(width: 20),
+                  Expanded(flex: 6, child: livePreviewColumn),
+                ],
+              );
+            },
           ),
         ],
       ),

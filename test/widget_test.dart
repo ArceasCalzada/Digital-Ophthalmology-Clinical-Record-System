@@ -106,6 +106,9 @@ void main() {
   });
 
   testWidgets('App renders LoginView and transitions to DOCRS workstation upon real sign in', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await attachFakeAuth();
     PatientRepository.addPatient(
       Patient(
