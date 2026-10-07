@@ -43,23 +43,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     _medications.clear();
     if (patient != null && patient.prescriptions.isNotEmpty) {
       _medications.addAll(patient.prescriptions.first.items);
-    } else {
-      _addInitialMedicationDraft();
     }
-  }
-
-  void _addInitialMedicationDraft() {
-    _medications.add(
-      PrescriptionItem(
-        id: 'item-${DateTime.now().millisecondsSinceEpoch}',
-        medicationName: 'Latanoprost 0.005% Ophthalmic Solution',
-        strength: '0.005%',
-        dosage: '1 drop',
-        frequency: 'Once daily at bedtime',
-        duration: '30 days',
-        instructions: 'Instill 1 drop in both eyes (OU) every night before sleep.',
-      ),
-    );
   }
 
   void _addMedicationFromInput() {

@@ -9,21 +9,6 @@ import 'package:ophthalmology_clinical_record_system/views/prescription_view.dar
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final testPatient = Patient(
-    id: 'p-101',
-    mrn: 'MRN-101',
-    fullName: 'Juan dela Cruz',
-    dateOfBirth: '1985-05-12',
-    gender: 'Male',
-    phone: '+63 917 123 4567',
-    address: 'Davao City, Philippines',
-    medicalHistory: const [],
-    allergies: const [],
-    encounters: const [],
-    lastVisitDate: '2026-10-01',
-    totalVisits: 2,
-  );
-
   final testItems = [
     PrescriptionItem(
       id: 'item-1',
@@ -44,6 +29,31 @@ void main() {
       instructions: 'Instill 1 drop 4 times daily.',
     ),
   ];
+
+  final testPatient = Patient(
+    id: 'p-101',
+    mrn: 'MRN-101',
+    fullName: 'Juan dela Cruz',
+    dateOfBirth: '1985-05-12',
+    gender: 'Male',
+    phone: '+63 917 123 4567',
+    address: 'Davao City, Philippines',
+    medicalHistory: const [],
+    allergies: const [],
+    encounters: const [],
+    lastVisitDate: '2026-10-01',
+    totalVisits: 2,
+    prescriptions: [
+      Prescription(
+        id: 'rx-test',
+        patientId: 'p-101',
+        encounterId: 'enc-101',
+        doctorName: 'Dr. Sigrid T. Robillos',
+        date: '2026-10-06',
+        items: testItems,
+      ),
+    ],
+  );
 
   group('PrescriptionPdfService PDF Generation Tests', () {
     test('generatePrescriptionPdf creates non-empty PDF document bytes', () async {
