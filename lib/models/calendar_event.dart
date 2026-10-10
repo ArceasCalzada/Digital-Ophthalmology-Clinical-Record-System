@@ -6,6 +6,7 @@ import '../services/offline_sync_service.dart';
 
 class CalendarEvent {
   final String id;
+  final String teamId;
   final String title;
   final String eventType; // Surgery, Checkup, Follow-up, IOP Check, Emergency, Laser Procedure
   final String location;  // Davao, Bukidnon, General Santos, Exam Room 1, Exam Room 2, OR Suite 3
@@ -19,6 +20,7 @@ class CalendarEvent {
 
   CalendarEvent({
     required this.id,
+    this.teamId = '',
     required this.title,
     required this.eventType,
     required this.location,
@@ -31,21 +33,68 @@ class CalendarEvent {
     this.notificationTriggered = false,
   });
 
+  CalendarEvent copyWith({
+    String? id,
+    String? teamId,
+    String? title,
+    String? eventType,
+    String? location,
+    DateTime? dateTime,
+    String? patientName,
+    String? patientId,
+    String? notes,
+    int? reminderMinutes,
+    bool? isCompleted,
+    bool? notificationTriggered,
+  }) {
+    return CalendarEvent(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      title: title ?? this.title,
+      eventType: eventType ?? this.eventType,
+      location: location ?? this.location,
+      dateTime: dateTime ?? this.dateTime,
+      patientName: patientName ?? this.patientName,
+      patientId: patientId ?? this.patientId,
+      notes: notes ?? this.notes,
+      reminderMinutes: reminderMinutes ?? this.reminderMinutes,
+      isCompleted: isCompleted ?? this.isCompleted,
+      notificationTriggered: notificationTriggered ?? this.notificationTriggered,
+    );
+  }
+
   factory CalendarEvent.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate = DateTime.now();
+    final rawDate = json['dateTime'] ?? json['date_time'] ?? json['timestamp'] ?? json['date'];
+    if (rawDate != null) {
+      if (rawDate is String) {
+        parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+      } else if (rawDate is int) {
+        parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
+      } else {
+        // Dynamic check for Firestore Timestamp object
+        try {
+          final dynamic t = rawDate;
+          if (t.toDate != null) {
+            parsedDate = t.toDate() as DateTime;
+          }
+        } catch (_) {}
+      }
+    }
+
     return CalendarEvent(
       id: json['id'] as String? ?? '',
+      teamId: json['teamId'] as String? ?? json['team_id'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      eventType: json['eventType'] as String? ?? 'Checkup',
+      eventType: json['eventType'] as String? ?? json['event_type'] as String? ?? 'Checkup',
       location: json['location'] as String? ?? '',
-      dateTime: json['dateTime'] != null
-          ? DateTime.tryParse(json['dateTime'].toString()) ?? DateTime.now()
-          : DateTime.now(),
-      patientName: json['patientName'] as String? ?? '',
-      patientId: json['patientId'] as String?,
+      dateTime: parsedDate,
+      patientName: json['patientName'] as String? ?? json['patient_name'] as String? ?? '',
+      patientId: json['patientId'] as String? ?? json['patient_id'] as String?,
       notes: json['notes'] as String? ?? '',
-      reminderMinutes: json['reminderMinutes'] as int? ?? 30,
-      isCompleted: json['isCompleted'] as bool? ?? false,
-      notificationTriggered: json['notificationTriggered'] as bool? ?? false,
+      reminderMinutes: json['reminderMinutes'] as int? ?? json['reminder_minutes'] as int? ?? 30,
+      isCompleted: json['isCompleted'] as bool? ?? json['is_completed'] as bool? ?? false,
+      notificationTriggered: json['notificationTriggered'] as bool? ?? json['notification_triggered'] as bool? ?? false,
     );
   }
 }
@@ -56,22 +105,31 @@ class CalendarEventRepository extends ChangeNotifier {
 
   final List<CalendarEvent> _events = [];
   StreamSubscription? _eventsSub;
+  String? _activeTeamId;
 
   CalendarEventRepository._internal() {
     _initSeedData();
   }
 
-  void connect() {
+  void connect([String? teamId]) {
+    _activeTeamId = teamId;
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
     _eventsSub?.cancel();
-    _eventsSub = firestore.collection('calendarEvents').snapshots().listen((snapshot) {
+    
+    // Firestore rules require limit <= 500 for queries on calendarEvents
+    _eventsSub = firestore.collection('calendarEvents').limit(500).snapshots().listen((snapshot) {
       _events.clear();
       for (final doc in snapshot.docs) {
         try {
           final data = FirebaseGate.decode(doc.data());
           data['id'] = doc.id;
-          _events.add(CalendarEvent.fromJson(data));
+          final event = CalendarEvent.fromJson(data);
+          
+          // Team scope filtering: include event if unassigned or matches active team
+          if (_activeTeamId == null || _activeTeamId!.isEmpty || event.teamId.isEmpty || event.teamId == _activeTeamId) {
+            _events.add(event);
+          }
         } catch (e) {
           debugPrint('Error parsing calendar event ${doc.id}: $e');
         }
@@ -86,10 +144,16 @@ class CalendarEventRepository extends ChangeNotifier {
     _eventsSub?.cancel();
     _eventsSub = null;
     _events.clear();
+    _activeTeamId = null;
     notifyListeners();
   }
 
-  List<CalendarEvent> get events => List.unmodifiable(_events);
+  List<CalendarEvent> get events {
+    if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+      return List.unmodifiable(_events.where((e) => e.teamId.isEmpty || e.teamId == _activeTeamId));
+    }
+    return List.unmodifiable(_events);
+  }
 
   List<CalendarEvent> getEventsForDay(DateTime day) {
     return _events.where((e) {
@@ -127,22 +191,26 @@ class CalendarEventRepository extends ChangeNotifier {
   }
 
   void addEvent(CalendarEvent event) {
-    _events.add(event);
+    final eventWithTeam = event.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
+        ? event.copyWith(teamId: _activeTeamId)
+        : event;
+    _events.add(eventWithTeam);
     OfflineSyncService().enqueueMutation(
-      id: event.id,
+      id: eventWithTeam.id,
       entityType: 'CalendarEvent',
       action: 'CREATE',
       payload: {
-        'id': event.id,
-        'title': event.title,
-        'eventType': event.eventType,
-        'location': event.location,
-        'dateTime': event.dateTime.toIso8601String(),
-        'patientName': event.patientName,
-        'patientId': event.patientId,
-        'notes': event.notes,
-        'reminderMinutes': event.reminderMinutes,
-        'isCompleted': event.isCompleted,
+        'id': eventWithTeam.id,
+        'teamId': eventWithTeam.teamId,
+        'title': eventWithTeam.title,
+        'eventType': eventWithTeam.eventType,
+        'location': eventWithTeam.location,
+        'dateTime': eventWithTeam.dateTime.toIso8601String(),
+        'patientName': eventWithTeam.patientName,
+        'patientId': eventWithTeam.patientId,
+        'notes': eventWithTeam.notes,
+        'reminderMinutes': eventWithTeam.reminderMinutes,
+        'isCompleted': eventWithTeam.isCompleted,
         'lastModified': DateTime.now().toIso8601String(),
       },
     );
@@ -150,24 +218,31 @@ class CalendarEventRepository extends ChangeNotifier {
   }
 
   void updateEvent(CalendarEvent updated) {
-    final idx = _events.indexWhere((e) => e.id == updated.id);
-    if (idx == -1) return;
-    _events[idx] = updated;
+    final eventWithTeam = updated.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
+        ? updated.copyWith(teamId: _activeTeamId)
+        : updated;
+    final idx = _events.indexWhere((e) => e.id == eventWithTeam.id);
+    if (idx != -1) {
+      _events[idx] = eventWithTeam;
+    } else {
+      _events.add(eventWithTeam);
+    }
     OfflineSyncService().enqueueMutation(
-      id: updated.id,
+      id: eventWithTeam.id,
       entityType: 'CalendarEvent',
       action: 'UPDATE',
       payload: {
-        'id': updated.id,
-        'title': updated.title,
-        'eventType': updated.eventType,
-        'location': updated.location,
-        'dateTime': updated.dateTime.toIso8601String(),
-        'patientName': updated.patientName,
-        'patientId': updated.patientId,
-        'notes': updated.notes,
-        'reminderMinutes': updated.reminderMinutes,
-        'isCompleted': updated.isCompleted,
+        'id': eventWithTeam.id,
+        'teamId': eventWithTeam.teamId,
+        'title': eventWithTeam.title,
+        'eventType': eventWithTeam.eventType,
+        'location': eventWithTeam.location,
+        'dateTime': eventWithTeam.dateTime.toIso8601String(),
+        'patientName': eventWithTeam.patientName,
+        'patientId': eventWithTeam.patientId,
+        'notes': eventWithTeam.notes,
+        'reminderMinutes': eventWithTeam.reminderMinutes,
+        'isCompleted': eventWithTeam.isCompleted,
         'lastModified': DateTime.now().toIso8601String(),
       },
     );
@@ -184,7 +259,9 @@ class CalendarEventRepository extends ChangeNotifier {
         action: 'UPDATE',
         payload: {
           'id': id,
+          'teamId': _events[idx].teamId,
           'isCompleted': _events[idx].isCompleted,
+          'lastModified': DateTime.now().toIso8601String(),
         },
       );
       notifyListeners();

@@ -36,8 +36,8 @@ void main() {
 
     expect(find.byIcon(Icons.calendar_today_rounded), findsOneWidget);
     expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.location_on_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.location_on_rounded), findsNothing);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
     for (final removed in [
       Icons.calendar_month_rounded,
       Icons.event_note,
@@ -128,12 +128,12 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('location field is auto-populated and read-only from active workspace', (tester) async {
+  testWidgets('location field is selectable dropdown menu without read-only lock', (tester) async {
     await openModal(tester);
 
     expect(find.text('Location'), findsOneWidget);
     expect(find.text('Metro Eye Center, Main Branch'), findsOneWidget);
-    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
   });
 
   testWidgets('the form no longer asks for a reminder; a new event takes the one set in Settings', (tester) async {

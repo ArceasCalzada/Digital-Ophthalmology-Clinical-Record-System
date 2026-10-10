@@ -62,23 +62,11 @@ class _AddEventModalState extends State<AddEventModal> {
 
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
-  // Not assumed: the user picks these, and both are optional.
   String? _selectedEventType;
+  String? _selectedLocation;
   Patient? _selectedPatient;
 
   final _options = EventOptionsStore.instance;
-
-  String get _inheritedLocation {
-    final activeTeam = TeamService.instance.activeTeam;
-    if (activeTeam != null && activeTeam.location.trim().isNotEmpty) {
-      return activeTeam.location;
-    }
-    final editing = widget.event;
-    if (editing != null && editing.location.trim().isNotEmpty) {
-      return editing.location;
-    }
-    return 'Metro Eye Center, Main Branch';
-  }
 
   @override
   void initState() {
@@ -91,6 +79,7 @@ class _AddEventModalState extends State<AddEventModal> {
       _selectedDate = editing.dateTime;
       _selectedTime = TimeOfDay.fromDateTime(editing.dateTime);
       _selectedEventType = editing.eventType.isEmpty ? null : editing.eventType;
+      _selectedLocation = editing.location.isEmpty ? null : editing.location;
       for (final p in patients) {
         if (p.mrn == editing.patientId) {
           _selectedPatient = p;
@@ -101,6 +90,12 @@ class _AddEventModalState extends State<AddEventModal> {
     }
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(Duration(hours: 1)));
+    final activeTeamLoc = TeamService.instance.activeTeam?.location;
+    if (activeTeamLoc != null && activeTeamLoc.trim().isNotEmpty) {
+      _selectedLocation = activeTeamLoc.trim();
+    } else {
+      _selectedLocation = 'Metro Eye Center, Main Branch';
+    }
     if (patients.isNotEmpty) {
       _selectedPatient = patients.first;
     }
@@ -119,7 +114,21 @@ class _AddEventModalState extends State<AddEventModal> {
     return [
       ClinicalPickerItem<String>(value: '', label: 'None', removable: false),
       for (final name in saved) ClinicalPickerItem<String>(value: name, label: name),
-      if (selected != null && !saved.contains(selected))
+      if (selected != null && selected.isNotEmpty && !saved.contains(selected))
+        ClinicalPickerItem<String>(value: selected, label: selected, removable: false),
+    ];
+  }
+
+  List<ClinicalPickerItem<String>> _locationChoices(List<String> saved, String? selected) {
+    final activeLocation = TeamService.instance.activeTeam?.location;
+    final merged = <String>{...saved};
+    if (activeLocation != null && activeLocation.trim().isNotEmpty) {
+      merged.add(activeLocation.trim());
+    }
+    return [
+      ClinicalPickerItem<String>(value: '', label: 'None', removable: false),
+      for (final name in merged) ClinicalPickerItem<String>(value: name, label: name),
+      if (selected != null && selected.isNotEmpty && !merged.contains(selected))
         ClinicalPickerItem<String>(value: selected, label: selected, removable: false),
     ];
   }
@@ -166,9 +175,10 @@ class _AddEventModalState extends State<AddEventModal> {
       final editing = widget.event;
       final newEvent = CalendarEvent(
         id: editing?.id ?? 'evt-${DateTime.now().millisecondsSinceEpoch}',
+        teamId: editing?.teamId ?? TeamService.instance.activeTeam?.id ?? '',
         title: title,
         eventType: _selectedEventType ?? '',
-        location: _inheritedLocation,
+        location: _selectedLocation ?? TeamService.instance.activeTeam?.location ?? 'Metro Eye Center, Main Branch',
         dateTime: dt,
         patientName: _selectedPatient?.fullName ?? editing?.patientName ?? 'Scheduled Patient',
         patientId: _selectedPatient?.mrn ?? editing?.patientId,
@@ -345,38 +355,19 @@ class _AddEventModalState extends State<AddEventModal> {
                     },
                   );
 
-                  final locationDisplay = Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FieldLabel('Location'),
-                      SizedBox(height: 6),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderColor),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.location_on_rounded, size: 18, color: AppTheme.primaryBlue),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _inheritedLocation,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Icon(Icons.lock_outline_rounded, size: 16, color: AppTheme.textSecondary),
-                          ],
-                        ),
-                      ),
-                    ],
+                  final locationField = ClinicalDropdownField<String>(
+                    label: FieldLabel('Location'),
+                    placeholder: 'None',
+                    value: _selectedLocation,
+                    items: _locationChoices(_options.locations, _selectedLocation),
+                    onChanged: (v) => setState(() => _selectedLocation = v.isEmpty ? null : v),
+                    itemNoun: 'location',
+                    maxNameLength: EventOptionsStore.maxNameLength,
+                    onAdd: _options.addLocation,
+                    onRemove: (v) {
+                      _options.removeLocation(v);
+                      if (_selectedLocation == v) setState(() => _selectedLocation = null);
+                    },
                   );
 
                   if (isNarrow) {
@@ -384,7 +375,7 @@ class _AddEventModalState extends State<AddEventModal> {
                       children: [
                         typeField,
                         SizedBox(height: 16),
-                        locationDisplay,
+                        locationField,
                       ],
                     );
                   }
@@ -394,7 +385,7 @@ class _AddEventModalState extends State<AddEventModal> {
                     children: [
                       Expanded(child: typeField),
                       SizedBox(width: 12),
-                      Expanded(child: locationDisplay),
+                      Expanded(child: locationField),
                     ],
                   );
                 },

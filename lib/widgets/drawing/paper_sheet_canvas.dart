@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import '../../models/drawing_stroke.dart';
+import '../../models/encounter.dart';
 import '../../theme/app_theme.dart';
 
 class ClinicalPenColor {
@@ -835,6 +836,8 @@ class PrintedPaperSheetPainter extends CustomPainter {
   final String? occupation;
   final String? phicNumber;
   final String? birthDate;
+  final Encounter? encounter;
+  final List<String> medicalHistory;
 
   PrintedPaperSheetPainter({
     required this.width,
@@ -848,6 +851,8 @@ class PrintedPaperSheetPainter extends CustomPainter {
     this.occupation,
     this.phicNumber,
     this.birthDate,
+    this.encounter,
+    this.medicalHistory = const [],
   });
 
   @override
@@ -857,6 +862,8 @@ class PrintedPaperSheetPainter extends CustomPainter {
 
     Offset pt(double x, double y) => Offset(x * scaleX, y * scaleY);
     Rect rct(double l, double t, double w, double h) => Rect.fromLTWH(l * scaleX, t * scaleY, w * scaleX, h * scaleY);
+
+    const inkColor = Color(0xFF1E3A8A);
 
     // 1. Paper Background (Crisp clinical off-white with fine medical border)
     final bgPaint = Paint()..color = const Color(0xFFFCFDFE);
@@ -942,125 +949,127 @@ class PrintedPaperSheetPainter extends CustomPainter {
     // ==========================================
     // SECTION A: HEADER DEMOGRAPHICS (TOP & BOTTOM ALIGNED RECTANGLE)
     // ==========================================
-    // Top Row: Left Name: & Middle Name: align horizontally with Right Date: (y = 42, line = 54)
     drawText('Name:', 20, 42, fontSize: 11.0);
     canvas.drawLine(pt(68, 54), pt(405, 54), linePaint);
     if (patientName != null && patientName!.isNotEmpty) {
-      drawText(patientName!, 74, 40, fontSize: 11.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(patientName!, 74, 40, fontSize: 11.5, isBold: true, color: inkColor);
     }
 
     drawText('Middle Name:', 418, 42, fontSize: 11.0);
     canvas.drawLine(pt(508, 54), pt(625, 54), linePaint);
     if (middleName != null && middleName!.isNotEmpty) {
-      drawText(middleName!, 514, 40, fontSize: 11.0, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(middleName!, 514, 40, fontSize: 11.0, isBold: true, color: inkColor);
     }
 
     drawText('Date:', 640, 42, fontSize: 11.0);
     canvas.drawLine(pt(710, 54), pt(795, 54), linePaint);
     if (date != null && date!.isNotEmpty) {
-      drawText(date!, 714, 40, fontSize: 11.0, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(date!, 714, 40, fontSize: 11.0, isBold: true, color: inkColor);
     }
 
-    // Right Column Intermediate Row 2 (y = 68, line = 80)
     drawText('Age/Sex:', 640, 68, fontSize: 11.0);
     canvas.drawLine(pt(710, 80), pt(795, 80), linePaint);
     if (ageSex != null && ageSex!.isNotEmpty) {
-      drawText(ageSex!, 714, 66, fontSize: 11.0, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(ageSex!, 714, 66, fontSize: 11.0, isBold: true, color: inkColor);
     }
 
-    // Left Column Middle Row 2: Address: adjusted evenly between top and bottom (y = 81, line = 93)
     drawText('Address:', 20, 81, fontSize: 11.0);
     canvas.drawLine(pt(80, 93), pt(625, 93), linePaint);
     if (address != null && address!.isNotEmpty) {
-      drawText(address!, 86, 79, fontSize: 10.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(address!, 86, 79, fontSize: 10.5, isBold: true, color: inkColor);
     }
 
-    // Right Column Intermediate Row 3 (y = 94, line = 106)
     drawText('Contact #:', 640, 94, fontSize: 11.0);
     canvas.drawLine(pt(710, 106), pt(795, 106), linePaint);
     if (contactNumber != null && contactNumber!.isNotEmpty) {
-      drawText(contactNumber!, 714, 92, fontSize: 10.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(contactNumber!, 714, 92, fontSize: 10.5, isBold: true, color: inkColor);
     }
 
-    // Bottom Row: Left Occupation: & PHIC #: align horizontally with Right Birth Date: (y = 120, line = 132)
     drawText('Occupation:', 20, 120, fontSize: 11.0);
     canvas.drawLine(pt(98, 132), pt(405, 132), linePaint);
     if (occupation != null && occupation!.isNotEmpty) {
-      drawText(occupation!, 104, 118, fontSize: 10.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(occupation!, 104, 118, fontSize: 10.5, isBold: true, color: inkColor);
     }
 
     drawText('PHIC #:', 418, 120, fontSize: 11.0);
     canvas.drawLine(pt(478, 132), pt(625, 132), linePaint);
     if (phicNumber != null && phicNumber!.isNotEmpty) {
-      drawText(phicNumber!, 484, 118, fontSize: 10.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(phicNumber!, 484, 118, fontSize: 10.5, isBold: true, color: inkColor);
     }
 
     drawText('Birth Date:', 640, 120, fontSize: 11.0);
     canvas.drawLine(pt(710, 132), pt(795, 132), linePaint);
     if (birthDate != null && birthDate!.isNotEmpty) {
-      drawText(birthDate!, 714, 118, fontSize: 10.5, isBold: true, color: const Color(0xFF1E3A8A));
+      drawText(birthDate!, 714, 118, fontSize: 10.5, isBold: true, color: inkColor);
     }
 
     // ==========================================
-    // SECTION B: TABLE 1 - REFRACTION & VA GRID (MERGED LABEL CELLS & CENTERED)
+    // SECTION B: TABLE 1 - REFRACTION & VA GRID
     // ==========================================
-    // Outer Table border spanning full width across the sheet from x = 20 to x = 795
     final table1Rect = rct(20, 142, 775, 56);
     canvas.drawRect(table1Rect, borderPaint);
 
-    // Horizontal Row dividers ONLY in the value boxes and OD/OS column (NO lines through CC, Old CC, AR, AK)
-    canvas.drawLine(pt(20, 170), pt(54, 170), linePaint);   // OD / OS divider
-    canvas.drawLine(pt(86, 170), pt(140, 170), linePaint);  // VA / PH value box divider
-    canvas.drawLine(pt(176, 170), pt(230, 170), linePaint); // CC value box divider
-    canvas.drawLine(pt(274, 170), pt(374, 170), linePaint); // Old CC value box divider
-    canvas.drawLine(pt(408, 170), pt(580, 170), linePaint); // AR wide value box divider
-    canvas.drawLine(pt(614, 170), pt(795, 170), linePaint); // AK wide value box divider
+    canvas.drawLine(pt(20, 170), pt(54, 170), linePaint);
+    canvas.drawLine(pt(86, 170), pt(140, 170), linePaint);
+    canvas.drawLine(pt(176, 170), pt(230, 170), linePaint);
+    canvas.drawLine(pt(274, 170), pt(374, 170), linePaint);
+    canvas.drawLine(pt(408, 170), pt(580, 170), linePaint);
+    canvas.drawLine(pt(614, 170), pt(795, 170), linePaint);
 
-    // Vertical Column dividers
-    canvas.drawLine(pt(54, 142), pt(54, 198), linePaint);   // OD/OS
-    canvas.drawLine(pt(86, 142), pt(86, 198), linePaint);   // VA/PH
-    canvas.drawLine(pt(140, 142), pt(140, 198), linePaint); // VA/PH values
-    canvas.drawLine(pt(176, 142), pt(176, 198), linePaint); // CC (Merged full height)
-    canvas.drawLine(pt(230, 142), pt(230, 198), linePaint); // CC values
-    canvas.drawLine(pt(274, 142), pt(274, 198), linePaint); // Old CC (Merged full height)
-    canvas.drawLine(pt(374, 142), pt(374, 198), linePaint); // Old CC values
-    canvas.drawLine(pt(408, 142), pt(408, 198), linePaint); // AR (Merged full height)
-    canvas.drawLine(pt(580, 142), pt(580, 198), linePaint); // AR wide values
-    canvas.drawLine(pt(614, 142), pt(614, 198), linePaint); // AK (Merged full height)
+    canvas.drawLine(pt(54, 142), pt(54, 198), linePaint);
+    canvas.drawLine(pt(86, 142), pt(86, 198), linePaint);
+    canvas.drawLine(pt(140, 142), pt(140, 198), linePaint);
+    canvas.drawLine(pt(176, 142), pt(176, 198), linePaint);
+    canvas.drawLine(pt(230, 142), pt(230, 198), linePaint);
+    canvas.drawLine(pt(274, 142), pt(274, 198), linePaint);
+    canvas.drawLine(pt(374, 142), pt(374, 198), linePaint);
+    canvas.drawLine(pt(408, 142), pt(408, 198), linePaint);
+    canvas.drawLine(pt(580, 142), pt(580, 198), linePaint);
+    canvas.drawLine(pt(614, 142), pt(614, 198), linePaint);
 
-    // Table 1 Printed Labels (All perfectly centered horizontally & vertically)
     drawCellText('OD', 20, 142, 34, 28, fontSize: 10.5);
     drawCellText('OS', 20, 170, 34, 28, fontSize: 10.5);
-
     drawCellText('VA', 54, 142, 32, 28, fontSize: 10.5);
     drawCellText('PH', 54, 170, 32, 28, fontSize: 10.5);
-
     drawCellText('CC', 140, 142, 36, 56, fontSize: 10.5);
-
     drawCellText('Old\nCC', 230, 142, 44, 56, fontSize: 10.0);
-
     drawCellText('AR', 374, 142, 34, 56, fontSize: 10.5);
     drawCellText('AK', 580, 142, 34, 56, fontSize: 10.5);
 
+    // Dynamic Refraction Values
+    if (encounter != null) {
+      final od = encounter!.examOD.acuity;
+      final os = encounter!.examOS.acuity;
+
+      if (od.uncorrected.isNotEmpty) drawCellText(od.uncorrected, 86, 142, 54, 28, fontSize: 10.0, color: inkColor);
+      if (od.bestCorrected.isNotEmpty) drawCellText(od.bestCorrected, 176, 142, 54, 28, fontSize: 10.0, color: inkColor);
+      if (od.oldCc.isNotEmpty) drawCellText(od.oldCc, 274, 142, 100, 28, fontSize: 10.0, color: inkColor);
+      if (od.ar.isNotEmpty) drawCellText(od.ar, 408, 142, 172, 28, fontSize: 10.0, color: inkColor);
+      if (od.ak.isNotEmpty) drawCellText(od.ak, 614, 142, 181, 28, fontSize: 10.0, color: inkColor);
+
+      if (os.uncorrected.isNotEmpty) drawCellText(os.uncorrected, 86, 170, 54, 28, fontSize: 10.0, color: inkColor);
+      if (os.bestCorrected.isNotEmpty) drawCellText(os.bestCorrected, 176, 170, 54, 28, fontSize: 10.0, color: inkColor);
+      if (os.oldCc.isNotEmpty) drawCellText(os.oldCc, 274, 170, 100, 28, fontSize: 10.0, color: inkColor);
+      if (os.ar.isNotEmpty) drawCellText(os.ar, 408, 170, 172, 28, fontSize: 10.0, color: inkColor);
+      if (os.ak.isNotEmpty) drawCellText(os.ak, 614, 170, 181, 28, fontSize: 10.0, color: inkColor);
+    }
+
     // ==========================================
-    // SECTION C: TABLE 2 - CLINICAL EXAM MATRIX (CENTER ALIGNED & POSITIONED)
+    // SECTION C: TABLE 2 - CLINICAL EXAM MATRIX
     // ==========================================
     final table2Rect = rct(20, 208, 605, 80);
     canvas.drawRect(table2Rect, borderPaint);
 
-    // Horizontal Row Dividers
-    canvas.drawLine(pt(20, 234), pt(625, 234), linePaint); // Header bottom
-    canvas.drawLine(pt(20, 261), pt(625, 261), linePaint); // OD bottom
+    canvas.drawLine(pt(20, 234), pt(625, 234), linePaint);
+    canvas.drawLine(pt(20, 261), pt(625, 261), linePaint);
 
-    // Column Dividers
-    canvas.drawLine(pt(54, 208), pt(54, 288), linePaint);   // OD/OS
-    canvas.drawLine(pt(98, 208), pt(98, 288), linePaint);   // Color
-    canvas.drawLine(pt(140, 208), pt(140, 288), linePaint); // IOP
-    canvas.drawLine(pt(260, 208), pt(260, 288), linePaint); // Angles Gonioscopy
-    canvas.drawLine(pt(345, 208), pt(345, 288), linePaint); // CDR / ON
-    canvas.drawLine(pt(495, 208), pt(495, 288), linePaint); // Confrontation / Peripheral
+    canvas.drawLine(pt(54, 208), pt(54, 288), linePaint);
+    canvas.drawLine(pt(98, 208), pt(98, 288), linePaint);
+    canvas.drawLine(pt(140, 208), pt(140, 288), linePaint);
+    canvas.drawLine(pt(260, 208), pt(260, 288), linePaint);
+    canvas.drawLine(pt(345, 208), pt(345, 288), linePaint);
+    canvas.drawLine(pt(495, 208), pt(495, 288), linePaint);
 
-    // Table 2 Header Labels (Centered in each column header box)
     drawCellText('Color', 54, 208, 44, 26, fontSize: 10.0);
     drawCellText('IOP', 98, 208, 42, 26, fontSize: 10.0);
     drawCellText('Angles Gonioscopy', 140, 208, 120, 26, fontSize: 10.0);
@@ -1073,20 +1082,11 @@ class PrintedPaperSheetPainter extends CustomPainter {
     drawCellText('B', 54, 234, 44, 13.5, fontSize: 9.0);
     drawCellText('G', 54, 247.5, 44, 13.5, fontSize: 9.0);
 
-    // Centered Open / Narrow / Closed in Angles Gonioscopy
     drawCellText('Open\nNarrow\nClosed', 140, 234, 62, 27, fontSize: 8.0, isBold: false, lineHeight: 1.05);
-    // Gonioscopy circle target OD (Centered in the remaining half)
     canvas.drawCircle(pt(228, 247.5), 10.0 * scaleX, thinLinePaint);
-
-    // CDR / ON circle OD (Dead-center of the CDR cell)
     canvas.drawCircle(pt(302.5, 247.5), 10.5 * scaleX, thinLinePaint);
-
-    // Centered WNL / Defect in Confrontation / Peripheral
     drawCellText('WNL\nDefect', 345, 234, 65, 27, fontSize: 8.5, isBold: false, lineHeight: 1.15);
-    // Upper circle of visual field map (Centered in the remaining half)
     canvas.drawCircle(pt(450, 247.5), 10.5 * scaleX, thinLinePaint);
-
-    // Van Herick OD (Top-aligned in cell)
     drawCellText('G1 G2 G3 G4 Wide', 495, 234, 130, 27, fontSize: 9.0, isBold: false, alignment: Alignment.topCenter);
 
     // OS Row
@@ -1094,24 +1094,35 @@ class PrintedPaperSheetPainter extends CustomPainter {
     drawCellText('B', 54, 261, 44, 13.5, fontSize: 9.0);
     drawCellText('G', 54, 274.5, 44, 13.5, fontSize: 9.0);
 
-    // Centered Open / Narrow / Closed in Angles Gonioscopy
     drawCellText('Open\nNarrow\nClosed', 140, 261, 62, 27, fontSize: 8.0, isBold: false, lineHeight: 1.05);
-    // Gonioscopy circle target OS
     canvas.drawCircle(pt(228, 274.5), 10.0 * scaleX, thinLinePaint);
-
-    // CDR / ON circle OS
     canvas.drawCircle(pt(302.5, 274.5), 10.5 * scaleX, thinLinePaint);
-
-    // Centered WNL / Defect in Confrontation / Peripheral
     drawCellText('WNL\nDefect', 345, 261, 65, 27, fontSize: 8.5, isBold: false, lineHeight: 1.15);
-    // Lower circle of visual field map
     canvas.drawCircle(pt(450, 274.5), 10.5 * scaleX, thinLinePaint);
-
-    // Van Herick OS (Top-aligned in cell)
     drawCellText('G1 G2 G3 G4 Wide', 495, 261, 130, 27, fontSize: 9.0, isBold: false, alignment: Alignment.topCenter);
 
+    // Dynamic Clinical Measurement Values
+    if (encounter != null) {
+      final od = encounter!.examOD;
+      final os = encounter!.examOS;
+
+      if (od.color.isNotEmpty) drawCellText(od.color, 54, 234, 44, 27, fontSize: 9.5, color: inkColor);
+      if (od.iop.isNotEmpty) drawCellText('${od.iop} mmHg', 98, 234, 42, 27, fontSize: 9.5, color: inkColor);
+      if (od.anglesGonioscopy.isNotEmpty) drawCellText(od.anglesGonioscopy, 140, 234, 120, 27, fontSize: 9.0, color: inkColor);
+      if (od.cdrOn.isNotEmpty) drawCellText(od.cdrOn, 260, 234, 85, 27, fontSize: 9.5, color: inkColor);
+      if (od.confrontationPeripheral.isNotEmpty) drawCellText(od.confrontationPeripheral, 345, 234, 150, 27, fontSize: 9.5, color: inkColor);
+      if (od.vanHerick.isNotEmpty) drawCellText(od.vanHerick, 495, 234, 130, 27, fontSize: 9.0, color: inkColor);
+
+      if (os.color.isNotEmpty) drawCellText(os.color, 54, 261, 44, 27, fontSize: 9.5, color: inkColor);
+      if (os.iop.isNotEmpty) drawCellText('${os.iop} mmHg', 98, 261, 42, 27, fontSize: 9.5, color: inkColor);
+      if (os.anglesGonioscopy.isNotEmpty) drawCellText(os.anglesGonioscopy, 140, 261, 120, 27, fontSize: 9.0, color: inkColor);
+      if (os.cdrOn.isNotEmpty) drawCellText(os.cdrOn, 260, 261, 85, 27, fontSize: 9.5, color: inkColor);
+      if (os.confrontationPeripheral.isNotEmpty) drawCellText(os.confrontationPeripheral, 345, 261, 150, 27, fontSize: 9.5, color: inkColor);
+      if (os.vanHerick.isNotEmpty) drawCellText(os.vanHerick, 495, 261, 130, 27, fontSize: 9.0, color: inkColor);
+    }
+
     // ==========================================
-    // SECTION D: RIGHT COLUMN - SYSTEMIC HISTORY (WITH OTHERS & UNIFORM SPACING)
+    // SECTION D: RIGHT COLUMN - SYSTEMIC HISTORY
     // ==========================================
     const historyEntries = [
       'Cardiac Problem',
@@ -1132,30 +1143,36 @@ class PrintedPaperSheetPainter extends CustomPainter {
       final double hy = historyStartY + (i * historyPitch);
       final String label = historyEntries[i];
 
-      // Draw real vector square checkbox
       final checkboxRect = RRect.fromRectAndRadius(
         rct(640, hy - 1, 11, 11),
         Radius.circular(2.0 * scaleX),
       );
       canvas.drawRRect(checkboxRect, thinLinePaint);
 
-      // Draw label next to checkbox
+      final bool isChecked = medicalHistory.any((item) {
+            final itemLower = item.toLowerCase();
+            final labelLower = label.toLowerCase();
+            return itemLower.contains(labelLower) || labelLower.contains(itemLower);
+          }) ||
+          (encounter != null && encounter!.chiefComplaint.toLowerCase().contains(label.toLowerCase()));
+
+      if (isChecked) {
+        drawText('✓', 641.5, hy - 2, fontSize: 10.5, isBold: true, color: inkColor);
+      }
+
       drawText(label, 658, hy, fontSize: 10.0);
 
-      // If 'Others:', draw blank underline for doctor to write
       if (label == 'Others:') {
         canvas.drawLine(pt(704, hy + 10), pt(795, hy + 10), linePaint);
       }
     }
 
     // ==========================================
-    // SECTION E: PRINTED EYE ANATOMICAL TEMPLATES (1:1 PHYSICAL PHOTO MATCH)
+    // SECTION E: PRINTED EYE ANATOMICAL TEMPLATES
     // ==========================================
-    // 1. Anterior Cornea / Slit Lamp Templates
-    // Helper to build authentic hollow crescent bracket with flat end caps
     Path buildCrescentBracket(Offset center, double innerR, double outerR) {
       final path = Path();
-      const double angleSpan = math.pi * 0.40; // ~72 degrees
+      const double angleSpan = math.pi * 0.40;
 
       final outerRect = Rect.fromCircle(center: center, radius: outerR);
       path.addArc(outerRect, math.pi - angleSpan, angleSpan * 2);
@@ -1167,7 +1184,6 @@ class PrintedPaperSheetPainter extends CustomPainter {
       return path;
     }
 
-    // OD Cornea (OD label to left of bracket + circle)
     drawText('OD', 575, 418, fontSize: 11.0);
     final odBracketCenter = pt(633, 426);
     final double odInnerR = 19.0 * scaleX;
@@ -1177,7 +1193,6 @@ class PrintedPaperSheetPainter extends CustomPainter {
     final odCircleCenter = pt(643, 426);
     canvas.drawCircle(odCircleCenter, 17.0 * scaleX, borderPaint);
 
-    // OS Cornea (OS label to left of bracket + circle)
     drawText('OS', 685, 418, fontSize: 11.0);
     final osBracketCenter = pt(743, 426);
     final double osInnerR = 19.0 * scaleX;
@@ -1187,21 +1202,16 @@ class PrintedPaperSheetPainter extends CustomPainter {
     final osCircleCenter = pt(753, 426);
     canvas.drawCircle(osCircleCenter, 17.0 * scaleX, borderPaint);
 
-    // 2. Dilated Fundus Exam Templates
     drawText('Dilated Fundus Exam', 580, 485, fontSize: 11.0);
 
-    // Helper to draw authentic Dilated Fundus diagram with nasal disc & vessel arcades
     void drawFundusDiagram(Offset center, double radius, bool isOD) {
-      // Outer Fundus Circle
       canvas.drawCircle(center, radius, borderPaint);
 
-      // Optic Disc (Small circle on nasal side: right for OD, left for OS)
       final double discOffsetX = isOD ? radius * 0.44 : -radius * 0.44;
       final discCenter = Offset(center.dx + discOffsetX, center.dy);
       final double discRadius = radius * 0.18;
       canvas.drawCircle(discCenter, discRadius, borderPaint);
 
-      // Nasal anchor curves from optic disc to the outer circle border
       final nasalTop = Path();
       nasalTop.moveTo(discCenter.dx, discCenter.dy - discRadius);
       nasalTop.quadraticBezierTo(
@@ -1222,7 +1232,6 @@ class PrintedPaperSheetPainter extends CustomPainter {
       );
       canvas.drawPath(nasalBot, borderPaint);
 
-      // Superior Vessel Arcade (arches up and across toward temporal side)
       final supArcade = Path();
       supArcade.moveTo(isOD ? discCenter.dx - discRadius * 0.2 : discCenter.dx + discRadius * 0.2, discCenter.dy - discRadius * 0.85);
       supArcade.cubicTo(
@@ -1235,7 +1244,6 @@ class PrintedPaperSheetPainter extends CustomPainter {
       );
       canvas.drawPath(supArcade, borderPaint);
 
-      // Inferior Vessel Arcade (arches down and across toward temporal side)
       final infArcade = Path();
       infArcade.moveTo(isOD ? discCenter.dx - discRadius * 0.2 : discCenter.dx + discRadius * 0.2, discCenter.dy + discRadius * 0.85);
       infArcade.cubicTo(
@@ -1250,24 +1258,38 @@ class PrintedPaperSheetPainter extends CustomPainter {
     }
 
     const double fundusRadius = 35.0;
-    // OD Fundus
     drawText('OD', 575, 542, fontSize: 11.0);
     final odFundusCenter = pt(636, 550);
     drawFundusDiagram(odFundusCenter, fundusRadius * scaleX, true);
 
-    // OS Fundus
     drawText('OS', 685, 542, fontSize: 11.0);
     final osFundusCenter = pt(746, 550);
     drawFundusDiagram(osFundusCenter, fundusRadius * scaleX, false);
 
     // ==========================================
-    // SECTION F: CLINICAL NOTES & WRITING LINES (GENEROUS SPACING, NO OVERLAP)
+    // SECTION F: CLINICAL NOTES & WRITING LINES
     // ==========================================
     drawText('Chief Complaint / HPI', 20, 312, fontSize: 11.0);
+    if (encounter != null && encounter!.chiefComplaint.isNotEmpty) {
+      drawText(encounter!.chiefComplaint, 20, 330, fontSize: 10.5, isBold: false, color: inkColor);
+    }
 
     drawText('Assessment:', 20, 680, fontSize: 11.0);
+    if (encounter != null && encounter!.diagnosis.isNotEmpty) {
+      drawText(encounter!.diagnosis, 20, 698, fontSize: 10.5, isBold: true, color: inkColor);
+    }
 
     drawText('Plan:', 20, 740, fontSize: 11.0);
+    if (encounter != null && encounter!.treatmentPlan.isNotEmpty) {
+      drawText(encounter!.treatmentPlan, 20, 758, fontSize: 10.5, isBold: true, color: inkColor);
+    }
+
+    // Signature Block
+    if (encounter != null && encounter!.doctorName.isNotEmpty) {
+      canvas.drawLine(pt(560, 1030), pt(795, 1030), linePaint);
+      drawText(encounter!.doctorName, 560, 1034, fontSize: 11.0, isBold: true, color: inkColor);
+      drawText('Attending Ophthalmologist', 560, 1048, fontSize: 9.5, isBold: false, color: const Color(0xFF64748B));
+    }
   }
 
   @override
@@ -1282,7 +1304,9 @@ class PrintedPaperSheetPainter extends CustomPainter {
         oldDelegate.contactNumber != contactNumber ||
         oldDelegate.occupation != occupation ||
         oldDelegate.phicNumber != phicNumber ||
-        oldDelegate.birthDate != birthDate;
+        oldDelegate.birthDate != birthDate ||
+        oldDelegate.encounter != encounter ||
+        oldDelegate.medicalHistory != medicalHistory;
   }
 }
 

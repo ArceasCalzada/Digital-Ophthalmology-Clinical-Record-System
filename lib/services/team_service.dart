@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/calendar_event.dart';
 import '../models/patient.dart';
 import '../models/team.dart';
 import 'firebase_gate.dart';
@@ -181,6 +182,7 @@ class TeamService extends ChangeNotifier {
     if (_activeTeam != null) {
       await _connectActiveTeamMembers(_activeTeam!.id);
       PatientRepository.connect(_activeTeam!.id);
+      CalendarEventRepository().connect(_activeTeam!.id);
     }
 
     _loading = false;
@@ -211,6 +213,7 @@ class TeamService extends ChangeNotifier {
       ),
     ];
     PatientRepository.connect(defaultTeam.id);
+    CalendarEventRepository().connect(defaultTeam.id);
   }
 
   Future<void> _createInitialDefaultTeam(String uid) async {
@@ -392,6 +395,7 @@ class TeamService extends ChangeNotifier {
 
     await _connectActiveTeamMembers(teamId);
     PatientRepository.connect(teamId);
+    CalendarEventRepository().connect(teamId);
     notifyListeners();
   }
 
@@ -474,6 +478,7 @@ class TeamService extends ChangeNotifier {
     _teams.removeWhere((t) => t.id == active.id);
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
     PatientRepository.connect(_activeTeam?.id);
+    CalendarEventRepository().connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -546,6 +551,7 @@ class TeamService extends ChangeNotifier {
     _teams.removeWhere((t) => t.id == active.id);
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
     PatientRepository.connect(_activeTeam?.id);
+    CalendarEventRepository().connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -665,6 +671,7 @@ class TeamService extends ChangeNotifier {
     _pendingMembers = [];
     _loading = false;
     PatientRepository.disconnect();
+    CalendarEventRepository().disconnect();
     notifyListeners();
   }
 

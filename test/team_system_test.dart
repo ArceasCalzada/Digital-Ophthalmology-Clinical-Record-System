@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ophthalmology_clinical_record_system/models/calendar_event.dart';
 import 'package:ophthalmology_clinical_record_system/models/team.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/models/encounter.dart';
@@ -384,6 +386,46 @@ void main() {
       expect(find.text('User Approved Successfully'), findsOneWidget);
       expect(service.pendingMembers.isEmpty, isTrue);
       expect(service.members.any((m) => m.uid == 'user-widget-1'), isTrue);
+    });
+
+    test('Switching active team reconnects CalendarEventRepository to target workspace teamId', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      final team1 = await service.createTeam('Clinic Team Alpha');
+      final team2 = await service.createTeam('Clinic Team Beta');
+
+      final repo = CalendarEventRepository();
+      repo.addEvent(CalendarEvent(
+        id: 'evt-alpha',
+        teamId: team1.id,
+        title: 'Team Alpha Surgery',
+        eventType: 'Surgery',
+        location: 'Alpha Room',
+        dateTime: DateTime.now(),
+        patientName: 'Alpha Patient',
+      ));
+
+      repo.addEvent(CalendarEvent(
+        id: 'evt-beta',
+        teamId: team2.id,
+        title: 'Team Beta Checkup',
+        eventType: 'Checkup',
+        location: 'Beta Room',
+        dateTime: DateTime.now(),
+        patientName: 'Beta Patient',
+      ));
+
+      // Switch to Team Alpha
+      await service.switchTo(team1.id);
+      expect(repo.events.any((e) => e.id == 'evt-alpha'), isTrue);
+      expect(repo.events.any((e) => e.id == 'evt-beta'), isFalse);
+
+      // Switch to Team Beta
+      await service.switchTo(team2.id);
+      expect(repo.events.any((e) => e.id == 'evt-beta'), isTrue);
+      expect(repo.events.any((e) => e.id == 'evt-alpha'), isFalse);
     });
   });
 }

@@ -1098,7 +1098,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           SizedBox(height: 12),
           if (isNarrow)
-            ...queueItems
+            if (queue.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    'Nothing scheduled for today',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                ),
+              )
+            else
+              ...queueItems
           else
             // The Stack + Positioned.fill contributes no height of its own, so the
             // card takes the calendar's height and the list scrolls within it.

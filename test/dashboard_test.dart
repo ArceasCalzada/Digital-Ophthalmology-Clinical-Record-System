@@ -153,4 +153,27 @@ void main() {
     expect(formatted, contains('September 29, 2026'));
     expect(formatted, contains('9:42 AM'));
   });
+
+  testWidgets('Empty state message renders when no events scheduled for today', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    final repo = CalendarEventRepository();
+    final todayEvents = repo.getEventsForDay(DateTime.now());
+    for (final e in todayEvents) {
+      repo.deleteEvent(e.id);
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const Scaffold(body: DashboardScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nothing scheduled for today'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+  });
 }
