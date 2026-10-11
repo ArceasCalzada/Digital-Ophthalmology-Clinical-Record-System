@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../services/prescription_pdf_service.dart';
+import '../services/profile_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
@@ -137,7 +138,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   patient: _selectedPatient,
                   items: rx.items,
                   date: rx.date,
-                  doctorName: 'Dr. Sigrid T. Robillos',
+                  doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : ProfileStore.instance.doctorName.text,
                   showBorder: true,
                 ),
                 SizedBox(height: 20),
@@ -150,7 +151,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           patient: _selectedPatient,
                           items: rx.items,
                           date: rx.date,
-                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
+                          doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : ProfileStore.instance.doctorName.text,
                         );
                         if (context.mounted) {
                           showActionSuccessModal(
@@ -462,12 +463,15 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     ],
                   ),
                   SizedBox(height: 12),
-                  RxPadWidget(
-                    patient: _selectedPatient,
-                    items: _medications,
-                    date: DateTime.now().toString().substring(0, 10),
-                    doctorName: 'Dr. Sigrid T. Robillos',
-                    showBorder: true,
+                  ListenableBuilder(
+                    listenable: ProfileStore.instance,
+                    builder: (context, _) => RxPadWidget(
+                      patient: _selectedPatient,
+                      items: _medications,
+                      date: DateTime.now().toString().substring(0, 10),
+                      doctorName: ProfileStore.instance.doctorName.text,
+                      showBorder: true,
+                    ),
                   ),
                 ],
               );

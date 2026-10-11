@@ -3,6 +3,7 @@ import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../services/profile_store.dart';
 import '../services/reminder_settings_store.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
@@ -29,6 +30,8 @@ class _SettingsViewState extends State<SettingsView> {
 
   // 3. Prescription Settings State
   bool _hasSignature = true;
+  bool _isEditingDoctorInfo = false;
+  bool _isEditingClinicHeaders = false;
 
   // 4. Security State & Controllers
   final _currentPasswordController = TextEditingController();
@@ -59,11 +62,18 @@ class _SettingsViewState extends State<SettingsView> {
   void initState() {
     super.initState();
     ThemeController.instance.addListener(_onThemeChanged);
+    _profile.addListener(_onProfileChanged);
+    _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
+  }
+
+  void _onProfileChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     ThemeController.instance.removeListener(_onThemeChanged);
+    _profile.removeListener(_onProfileChanged);
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -399,30 +409,119 @@ class _SettingsViewState extends State<SettingsView> {
         _buildSectionHeader('Prescription Settings', 'Customize the information and layout used for prescriptions.'),
         SizedBox(height: 20),
 
-        // Doctor Information Summary Card
+        // 1. Doctor Information Summary / Edit Card
         _buildCardContainer(
           title: 'Doctor Information',
-          child: Container(
-            padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 20),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          trailing: OutlinedButton.icon(
+            key: Key('edit_doctor_info_button'),
+            icon: Icon(_isEditingDoctorInfo ? Icons.check : Icons.edit_outlined, size: 14),
+            label: Text(_isEditingDoctorInfo ? 'Done' : 'Edit'),
+            onPressed: () {
+              setState(() => _isEditingDoctorInfo = !_isEditingDoctorInfo);
+            },
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!_isEditingDoctorInfo)
+                Container(
+                  padding: EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
                     children: [
-                      Text('${_profile.doctorName.text} — ${_profile.doctorTitle.text}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                      Text('${_profile.license.text} • Specialization: ${_profile.specialization.text}', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                      Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_profile.doctorName.text} — ${_profile.doctorTitle.text}',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              '${_profile.license.text} • ${_profile.ptrNo.text} • Specialization: ${_profile.specialization.text}',
+                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('doctor_name_input'),
+                            label: 'Doctor Name *',
+                            controller: _profile.doctorName,
+                            hint: 'e.g. Dr. Sigrid Robillos, MD',
+                            icon: Icons.person_outline,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('doctor_title_input'),
+                            label: 'Professional Title',
+                            controller: _profile.doctorTitle,
+                            hint: 'e.g. Attending Ophthalmologist',
+                            icon: Icons.badge_outlined,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('doctor_license_input'),
+                            label: 'PRC License Number *',
+                            controller: _profile.license,
+                            hint: 'e.g. PRC Lic. No. 091823',
+                            icon: Icons.assignment_ind_outlined,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('doctor_ptr_input'),
+                            label: 'PTR Number',
+                            controller: _profile.ptrNo,
+                            hint: 'e.g. PTR No. 7821940',
+                            icon: Icons.confirmation_number_outlined,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 14),
+                    _buildTextFieldItem(
+                      fieldKey: const Key('doctor_specialization_input'),
+                      label: 'Specialization',
+                      controller: _profile.specialization,
+                      hint: 'e.g. Cornea & Anterior Segment Specialist',
+                      icon: Icons.medical_services_outlined,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+            ],
           ),
         ),
         SizedBox(height: 20),
@@ -499,13 +598,98 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         SizedBox(height: 20),
 
-        // Prescription Template Preview Card
+        // 2. Clinic Branch Headers & Schedules Card
+        _buildCardContainer(
+          title: 'Clinic Branch Headers & Schedules',
+          trailing: OutlinedButton.icon(
+            key: Key('edit_clinic_headers_button'),
+            icon: Icon(_isEditingClinicHeaders ? Icons.check : Icons.edit_outlined, size: 14),
+            label: Text(_isEditingClinicHeaders ? 'Done' : 'Edit'),
+            onPressed: () {
+              setState(() => _isEditingClinicHeaders = !_isEditingClinicHeaders);
+            },
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Customize the 3 clinic locations and consultation hours printed at the top of the prescription pad.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              SizedBox(height: 14),
+              if (!_isEditingClinicHeaders)
+                Container(
+                  padding: EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildClinicSummaryCol(
+                          _profile.clinic1Name.text,
+                          _profile.clinic1Location.text,
+                          _profile.clinic1Days.text,
+                          _profile.clinic1Hours.text,
+                        ),
+                      ),
+                      Container(height: 48, width: 1, color: AppTheme.borderColor),
+                      Expanded(
+                        child: _buildClinicSummaryCol(
+                          _profile.clinic2Name.text,
+                          _profile.clinic2Location.text,
+                          _profile.clinic2Days.text,
+                          _profile.clinic2Hours.text,
+                        ),
+                      ),
+                      Container(height: 48, width: 1, color: AppTheme.borderColor),
+                      Expanded(
+                        child: _buildClinicSummaryCol(
+                          _profile.clinic3Name.text,
+                          _profile.clinic3Location.text,
+                          _profile.clinic3Days.text,
+                          _profile.clinic3Hours.text,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildClinicBranchEditor('Clinic Branch 1', _profile.clinic1Name, _profile.clinic1Location, _profile.clinic1Days, _profile.clinic1Hours),
+                    SizedBox(height: 16),
+                    Divider(color: AppTheme.borderColor),
+                    SizedBox(height: 12),
+                    _buildClinicBranchEditor('Clinic Branch 2', _profile.clinic2Name, _profile.clinic2Location, _profile.clinic2Days, _profile.clinic2Hours),
+                    SizedBox(height: 16),
+                    Divider(color: AppTheme.borderColor),
+                    SizedBox(height: 12),
+                    _buildClinicBranchEditor('Clinic Branch 3', _profile.clinic3Name, _profile.clinic3Location, _profile.clinic3Days, _profile.clinic3Hours),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        SizedBox(height: 20),
+
+        // 3. Prescription Template Preview Card
         _buildCardContainer(
           title: 'Prescription Template Layout',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPrescriptionPreviewCard(),
+              Text(
+                'Live Prescription Pad Preview dynamically reflects your active doctor credentials and clinic schedules.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              SizedBox(height: 14),
+              ListenableBuilder(
+                listenable: _profile,
+                builder: (context, _) => _buildPrescriptionPreviewCard(),
+              ),
               SizedBox(height: 16),
               Row(
                 children: [
@@ -521,9 +705,29 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         SizedBox(height: 24),
 
-        _buildActionButtons(onSave: () => _showSaveFeedback('Prescription settings updated.')),
+        _buildActionButtons(onSave: _savePrescriptionSettings),
       ],
     );
+  }
+
+  void _savePrescriptionSettings() async {
+    final validationError = _profile.validatePrescriptionSettings();
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    await _profile.saveToFirestore(teamId: TeamService.instance.activeTeam?.id);
+    if (mounted) {
+      _showSaveFeedback('Prescription settings and clinic headers updated.');
+    }
   }
 
   Widget _buildPrescriptionPreviewCard() {
@@ -553,7 +757,21 @@ class _SettingsViewState extends State<SettingsView> {
       ],
       date: '2026-08-20',
       doctorName: _profile.doctorName.text.isNotEmpty ? _profile.doctorName.text : 'Dr. Sigrid T. Robillos',
+      specialization: _profile.specialization.text.isNotEmpty ? _profile.specialization.text : 'OPHTHALMOLOGY / MICROSURGERY',
       licenseNo: _profile.license.text.isNotEmpty ? _profile.license.text : '100064',
+      ptrNo: _profile.ptrNo.text.isNotEmpty ? _profile.ptrNo.text : 'PTR No. 7821940',
+      clinic1Name: _profile.clinic1Name.text,
+      clinic1Location: _profile.clinic1Location.text,
+      clinic1Days: _profile.clinic1Days.text,
+      clinic1Hours: _profile.clinic1Hours.text,
+      clinic2Name: _profile.clinic2Name.text,
+      clinic2Location: _profile.clinic2Location.text,
+      clinic2Days: _profile.clinic2Days.text,
+      clinic2Hours: _profile.clinic2Hours.text,
+      clinic3Name: _profile.clinic3Name.text,
+      clinic3Location: _profile.clinic3Location.text,
+      clinic3Days: _profile.clinic3Days.text,
+      clinic3Hours: _profile.clinic3Hours.text,
       showBorder: true,
     );
   }
@@ -1241,7 +1459,7 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildCardContainer({required String title, required Widget child}) {
+  Widget _buildCardContainer({required String title, Widget? trailing, required Widget child}) {
     return Card(
       color: AppTheme.cardBg,
       elevation: 0,
@@ -1254,11 +1472,121 @@ class _SettingsViewState extends State<SettingsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                if (trailing != null) trailing,
+              ],
+            ),
             SizedBox(height: 16),
             child,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextFieldItem({
+    Key? fieldKey,
+    required String label,
+    required TextEditingController controller,
+    String? hint,
+    IconData? icon,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+        SizedBox(height: 6),
+        TextFormField(
+          key: fieldKey,
+          controller: controller,
+          onChanged: onChanged,
+          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: icon != null ? Icon(icon, size: 18, color: AppTheme.primaryBlue) : null,
+            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClinicBranchEditor(
+    String title,
+    TextEditingController nameCtrl,
+    TextEditingController locCtrl,
+    TextEditingController daysCtrl,
+    TextEditingController hoursCtrl,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
+        SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextFieldItem(
+                label: 'Clinic Name',
+                controller: nameCtrl,
+                hint: 'e.g. St. Joseph Hospital',
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            SizedBox(width: 14),
+            Expanded(
+              child: _buildTextFieldItem(
+                label: 'Location / City',
+                controller: locCtrl,
+                hint: 'e.g. Maramag, Bukidnon',
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextFieldItem(
+                label: 'Schedule Days',
+                controller: daysCtrl,
+                hint: 'e.g. Monday & Tuesday',
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            SizedBox(width: 14),
+            Expanded(
+              child: _buildTextFieldItem(
+                label: 'Schedule Hours',
+                controller: hoursCtrl,
+                hint: 'e.g. 9am - 12nn',
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClinicSummaryCol(String name, String loc, String days, String hours) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(name, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
+          SizedBox(height: 2),
+          Text(loc, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+          SizedBox(height: 2),
+          Text(days, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+          Text(hours, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+        ],
       ),
     );
   }

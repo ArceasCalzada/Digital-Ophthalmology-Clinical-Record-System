@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/profile_store.dart';
 import '../theme/app_theme.dart';
 
 /// Authentic Ophthalmic Prescription Pad Widget matching Dr. Sigrid T. Robillos format
@@ -8,28 +9,105 @@ class RxPadWidget extends StatelessWidget {
   final Patient? patient;
   final List<PrescriptionItem> items;
   final String date;
-  final String doctorName;
-  final String specialization;
-  final String licenseNo;
-  final String ptrNo;
+  final String? doctorName;
+  final String? specialization;
+  final String? licenseNo;
+  final String? ptrNo;
   final String followUpDate;
   final bool showBorder;
+  final String? clinic1Name;
+  final String? clinic1Location;
+  final String? clinic1Days;
+  final String? clinic1Hours;
+  final String? clinic2Name;
+  final String? clinic2Location;
+  final String? clinic2Days;
+  final String? clinic2Hours;
+  final String? clinic3Name;
+  final String? clinic3Location;
+  final String? clinic3Days;
+  final String? clinic3Hours;
 
   const RxPadWidget({
     super.key,
     this.patient,
     required this.items,
     required this.date,
-    this.doctorName = 'Dr. Sigrid T. Robillos',
-    this.specialization = 'OPHTHALMOLOGY / MICROSURGERY',
-    this.licenseNo = '100064',
-    this.ptrNo = '_________________',
+    this.doctorName,
+    this.specialization,
+    this.licenseNo,
+    this.ptrNo,
     this.followUpDate = '_________________',
     this.showBorder = true,
+    this.clinic1Name,
+    this.clinic1Location,
+    this.clinic1Days,
+    this.clinic1Hours,
+    this.clinic2Name,
+    this.clinic2Location,
+    this.clinic2Days,
+    this.clinic2Hours,
+    this.clinic3Name,
+    this.clinic3Location,
+    this.clinic3Days,
+    this.clinic3Hours,
   });
 
   @override
   Widget build(BuildContext context) {
+    final profile = ProfileStore.instance;
+    final effDoctorName = (doctorName != null && doctorName!.isNotEmpty)
+        ? doctorName!
+        : (profile.doctorName.text.isNotEmpty ? profile.doctorName.text : 'Dr. Sigrid T. Robillos');
+    final effSpecialization = (specialization != null && specialization!.isNotEmpty)
+        ? specialization!
+        : (profile.specialization.text.isNotEmpty ? profile.specialization.text : 'OPHTHALMOLOGY / MICROSURGERY');
+    final effLicenseNo = (licenseNo != null && licenseNo!.isNotEmpty)
+        ? licenseNo!
+        : (profile.license.text.isNotEmpty ? profile.license.text : '100064');
+    final effPtrNo = (ptrNo != null && ptrNo!.isNotEmpty)
+        ? ptrNo!
+        : (profile.ptrNo.text.isNotEmpty ? profile.ptrNo.text : '_________________');
+
+    final effClinic1Name = (clinic1Name != null && clinic1Name!.isNotEmpty)
+        ? clinic1Name!
+        : profile.clinic1Name.text;
+    final effClinic1Location = (clinic1Location != null && clinic1Location!.isNotEmpty)
+        ? clinic1Location!
+        : profile.clinic1Location.text;
+    final effClinic1Days = (clinic1Days != null && clinic1Days!.isNotEmpty)
+        ? clinic1Days!
+        : profile.clinic1Days.text;
+    final effClinic1Hours = (clinic1Hours != null && clinic1Hours!.isNotEmpty)
+        ? clinic1Hours!
+        : profile.clinic1Hours.text;
+
+    final effClinic2Name = (clinic2Name != null && clinic2Name!.isNotEmpty)
+        ? clinic2Name!
+        : profile.clinic2Name.text;
+    final effClinic2Location = (clinic2Location != null && clinic2Location!.isNotEmpty)
+        ? clinic2Location!
+        : profile.clinic2Location.text;
+    final effClinic2Days = (clinic2Days != null && clinic2Days!.isNotEmpty)
+        ? clinic2Days!
+        : profile.clinic2Days.text;
+    final effClinic2Hours = (clinic2Hours != null && clinic2Hours!.isNotEmpty)
+        ? clinic2Hours!
+        : profile.clinic2Hours.text;
+
+    final effClinic3Name = (clinic3Name != null && clinic3Name!.isNotEmpty)
+        ? clinic3Name!
+        : profile.clinic3Name.text;
+    final effClinic3Location = (clinic3Location != null && clinic3Location!.isNotEmpty)
+        ? clinic3Location!
+        : profile.clinic3Location.text;
+    final effClinic3Days = (clinic3Days != null && clinic3Days!.isNotEmpty)
+        ? clinic3Days!
+        : profile.clinic3Days.text;
+    final effClinic3Hours = (clinic3Hours != null && clinic3Hours!.isNotEmpty)
+        ? clinic3Hours!
+        : profile.clinic3Hours.text;
+
     final displayDate = date.isNotEmpty ? date : DateTime.now().toString().substring(0, 10);
     final patientName = patient?.fullName ?? '_____________________________________';
     final age = patient != null ? '${patient!.age}' : '_____';
@@ -59,7 +137,7 @@ class RxPadWidget extends StatelessWidget {
           // 1. Doctor Name Title Header (Top Centered)
           Center(
             child: Text(
-              doctorName,
+              effDoctorName,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'serif',
@@ -76,7 +154,7 @@ class RxPadWidget extends StatelessWidget {
           // Specialization Sub-header
           Center(
             child: Text(
-              specialization.toUpperCase(),
+              effSpecialization.toUpperCase(),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -95,26 +173,26 @@ class RxPadWidget extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildClinicScheduleCol(
-                  'St. Joseph Southern Bukidnon Hosp.',
-                  'Maramag, Bukidnon',
-                  'Monday & Tuesday',
-                  '9am - 12nn',
+                  effClinic1Name,
+                  effClinic1Location,
+                  effClinic1Days,
+                  effClinic1Hours,
                 ),
               ),
               Expanded(
                 child: _buildClinicScheduleCol(
-                  'Malta Medical Center',
-                  'Toril, Davao City',
-                  'Thursday & Saturday',
-                  '10am - 12nn',
+                  effClinic2Name,
+                  effClinic2Location,
+                  effClinic2Days,
+                  effClinic2Hours,
                 ),
               ),
               Expanded(
                 child: _buildClinicScheduleCol(
-                  'Adventist Hospital Davao',
-                  'Bangkal, Davao City',
-                  'Friday',
-                  '10am - 12nn',
+                  effClinic3Name,
+                  effClinic3Location,
+                  effClinic3Days,
+                  effClinic3Hours,
                 ),
               ),
             ],
@@ -276,7 +354,7 @@ class RxPadWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Sigrid Robillos-Calzada M.D.',
+                      effDoctorName,
                       style: TextStyle(
                         fontFamily: 'serif',
                         fontStyle: FontStyle.italic,
@@ -292,12 +370,12 @@ class RxPadWidget extends StatelessWidget {
                       color: Color(0xFF0F172A),
                     ),
                     SizedBox(height: 4),
-                    Text('License No. $licenseNo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
+                    Text('License No. $effLicenseNo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text('PTR No. ', style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
-                        Flexible(child: Text(ptrNo, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis)),
+                        Flexible(child: Text(effPtrNo, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis)),
                       ],
                     ),
                   ],

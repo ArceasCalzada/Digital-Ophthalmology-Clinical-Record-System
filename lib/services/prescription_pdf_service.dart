@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import 'profile_store.dart';
 
 class PrescriptionPdfService {
   /// Generates PDF binary bytes for an ophthalmic prescription matching RxPadWidget format
@@ -11,12 +12,77 @@ class PrescriptionPdfService {
     Patient? patient,
     required List<PrescriptionItem> items,
     required String date,
-    String doctorName = 'Dr. Sigrid T. Robillos',
-    String specialization = 'OPHTHALMOLOGY / MICROSURGERY',
-    String licenseNo = '100064',
-    String ptrNo = '_________________',
+    String? doctorName,
+    String? specialization,
+    String? licenseNo,
+    String? ptrNo,
     String followUpDate = '_________________',
+    String? clinic1Name,
+    String? clinic1Location,
+    String? clinic1Days,
+    String? clinic1Hours,
+    String? clinic2Name,
+    String? clinic2Location,
+    String? clinic2Days,
+    String? clinic2Hours,
+    String? clinic3Name,
+    String? clinic3Location,
+    String? clinic3Days,
+    String? clinic3Hours,
   }) async {
+    final profile = ProfileStore.instance;
+    final effDoctorName = (doctorName != null && doctorName.isNotEmpty)
+        ? doctorName
+        : (profile.doctorName.text.isNotEmpty ? profile.doctorName.text : 'Dr. Sigrid T. Robillos');
+    final effSpecialization = (specialization != null && specialization.isNotEmpty)
+        ? specialization
+        : (profile.specialization.text.isNotEmpty ? profile.specialization.text : 'OPHTHALMOLOGY / MICROSURGERY');
+    final effLicenseNo = (licenseNo != null && licenseNo.isNotEmpty)
+        ? licenseNo
+        : (profile.license.text.isNotEmpty ? profile.license.text : '100064');
+    final effPtrNo = (ptrNo != null && ptrNo.isNotEmpty)
+        ? ptrNo
+        : (profile.ptrNo.text.isNotEmpty ? profile.ptrNo.text : '_________________');
+
+    final effClinic1Name = (clinic1Name != null && clinic1Name.isNotEmpty)
+        ? clinic1Name
+        : profile.clinic1Name.text;
+    final effClinic1Location = (clinic1Location != null && clinic1Location.isNotEmpty)
+        ? clinic1Location
+        : profile.clinic1Location.text;
+    final effClinic1Days = (clinic1Days != null && clinic1Days.isNotEmpty)
+        ? clinic1Days
+        : profile.clinic1Days.text;
+    final effClinic1Hours = (clinic1Hours != null && clinic1Hours.isNotEmpty)
+        ? clinic1Hours
+        : profile.clinic1Hours.text;
+
+    final effClinic2Name = (clinic2Name != null && clinic2Name.isNotEmpty)
+        ? clinic2Name
+        : profile.clinic2Name.text;
+    final effClinic2Location = (clinic2Location != null && clinic2Location.isNotEmpty)
+        ? clinic2Location
+        : profile.clinic2Location.text;
+    final effClinic2Days = (clinic2Days != null && clinic2Days.isNotEmpty)
+        ? clinic2Days
+        : profile.clinic2Days.text;
+    final effClinic2Hours = (clinic2Hours != null && clinic2Hours.isNotEmpty)
+        ? clinic2Hours
+        : profile.clinic2Hours.text;
+
+    final effClinic3Name = (clinic3Name != null && clinic3Name.isNotEmpty)
+        ? clinic3Name
+        : profile.clinic3Name.text;
+    final effClinic3Location = (clinic3Location != null && clinic3Location.isNotEmpty)
+        ? clinic3Location
+        : profile.clinic3Location.text;
+    final effClinic3Days = (clinic3Days != null && clinic3Days.isNotEmpty)
+        ? clinic3Days
+        : profile.clinic3Days.text;
+    final effClinic3Hours = (clinic3Hours != null && clinic3Hours.isNotEmpty)
+        ? clinic3Hours
+        : profile.clinic3Hours.text;
+
     final pdf = pw.Document();
 
     final displayDate = date.isNotEmpty ? date : DateTime.now().toString().substring(0, 10);
@@ -42,7 +108,7 @@ class PrescriptionPdfService {
                 // 1. Doctor Header Title
                 pw.Center(
                   child: pw.Text(
-                    doctorName,
+                    effDoctorName,
                     textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(
                       fontSize: 24,
@@ -54,7 +120,7 @@ class PrescriptionPdfService {
                 pw.SizedBox(height: 2),
                 pw.Center(
                   child: pw.Text(
-                    specialization.toUpperCase(),
+                    effSpecialization.toUpperCase(),
                     textAlign: pw.TextAlign.center,
                     style: pw.TextStyle(
                       fontSize: 10,
@@ -71,26 +137,26 @@ class PrescriptionPdfService {
                   children: [
                     pw.Expanded(
                       child: _buildClinicCol(
-                        'St. Joseph Southern Bukidnon Hosp.',
-                        'Maramag, Bukidnon',
-                        'Monday & Tuesday',
-                        '9am - 12nn',
+                        effClinic1Name,
+                        effClinic1Location,
+                        effClinic1Days,
+                        effClinic1Hours,
                       ),
                     ),
                     pw.Expanded(
                       child: _buildClinicCol(
-                        'Malta Medical Center',
-                        'Toril, Davao City',
-                        'Thursday & Saturday',
-                        '10am - 12nn',
+                        effClinic2Name,
+                        effClinic2Location,
+                        effClinic2Days,
+                        effClinic2Hours,
                       ),
                     ),
                     pw.Expanded(
                       child: _buildClinicCol(
-                        'Adventist Hospital Davao',
-                        'Bangkal, Davao City',
-                        'Friday',
-                        '10am - 12nn',
+                        effClinic3Name,
+                        effClinic3Location,
+                        effClinic3Days,
+                        effClinic3Hours,
                       ),
                     ),
                   ],
@@ -244,7 +310,7 @@ class PrescriptionPdfService {
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
                         pw.Text(
-                          'Sigrid Robillos-Calzada M.D.',
+                          effDoctorName,
                           style: pw.TextStyle(
                             fontSize: 14,
                             fontWeight: pw.FontWeight.bold,
@@ -257,12 +323,12 @@ class PrescriptionPdfService {
                           color: PdfColors.black,
                         ),
                         pw.SizedBox(height: 4),
-                        pw.Text('License No. $licenseNo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                        pw.Text('License No. $effLicenseNo', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
                         pw.Row(
                           mainAxisSize: pw.MainAxisSize.min,
                           children: [
                             pw.Text('PTR No. ', style: const pw.TextStyle(fontSize: 10)),
-                            pw.Text(ptrNo, style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text(effPtrNo, style: const pw.TextStyle(fontSize: 10)),
                           ],
                         ),
                       ],
@@ -296,7 +362,7 @@ class PrescriptionPdfService {
     Patient? patient,
     required List<PrescriptionItem> items,
     required String date,
-    String doctorName = 'Dr. Sigrid T. Robillos',
+    String? doctorName,
   }) async {
     final bytes = await generatePrescriptionPdf(
       patient: patient,
@@ -316,7 +382,7 @@ class PrescriptionPdfService {
     Patient? patient,
     required List<PrescriptionItem> items,
     required String date,
-    String doctorName = 'Dr. Sigrid T. Robillos',
+    String? doctorName,
   }) async {
     final bytes = await generatePrescriptionPdf(
       patient: patient,
