@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'email_otp_service.dart';
 import 'profile_store.dart';
+import 'sms_otp_service.dart';
 
 /// Roles stored in `users/{uid}.role`. Admins can also delete patient records.
 enum UserRole { admin, physician, staff }
@@ -57,6 +58,18 @@ abstract class AuthBackend {
   Future<bool> verifyEmailOtp(String email, String otp);
   Future<AuthUser?> reloadUser();
   Future<void> signOut();
+
+  /// Re-authenticates the current user using [currentPassword] and applies [newPassword].
+  Future<void> changePassword({required String currentPassword, required String newPassword});
+
+  /// Verifies credentials for [email] and [password] (e.g. for unlocking locked sessions).
+  Future<bool> verifyPassword(String email, String password);
+
+  /// Checks if 2FA is enrolled and enabled for [uid].
+  Future<bool> fetchTwoFactorEnabled(String uid);
+
+  /// Reads enrolled 2FA phone number for [uid].
+  Future<String?> fetchTwoFactorPhone(String uid);
 
   /// Reads `users/{uid}.role`. Null means the account is not authorised for DOCRS.
   Future<UserRole?> fetchRole(String uid);
@@ -199,6 +212,89 @@ class FirebaseAuthBackend implements AuthBackend {
   Future<void> signOut() => _auth.signOut();
 
   @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw const AuthFailure('No active session found. Please sign in again.');
+    }
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw const AuthFailure('Unable to identify current account.');
+    }
+    try {
+      final cred = EmailAuthProvider.credential(email: email, password: currentPassword);
+      await user.reauthenticateWithCredential(cred);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw const AuthFailure('Current password is incorrect. Please re-enter.');
+      }
+      throw AuthFailure(_messageFor(e.code));
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure('Re-authentication failed: $e');
+    }
+
+    try {
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        throw const AuthFailure('New password is too weak. Please use at least 6 characters.');
+      }
+      throw AuthFailure(_messageFor(e.code));
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure('Failed to update password: $e');
+    }
+  }
+
+  @override
+  Future<bool> verifyPassword(String email, String password) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      final cred = EmailAuthProvider.credential(email: email, password: password);
+      await user.reauthenticateWithCredential(cred);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> fetchTwoFactorEnabled(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('settings')
+          .doc('security')
+          .get()
+          .timeout(const Duration(seconds: 5));
+      if (doc.exists && doc.data() != null) {
+        return doc.data()?['twoFactorEnabled'] as bool? ?? false;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  @override
+  Future<String?> fetchTwoFactorPhone(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('settings')
+          .doc('security')
+          .get()
+          .timeout(const Duration(seconds: 5));
+      if (doc.exists && doc.data() != null) {
+        return doc.data()?['twoFactorPhoneNumber'] as String?;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
   Future<UserRole?> fetchRole(String uid) async {
     // Bounded so a dead connection shows the login screen instead of a blank app.
     final doc = await FirebaseFirestore.instance
@@ -228,6 +324,9 @@ class AuthService extends ChangeNotifier {
   bool _resolving = false;
 
   bool _otpVerifiedLocally = false;
+  bool _is2faPending = false;
+  AuthUser? _pending2faUser;
+  String? _enrolled2faPhone;
 
   bool get isAvailable => _backend != null;
   AuthUser? get user => _user;
@@ -236,7 +335,11 @@ class AuthService extends ChangeNotifier {
   bool get isEmailVerified => _otpVerifiedLocally || (_user?.isEmailVerified ?? true);
   bool get isPendingEmailVerification => _user != null && !isEmailVerified;
   bool get isPendingRole => _user != null && isEmailVerified && _role == null;
-  bool get isSignedIn => _user != null && _role != null && isEmailVerified;
+  bool get is2faPending => _is2faPending;
+  String get masked2faPhone => _enrolled2faPhone != null
+      ? SmsOtpService.maskPhoneNumber(_enrolled2faPhone!)
+      : '+63 ••• ••• 0192';
+  bool get isSignedIn => _user != null && _role != null && isEmailVerified && !_is2faPending;
   bool get isResolving => _resolving;
   bool get canWriteClinical => _role == UserRole.admin || _role == UserRole.physician;
   bool get canDelete => _role == UserRole.admin;
@@ -315,7 +418,102 @@ class AuthService extends ChangeNotifier {
       throw const AuthFailure('Enter your email and password.');
     }
     final signedIn = await backend.signIn(trimmed, password, remember: remember);
+
+    // Check if account has 2FA enabled
+    final is2faEnabled = await backend.fetchTwoFactorEnabled(signedIn.uid);
+    if (is2faEnabled) {
+      _is2faPending = true;
+      _pending2faUser = signedIn;
+      _enrolled2faPhone = await backend.fetchTwoFactorPhone(signedIn.uid);
+      await SmsOtpService.instance.generateAndSendSmsOtp(_enrolled2faPhone ?? '09175550192');
+      notifyListeners();
+      return;
+    }
+
     await _onUserChanged(signedIn);
+  }
+
+  /// Completes 2FA verification during sign-in using the 6-digit [otpCode].
+  Future<void> complete2faSignIn(String otpCode) async {
+    final backend = _backend;
+    if (backend == null || _pending2faUser == null) {
+      throw const AuthFailure('No sign-in session pending 2FA verification.');
+    }
+    final phone = _enrolled2faPhone ?? '09175550192';
+    final isValid = await SmsOtpService.instance.verifySmsOtp(phone, otpCode);
+    if (!isValid) {
+      throw const AuthFailure('Invalid 6-digit verification code. Please check and try again.');
+    }
+    final user = _pending2faUser!;
+    _is2faPending = false;
+    _pending2faUser = null;
+    await _onUserChanged(user);
+  }
+
+  /// Re-sends the 2FA SMS code.
+  Future<void> resend2faCode() async {
+    if (!_is2faPending) return;
+    final phone = _enrolled2faPhone ?? '09175550192';
+    await SmsOtpService.instance.generateAndSendSmsOtp(phone);
+  }
+
+  /// Cancels pending 2FA verification and returns to the sign-in screen.
+  Future<void> cancel2fa() async {
+    _is2faPending = false;
+    _pending2faUser = null;
+    _enrolled2faPhone = null;
+    final backend = _backend;
+    try {
+      await backend?.signOut();
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  /// Sends a 6-digit SMS OTP code for 2FA enrollment verification.
+  Future<String> sendTwoFactorEnrollmentSms(String phoneNumber) async {
+    return await SmsOtpService.instance.generateAndSendSmsOtp(phoneNumber);
+  }
+
+  /// Verifies a 6-digit SMS OTP code for 2FA enrollment.
+  Future<bool> verifyTwoFactorEnrollmentSms(String phoneNumber, String otpCode) async {
+    return await SmsOtpService.instance.verifySmsOtp(phoneNumber, otpCode);
+  }
+
+  /// Changes the user's password in Firebase Authentication.
+  /// Requires re-authenticating with [currentPassword] before updating to [newPassword].
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final backend = _backend;
+    if (backend == null) {
+      throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
+    }
+    if (currentPassword.isEmpty) {
+      throw const AuthFailure('Please enter your current password.');
+    }
+    if (newPassword.isEmpty) {
+      throw const AuthFailure('Please enter a new password.');
+    }
+    if (newPassword.length < 6) {
+      throw const AuthFailure('New password must be at least 6 characters long.');
+    }
+    if (currentPassword == newPassword) {
+      throw const AuthFailure('New password must be different from your current password.');
+    }
+    await backend.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  /// Verifies [password] against the current signed-in user's credentials.
+  Future<bool> verifyCurrentPassword(String password) async {
+    final backend = _backend;
+    if (backend == null) return true;
+    final u = _user;
+    if (u == null || u.email == null) return false;
+    return await backend.verifyPassword(u.email!, password);
   }
 
   /// Registers a new account.
@@ -411,6 +609,9 @@ class AuthService extends ChangeNotifier {
     _user = null;
     _role = null;
     _otpVerifiedLocally = false;
+    _is2faPending = false;
+    _pending2faUser = null;
+    _enrolled2faPhone = null;
     notifyListeners();
     try {
       await backend?.signOut();
@@ -427,6 +628,9 @@ class AuthService extends ChangeNotifier {
     _user = null;
     _role = null;
     _otpVerifiedLocally = false;
+    _is2faPending = false;
+    _pending2faUser = null;
+    _enrolled2faPhone = null;
     _resolving = false;
     _inFlight = null;
     _inFlightUid = null;

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../services/auth_service.dart';
 import '../services/profile_store.dart';
 import '../services/reminder_settings_store.dart';
+import '../services/security_settings_store.dart';
 import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_dropdown_field.dart';
@@ -40,6 +42,8 @@ class _SettingsViewState extends State<SettingsView> {
   bool _autoLockEnabled = true;
   String _autoLockDuration = '15 minutes';
   bool _twoFactorEnabled = false;
+  bool _isUpdatingPassword = false;
+  String? _passwordError;
 
   // 5. Backup & Data State
   bool _isBackingUp = false;
@@ -64,16 +68,36 @@ class _SettingsViewState extends State<SettingsView> {
     ThemeController.instance.addListener(_onThemeChanged);
     _profile.addListener(_onProfileChanged);
     _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
+
+    _autoLockEnabled = SecuritySettingsStore.instance.autoLockEnabled;
+    _autoLockDuration = SecuritySettingsStore.instance.autoLockDuration;
+    _twoFactorEnabled = SecuritySettingsStore.instance.twoFactorEnabled;
+    SecuritySettingsStore.instance.addListener(_onSecuritySettingsChanged);
+    final currentUid = AuthService.instance.user?.uid;
+    if (currentUid != null) {
+      SecuritySettingsStore.instance.loadFromFirestore(currentUid);
+    }
   }
 
   void _onProfileChanged() {
     if (mounted) setState(() {});
   }
 
+  void _onSecuritySettingsChanged() {
+    if (mounted) {
+      setState(() {
+        _autoLockEnabled = SecuritySettingsStore.instance.autoLockEnabled;
+        _autoLockDuration = SecuritySettingsStore.instance.autoLockDuration;
+        _twoFactorEnabled = SecuritySettingsStore.instance.twoFactorEnabled;
+      });
+    }
+  }
+
   @override
   void dispose() {
     ThemeController.instance.removeListener(_onThemeChanged);
     _profile.removeListener(_onProfileChanged);
+    SecuritySettingsStore.instance.removeListener(_onSecuritySettingsChanged);
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -780,11 +804,13 @@ class _SettingsViewState extends State<SettingsView> {
   // SECTION 4: SECURITY
   // ==========================================
   Widget _buildSecuritySection() {
+    final securityStore = SecuritySettingsStore.instance;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Security', 'Manage access and protect your clinical records.'),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
 
         // Change Password Card
         _buildCardContainer(
@@ -793,19 +819,19 @@ class _SettingsViewState extends State<SettingsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPasswordField('Current Password', _currentPasswordController),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: _buildPasswordField('New Password', _newPasswordController, onChanged: (_) => setState(() {})),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: _buildPasswordField('Confirm New Password', _confirmPasswordController),
                   ),
                 ],
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               
               // Password Strength Indicator
               if (_newPasswordController.text.isNotEmpty) ...[
@@ -817,38 +843,60 @@ class _SettingsViewState extends State<SettingsView> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: _newPasswordController.text.length > 8 ? Color(0xFF059669) : Color(0xFFDC2626),
+                        color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: (_newPasswordController.text.length / 12).clamp(0.1, 1.0),
-                    backgroundColor: Color(0xFFE2E8F0),
-                    color: _newPasswordController.text.length > 8 ? Color(0xFF059669) : Color(0xFFDC2626),
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
                     minHeight: 4,
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
+
+              if (_passwordError != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _passwordError!,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
 
               ElevatedButton.icon(
-                icon: Icon(Icons.lock_reset, size: 16),
-                label: Text('Update Password'),
-                onPressed: () {
-                  _currentPasswordController.clear();
-                  _newPasswordController.clear();
-                  _confirmPasswordController.clear();
-                  _showSaveFeedback('Password updated successfully.');
-                },
+                key: const Key('update_password_button'),
+                icon: _isUpdatingPassword
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.lock_reset, size: 16),
+                label: Text(_isUpdatingPassword ? 'Updating...' : 'Update Password'),
+                onPressed: _isUpdatingPassword ? null : _handlePasswordUpdate,
               ),
             ],
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
 
         // Session Security Card
         _buildCardContainer(
@@ -856,22 +904,33 @@ class _SettingsViewState extends State<SettingsView> {
           child: Column(
             children: [
               SwitchListTile(
+                key: const Key('auto_lock_switch'),
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 title: Text('Auto-Lock System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                 subtitle: Text('Automatically lock system after a period of inactivity to protect patient privacy.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 value: _autoLockEnabled,
-                onChanged: (val) => setState(() => _autoLockEnabled = val),
+                onChanged: (val) async {
+                  setState(() => _autoLockEnabled = val);
+                  final uid = AuthService.instance.user?.uid;
+                  await securityStore.updateAutoLock(
+                    enabled: val,
+                    duration: _autoLockDuration,
+                    uid: uid,
+                  );
+                  _showSaveFeedback(val ? 'Auto-lock system enabled ($_autoLockDuration).' : 'Auto-lock system disabled.');
+                },
               ),
               if (_autoLockEnabled) ...[
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: ClinicalDropdownField<String>(
+                        key: const Key('inactivity_timeout_dropdown'),
                         placeholder: 'Select timeout...',
                         value: _autoLockDuration,
                         items: [
@@ -881,7 +940,16 @@ class _SettingsViewState extends State<SettingsView> {
                           ClinicalPickerItem<String>(value: '30 minutes', label: '30 minutes'),
                           ClinicalPickerItem<String>(value: 'Never', label: 'Never'),
                         ],
-                        onChanged: (v) => setState(() => _autoLockDuration = v),
+                        onChanged: (v) async {
+                          setState(() => _autoLockDuration = v);
+                          final uid = AuthService.instance.user?.uid;
+                          await securityStore.updateAutoLock(
+                            enabled: _autoLockEnabled,
+                            duration: v,
+                            uid: uid,
+                          );
+                          _showSaveFeedback('Inactivity timeout set to $v.');
+                        },
                       ),
                     ),
                   ],
@@ -890,7 +958,7 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
 
         // Two-Factor Authentication Card
         _buildCardContainer(
@@ -899,28 +967,373 @@ class _SettingsViewState extends State<SettingsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SwitchListTile(
+                key: const Key('two_factor_switch'),
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 title: Text('Two-Factor Authentication (2FA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                 subtitle: Text('Add an extra layer of security when signing into the DOCRS workstation.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 value: _twoFactorEnabled,
-                onChanged: (val) => setState(() => _twoFactorEnabled = val),
+                onChanged: (val) {
+                  if (val) {
+                    _showTwoFactorEnrollmentDialog();
+                  } else {
+                    _confirmDisableTwoFactor();
+                  }
+                },
               ),
               if (_twoFactorEnabled) ...[
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Two-Factor Authentication Active',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                            ),
+                            Text(
+                              'SMS verification code will be sent to ${securityStore.maskedPhoneNumber} on login.',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF047857)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 ElevatedButton.icon(
-                  icon: Icon(Icons.qr_code, size: 16),
-                  label: Text('Set Up Two-Factor Authentication'),
-                  onPressed: () {
-                    _showSaveFeedback('2FA Authenticator setup initialized.');
-                  },
+                  key: const Key('setup_2fa_button'),
+                  icon: const Icon(Icons.phone_android_rounded, size: 16),
+                  label: const Text('Update Enrolled Phone Number'),
+                  onPressed: _showTwoFactorEnrollmentDialog,
                 ),
               ],
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _handlePasswordUpdate() async {
+    final currentPassword = _currentPasswordController.text;
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (currentPassword.isEmpty) {
+      setState(() => _passwordError = 'Please enter your current password.');
+      return;
+    }
+    if (newPassword.isEmpty) {
+      setState(() => _passwordError = 'Please enter a new password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setState(() => _passwordError = 'New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      setState(() => _passwordError = 'New password and confirmation do not match.');
+      return;
+    }
+    if (newPassword == currentPassword) {
+      setState(() => _passwordError = 'New password must be different from current password.');
+      return;
+    }
+
+    setState(() {
+      _isUpdatingPassword = true;
+      _passwordError = null;
+    });
+
+    try {
+      await AuthService.instance.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      if (mounted) {
+        showActionSuccessModal(
+          context: context,
+          title: 'Password Updated',
+          message: 'Your account password has been successfully updated in Firebase Authentication.',
+        );
+      }
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        setState(() => _passwordError = e.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _passwordError = 'Failed to update password: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingPassword = false);
+      }
+    }
+  }
+
+  void _showTwoFactorEnrollmentDialog() {
+    final phoneController = TextEditingController(
+      text: SecuritySettingsStore.instance.twoFactorPhoneNumber ?? _profile.doctorPhone.text.trim(),
+    );
+    final otpControllers = List.generate(6, (_) => TextEditingController());
+    final otpFocusNodes = List.generate(6, (_) => FocusNode());
+    int step = 1;
+    bool isLoading = false;
+    String? dialogError;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(Icons.shield_outlined, color: AppTheme.primaryBlue, size: 24),
+                const SizedBox(width: 10),
+                const Text(
+                  'Two-Factor Authentication',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: step == 1
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Protect your clinical workstation by requiring an SMS verification code whenever signing into DOCRS.',
+                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Mobile Phone Number',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          key: const Key('two_factor_phone_field'),
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            hintText: '+63 917 555 0192',
+                            prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        if (dialogError != null) ...[
+                          const SizedBox(height: 10),
+                          Text(dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                        ],
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Enter the 6-digit verification code sent to ${phoneController.text.trim()}:',
+                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: List.generate(6, (index) {
+                            return SizedBox(
+                              width: 46,
+                              height: 52,
+                              child: TextField(
+                                key: Key('two_factor_enroll_otp_$index'),
+                                controller: otpControllers[index],
+                                focusNode: otpFocusNodes[index],
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                maxLength: 1,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                decoration: InputDecoration(
+                                  counterText: '',
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (value) {
+                                  if (value.isNotEmpty && index < 5) {
+                                    otpFocusNodes[index + 1].requestFocus();
+                                  } else if (value.isEmpty && index > 0) {
+                                    otpFocusNodes[index - 1].requestFocus();
+                                  }
+                                },
+                              ),
+                            );
+                          }),
+                        ),
+                        if (dialogError != null) ...[
+                          const SizedBox(height: 10),
+                          Text(dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                        ],
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        for (final c in otpControllers) {
+                          c.dispose();
+                        }
+                        for (final f in otpFocusNodes) {
+                          f.dispose();
+                        }
+                        phoneController.dispose();
+                        Navigator.pop(dialogCtx);
+                      },
+                child: const Text('Cancel'),
+              ),
+              if (step == 1)
+                ElevatedButton(
+                  key: const Key('send_enrollment_sms_button'),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          final phone = phoneController.text.trim();
+                          if (phone.isEmpty || phone.length < 7) {
+                            setModalState(() => dialogError = 'Please enter a valid mobile number.');
+                            return;
+                          }
+                          setModalState(() {
+                            isLoading = true;
+                            dialogError = null;
+                          });
+                          try {
+                            await AuthService.instance.sendTwoFactorEnrollmentSms(phone);
+                            setModalState(() {
+                              step = 2;
+                              isLoading = false;
+                            });
+                          } catch (e) {
+                            setModalState(() {
+                              dialogError = 'Failed to send SMS code: $e';
+                              isLoading = false;
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+                  child: isLoading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Send Verification Code'),
+                )
+              else
+                ElevatedButton(
+                  key: const Key('verify_enrollment_sms_button'),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          final enteredCode = otpControllers.map((c) => c.text.trim()).join();
+                          if (enteredCode.length < 6) {
+                            setModalState(() => dialogError = 'Please enter all 6 digits.');
+                            return;
+                          }
+                          setModalState(() {
+                            isLoading = true;
+                            dialogError = null;
+                          });
+                          final phone = phoneController.text.trim();
+                          final success = await AuthService.instance.verifyTwoFactorEnrollmentSms(phone, enteredCode);
+                          if (!success) {
+                            setModalState(() {
+                              dialogError = 'Invalid code. Please try again.';
+                              isLoading = false;
+                            });
+                            return;
+                          }
+                          final uid = AuthService.instance.user?.uid;
+                          await SecuritySettingsStore.instance.updateTwoFactor(
+                            enabled: true,
+                            phoneNumber: phone,
+                            uid: uid,
+                          );
+                          for (final c in otpControllers) {
+                            c.dispose();
+                          }
+                          for (final f in otpFocusNodes) {
+                            f.dispose();
+                          }
+                          if (dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                          }
+                          if (!mounted) return;
+                          showActionSuccessModal(
+                            context: context,
+                            title: 'Two-Factor Authentication Enabled',
+                            message: 'SMS-based 2FA is now active. Your account is protected by two-factor verification on sign-in.',
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
+                  child: isLoading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Verify & Activate 2FA'),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmDisableTwoFactor() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Disable Two-Factor Authentication?'),
+        content: Text(
+          'Removing Two-Factor Authentication will reduce the security level of your DOCRS workstation access.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Keep 2FA Enabled'),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_disable_2fa_button'),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              final uid = AuthService.instance.user?.uid;
+              await SecuritySettingsStore.instance.updateTwoFactor(
+                enabled: false,
+                phoneNumber: null,
+                uid: uid,
+              );
+              _showSaveFeedback('Two-factor authentication disabled.');
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            child: const Text('Disable 2FA'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1476,7 +1889,7 @@ class _SettingsViewState extends State<SettingsView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                if (trailing != null) trailing,
+                ?trailing,
               ],
             ),
             SizedBox(height: 16),

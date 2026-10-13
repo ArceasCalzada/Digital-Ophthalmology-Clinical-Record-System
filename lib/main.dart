@@ -14,11 +14,13 @@ import 'services/dev_auth_backend.dart';
 import 'services/draft_manager_service.dart';
 import 'services/offline_sync_service.dart';
 import 'services/profile_store.dart';
+import 'services/security_settings_store.dart';
 import 'services/team_service.dart';
 import 'theme/app_theme.dart';
 import 'views/login_view.dart';
 import 'views/main_layout.dart';
 import 'widgets/inactivity_guard.dart';
+import 'widgets/session_lock_overlay.dart';
 
 /// reCAPTCHA v3 site key for App Check on web. Pass at build time:
 /// `flutter build web --dart-define=DOCRS_RECAPTCHA_SITE_KEY=<key>`
@@ -128,6 +130,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
       ClinicStore.instance.load(user.uid);
       TeamService.instance.load(user.uid, userEmail: user.email, displayName: user.displayName);
       ProfileStore.instance.syncWithUser(user);
+      SecuritySettingsStore.instance.loadFromFirestore(user.uid);
     }
     PatientRepository.connect();
     CalendarEventRepository().connect();
@@ -146,6 +149,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     OfflineSyncService().stopAutoSyncTimer();
     DraftManagerService().clearAllDrafts();
     ProfileStore.instance.reset();
+    SecuritySettingsStore.instance.reset();
   }
 
   Future<void> _handleLogout() => AuthService.instance.signOut();
@@ -153,9 +157,15 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeController.instance, AuthService.instance]),
+      listenable: Listenable.merge([
+        ThemeController.instance,
+        AuthService.instance,
+        SecuritySettingsStore.instance,
+      ]),
       builder: (context, child) {
         final auth = AuthService.instance;
+        final security = SecuritySettingsStore.instance;
+
         return MaterialApp(
           title: 'DOCRS — Digital Ophthalmology Clinical Record System',
           debugShowCheckedModeBanner: false,
@@ -173,10 +183,19 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
                 )
               : (auth.isSignedIn
                   ? InactivityGuard(
-                      timeout: AuthService.idleTimeout,
-                      onTimeout: _handleLogout,
-                      child: MainLayout(
-                        onLogout: _handleLogout,
+                      timeout: security.timeoutDuration,
+                      onTimeout: () => security.lockScreen(),
+                      child: Stack(
+                        children: [
+                          MainLayout(
+                            onLogout: _handleLogout,
+                          ),
+                          if (security.isLocked)
+                            SessionLockOverlay(
+                              onUnlock: (password) => security.unlockSession(password),
+                              onLogout: _handleLogout,
+                            ),
+                        ],
                       ),
                     )
                   : LoginView(

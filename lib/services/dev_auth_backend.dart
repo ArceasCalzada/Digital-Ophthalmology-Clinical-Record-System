@@ -66,5 +66,17 @@ class DevAuthBackend implements AuthBackend {
   }
 
   @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {}
+
+  @override
+  Future<bool> verifyPassword(String email, String password) async => true;
+
+  @override
+  Future<bool> fetchTwoFactorEnabled(String uid) async => false;
+
+  @override
+  Future<String?> fetchTwoFactorPhone(String uid) async => '+639175550192';
+
+  @override
   Future<UserRole?> fetchRole(String uid) async => UserRole.admin;
 }

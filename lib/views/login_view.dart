@@ -35,6 +35,11 @@ class _LoginViewState extends State<LoginView> {
   final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
 
+  final List<TextEditingController> _twoFactorOtpControllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _twoFactorOtpFocusNodes = List.generate(6, (_) => FocusNode());
+  bool _isVerifying2fa = false;
+  String? _twoFactorError;
+
   @override
   void dispose() {
     _signInEmailController.dispose();
@@ -47,6 +52,12 @@ class _LoginViewState extends State<LoginView> {
       c.dispose();
     }
     for (final f in _otpFocusNodes) {
+      f.dispose();
+    }
+    for (final c in _twoFactorOtpControllers) {
+      c.dispose();
+    }
+    for (final f in _twoFactorOtpFocusNodes) {
       f.dispose();
     }
     super.dispose();
@@ -310,7 +321,9 @@ class _LoginViewState extends State<LoginView> {
                       SizedBox(height: 20),
 
                       // State Handler views
-                      if (auth.isPendingEmailVerification)
+                      if (auth.is2faPending)
+                        _buildTwoFactorPendingView(auth)
+                      else if (auth.isPendingEmailVerification)
                         _buildEmailVerificationPendingView(auth)
                       else if (auth.isPendingRole)
                         _buildPendingRoleView(auth)
@@ -978,5 +991,210 @@ class _LoginViewState extends State<LoginView> {
         ],
       ),
     );
+  }
+
+  Widget _buildTwoFactorPendingView(AuthService auth) {
+    return Container(
+      key: const Key('two_factor_verification_view'),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2), width: 2),
+              ),
+              child: Icon(Icons.shield_outlined, size: 30, color: AppTheme.primaryBlue),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Two-Factor Authentication',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Enter the 6-digit verification code sent via SMS to ${auth.masked2faPhone} to verify your identity.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 6 OTP Digit Inputs
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(6, (index) {
+              return SizedBox(
+                width: 44,
+                height: 52,
+                child: TextField(
+                  key: Key('two_factor_login_otp_$index'),
+                  controller: _twoFactorOtpControllers[index],
+                  focusNode: _twoFactorOtpFocusNodes[index],
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  maxLength: 1,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (value) {
+                    if (value.isNotEmpty && index < 5) {
+                      _twoFactorOtpFocusNodes[index + 1].requestFocus();
+                    } else if (value.isEmpty && index > 0) {
+                      _twoFactorOtpFocusNodes[index - 1].requestFocus();
+                    }
+                    if (_twoFactorOtpControllers.every((c) => c.text.isNotEmpty)) {
+                      _handleVerify2fa();
+                    }
+                  },
+                ),
+              );
+            }),
+          ),
+
+          if (_twoFactorError != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _twoFactorError!,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Verify Button
+          SizedBox(
+            height: 48,
+            child: ElevatedButton.icon(
+              key: const Key('two_factor_verify_button'),
+              onPressed: _isVerifying2fa ? null : _handleVerify2fa,
+              icon: _isVerifying2fa
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.check_circle_outline_rounded, size: 18),
+              label: Text(_isVerifying2fa ? 'Verifying...' : 'Verify & Continue', style: const TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Resend Code Button
+          OutlinedButton.icon(
+            key: const Key('two_factor_resend_button'),
+            onPressed: () async {
+              setState(() => _twoFactorError = null);
+              await auth.resend2faCode();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('A new 6-digit verification code has been dispatched via SMS.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Resend SMS Code'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Cancel & Return to Login
+          Center(
+            child: TextButton(
+              key: const Key('two_factor_cancel_button'),
+              onPressed: () {
+                for (final c in _twoFactorOtpControllers) {
+                  c.clear();
+                }
+                setState(() => _twoFactorError = null);
+                auth.cancel2fa();
+              },
+              child: const Text('Cancel & Return to Sign In', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleVerify2fa() async {
+    final code = _twoFactorOtpControllers.map((c) => c.text.trim()).join();
+    if (code.length < 6) {
+      setState(() => _twoFactorError = 'Please enter all 6 digits of the verification code.');
+      return;
+    }
+
+    setState(() {
+      _isVerifying2fa = true;
+      _twoFactorError = null;
+    });
+
+    try {
+      await AuthService.instance.complete2faSignIn(code);
+      for (final c in _twoFactorOtpControllers) {
+        c.clear();
+      }
+      if (mounted && AuthService.instance.isSignedIn) {
+        widget.onLoginSuccess();
+      }
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        setState(() => _twoFactorError = e.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _twoFactorError = 'Verification failed: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isVerifying2fa = false);
+      }
+    }
   }
 }

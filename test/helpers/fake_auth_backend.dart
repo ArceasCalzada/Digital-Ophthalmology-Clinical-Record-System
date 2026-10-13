@@ -89,6 +89,43 @@ class FakeAuthBackend implements AuthBackend {
     _changes.add(null);
   }
 
+  final Map<String, bool> twoFactorAccounts = {};
+  final Map<String, String> twoFactorPhoneNumbers = {};
+  int changePasswordCalls = 0;
+
+  @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    changePasswordCalls++;
+    final current = _current;
+    if (current == null || current.email == null) {
+      throw const AuthFailure('No active session found.');
+    }
+    final email = current.email!;
+    final account = accounts[email];
+    if (account == null || account.password != currentPassword) {
+      throw const AuthFailure('Current password is incorrect. Please re-enter.');
+    }
+    accounts[email] = (password: newPassword, role: account.role);
+  }
+
+  @override
+  Future<bool> verifyPassword(String email, String password) async {
+    final account = accounts[email];
+    return account != null && account.password == password;
+  }
+
+  @override
+  Future<bool> fetchTwoFactorEnabled(String uid) async {
+    final email = uid.replaceFirst('uid-', '');
+    return twoFactorAccounts[email] ?? false;
+  }
+
+  @override
+  Future<String?> fetchTwoFactorPhone(String uid) async {
+    final email = uid.replaceFirst('uid-', '');
+    return twoFactorPhoneNumbers[email] ?? '+639175550192';
+  }
+
   @override
   Future<UserRole?> fetchRole(String uid) async {
     roleReads++;
