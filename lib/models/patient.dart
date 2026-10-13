@@ -381,9 +381,9 @@ class Patient {
       Patient(
         id: id,
         mrn: mrn,
-        firstName: firstName ?? this.firstName,
-        middleName: middleName ?? this.middleName,
-        lastName: lastName ?? this.lastName,
+        firstName: firstName ?? (fullName != null ? null : this.firstName),
+        middleName: middleName ?? (fullName != null ? null : this.middleName),
+        lastName: lastName ?? (fullName != null ? null : this.lastName),
         fullName: fullName ?? (firstName != null || middleName != null || lastName != null ? null : this.fullName),
         dateOfBirth: dateOfBirth,
         gender: gender,
@@ -533,6 +533,14 @@ class Patient {
       totalVisits: totalVisits,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Patient && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// Thrown when adding a patient would exceed [AppLimits.maxPatients].

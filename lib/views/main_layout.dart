@@ -107,7 +107,9 @@ class _MainLayoutState extends State<MainLayout> {
         return false;
       }
     }
-    return PatientRepository.getPatientById(patient.id) != null;
+    final inRepo = PatientRepository.getPatientById(patient.id);
+    if (inRepo != null) return true;
+    return patient.id.isNotEmpty && (patient.teamId.isEmpty || patient.teamId == activeTeamId);
   }
 
   void _navigateToPatientProfile(Patient patient) {
@@ -281,6 +283,7 @@ class _MainLayoutState extends State<MainLayout> {
             _selectedIndex = 2;
           });
         },
+        onOpenPrescription: (p) => _openPrescriptionForPatient(p, isMobileScreen: false),
       );
     }
 
@@ -335,6 +338,7 @@ class _MainLayoutState extends State<MainLayout> {
               _selectedIndex = 2;
             });
           },
+          onOpenPrescription: (p) => _openPrescriptionForPatient(p, isMobileScreen: false),
         );
       case 4:
         final validPatient = _isPatientValidForActiveTeam(_selectedPatient) ? _selectedPatient : null;

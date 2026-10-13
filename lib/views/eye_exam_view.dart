@@ -11,13 +11,21 @@ import '../widgets/success_modal.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
 import '../services/profile_store.dart';
+import '../services/draft_manager_service.dart';
 
 class EyeExamView extends StatefulWidget {
   final Patient? patient;
   final Encounter? encounter;
   final Function(Patient)? onExamComplete;
+  final Function(Patient)? onOpenPrescription;
 
-  const EyeExamView({super.key, this.patient, this.encounter, this.onExamComplete});
+  const EyeExamView({
+    super.key,
+    this.patient,
+    this.encounter,
+    this.onExamComplete,
+    this.onOpenPrescription,
+  });
 
   @override
   State<EyeExamView> createState() => _EyeExamViewState();
@@ -106,6 +114,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       _initEmptyPatient();
       _clearAllFieldsForNewPatient();
     }
+    _checkAndRestoreDraft();
   }
 
   void _initEmptyPatient() {
@@ -295,6 +304,160 @@ class _EyeExamViewState extends State<EyeExamView> {
     }
   }
 
+  Patient get _currentPatientContext {
+    final enteredName = _nameController.text.trim();
+    if (enteredName.isNotEmpty && _activePatient.fullName != enteredName) {
+      return _activePatient.copyWith(
+        fullName: enteredName,
+        middleName: _middleNameController.text.trim(),
+      );
+    }
+    return _activePatient;
+  }
+
+  void _checkAndRestoreDraft() {
+    final draft = DraftManagerService().getValidDraft('eye_exam');
+    if (draft == null) return;
+
+    if (draft.patientId == _activePatient.id || (widget.patient == null && widget.encounter == null)) {
+      _restoreDraft(draft.payload);
+    }
+  }
+
+  void _restoreDraft(Map<String, dynamic> payload) {
+    if (payload['strokes'] is List) {
+      try {
+        final strokeList = (payload['strokes'] as List)
+            .map((item) => VectorStroke.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList();
+        _paperStrokes = strokeList;
+      } catch (e) {
+        debugPrint('Error restoring paper strokes from draft: $e');
+      }
+    }
+    if (payload['name'] != null && (payload['name'] as String).isNotEmpty) {
+      _nameController.text = payload['name'];
+      _activePatient = _activePatient.copyWith(fullName: payload['name']);
+    }
+    if (payload['middleName'] != null) _middleNameController.text = payload['middleName'];
+    if (payload['date'] != null && (payload['date'] as String).isNotEmpty) _dateController.text = payload['date'];
+    if (payload['ageSex'] != null) _ageSexController.text = payload['ageSex'];
+    if (payload['address'] != null) _addressController.text = payload['address'];
+    if (payload['contact'] != null) _contactController.text = payload['contact'];
+    if (payload['occupation'] != null) _occupationController.text = payload['occupation'];
+    if (payload['phic'] != null) _phicController.text = payload['phic'];
+    if (payload['birthDate'] != null) _birthDateController.text = payload['birthDate'];
+
+    if (payload['vaOD'] != null) _vaODController.text = payload['vaOD'];
+    if (payload['phOD'] != null) _phODController.text = payload['phOD'];
+    if (payload['ccOD'] != null) _ccODController.text = payload['ccOD'];
+    if (payload['oldCcOD'] != null) _oldCcODController.text = payload['oldCcOD'];
+    if (payload['arOD'] != null) _arODController.text = payload['arOD'];
+    if (payload['akOD'] != null) _akODController.text = payload['akOD'];
+
+    if (payload['vaOS'] != null) _vaOSController.text = payload['vaOS'];
+    if (payload['phOS'] != null) _phOSController.text = payload['phOS'];
+    if (payload['ccOS'] != null) _ccOSController.text = payload['ccOS'];
+    if (payload['oldCcOS'] != null) _oldCcOSController.text = payload['oldCcOS'];
+    if (payload['arOS'] != null) _arOSController.text = payload['arOS'];
+    if (payload['akOS'] != null) _akOSController.text = payload['akOS'];
+
+    if (payload['colorOD'] != null) _colorODController.text = payload['colorOD'];
+    if (payload['iopOD'] != null) _iopODController.text = payload['iopOD'];
+    if (payload['anglesOD'] != null) _anglesOD = payload['anglesOD'];
+    if (payload['cdrOD'] != null) _cdrODController.text = payload['cdrOD'];
+    if (payload['confrontationOD'] != null) _confrontationOD = payload['confrontationOD'];
+    if (payload['vanHerickOD'] != null) _vanHerickOD = payload['vanHerickOD'];
+
+    if (payload['colorOS'] != null) _colorOSController.text = payload['colorOS'];
+    if (payload['iopOS'] != null) _iopOSController.text = payload['iopOS'];
+    if (payload['anglesOS'] != null) _anglesOS = payload['anglesOS'];
+    if (payload['cdrOS'] != null) _cdrOSController.text = payload['cdrOS'];
+    if (payload['confrontationOS'] != null) _confrontationOS = payload['confrontationOS'];
+    if (payload['vanHerickOS'] != null) _vanHerickOS = payload['vanHerickOS'];
+
+    if (payload['chiefComplaint'] != null) _chiefComplaintController.text = payload['chiefComplaint'];
+    if (payload['assessment'] != null) _assessmentController.text = payload['assessment'];
+    if (payload['plan'] != null) _planController.text = payload['plan'];
+
+    if (payload['systemicHistory'] is Map) {
+      final map = payload['systemicHistory'] as Map;
+      map.forEach((k, v) {
+        if (v is bool && _systemicHistory.containsKey(k)) {
+          _systemicHistory[k.toString()] = v;
+        }
+      });
+    }
+  }
+
+  void _saveLocalDraft() {
+    final patientContext = _currentPatientContext;
+    final strokeJsonList = _paperStrokes.map((s) => s.toJson()).toList();
+    final payload = <String, dynamic>{
+      'patientId': patientContext.id,
+      'patientName': patientContext.fullName.isNotEmpty ? patientContext.fullName : 'Active Patient',
+      'strokes': strokeJsonList,
+      'name': _nameController.text,
+      'middleName': _middleNameController.text,
+      'date': _dateController.text,
+      'ageSex': _ageSexController.text,
+      'address': _addressController.text,
+      'contact': _contactController.text,
+      'occupation': _occupationController.text,
+      'phic': _phicController.text,
+      'birthDate': _birthDateController.text,
+      'vaOD': _vaODController.text,
+      'phOD': _phODController.text,
+      'ccOD': _ccODController.text,
+      'oldCcOD': _oldCcODController.text,
+      'arOD': _arODController.text,
+      'akOD': _akODController.text,
+      'vaOS': _vaOSController.text,
+      'phOS': _phOSController.text,
+      'ccOS': _ccOSController.text,
+      'oldCcOS': _oldCcOSController.text,
+      'arOS': _arOSController.text,
+      'akOS': _akOSController.text,
+      'colorOD': _colorODController.text,
+      'iopOD': _iopODController.text,
+      'anglesOD': _anglesOD,
+      'cdrOD': _cdrODController.text,
+      'confrontationOD': _confrontationOD,
+      'vanHerickOD': _vanHerickOD,
+      'colorOS': _colorOSController.text,
+      'iopOS': _iopOSController.text,
+      'anglesOS': _anglesOS,
+      'cdrOS': _cdrOSController.text,
+      'confrontationOS': _confrontationOS,
+      'vanHerickOS': _vanHerickOS,
+      'chiefComplaint': _chiefComplaintController.text,
+      'assessment': _assessmentController.text,
+      'plan': _planController.text,
+      'systemicHistory': Map<String, bool>.from(_systemicHistory),
+    };
+
+    DraftManagerService().saveDraft(
+      contextKey: 'eye_exam',
+      patientId: patientContext.id,
+      payload: payload,
+    );
+  }
+
+  void _openPrescriptionsWorkspace() {
+    _saveLocalDraft();
+    final patient = _currentPatientContext;
+    if (widget.onOpenPrescription != null) {
+      widget.onOpenPrescription!(patient);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PrescriptionView(initialPatient: patient),
+        ),
+      );
+    }
+  }
+
   bool _isSaving = false;
 
   void _saveConsultationRecord() async {
@@ -382,6 +545,8 @@ class _EyeExamViewState extends State<EyeExamView> {
       _showSaveError(e.toString());
       return;
     }
+
+    DraftManagerService().discardDraft('eye_exam');
 
     if (!mounted) return;
 
@@ -512,16 +677,10 @@ class _EyeExamViewState extends State<EyeExamView> {
         actions: [
           // Prescription Writer
           OutlinedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PrescriptionView(initialPatient: _activePatient),
-                ),
-              );
-            },
+            key: const Key('btn_add_prescription'),
+            onPressed: _openPrescriptionsWorkspace,
             icon: Icon(Icons.medication, size: 16, color: AppTheme.primaryBlue),
-            label: Text('Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
+            label: Text('+ Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppTheme.primaryBlue),
             ),

@@ -36,7 +36,32 @@ class _PrescriptionViewState extends State<PrescriptionView> {
   void initState() {
     super.initState();
     final allPatients = PatientRepository.getAllPatients();
-    _selectedPatient = widget.initialPatient ?? (allPatients.isNotEmpty ? allPatients.first : null);
+    _resolveAndSetPatient(widget.initialPatient, allPatients);
+  }
+
+  @override
+  void didUpdateWidget(covariant PrescriptionView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialPatient != null &&
+        (widget.initialPatient?.id != oldWidget.initialPatient?.id ||
+         widget.initialPatient?.id != _selectedPatient?.id)) {
+      final allPatients = PatientRepository.getAllPatients();
+      _resolveAndSetPatient(widget.initialPatient, allPatients);
+    }
+  }
+
+  void _resolveAndSetPatient(Patient? candidate, List<Patient> allPatients) {
+    if (candidate != null) {
+      Patient? matched;
+      try {
+        matched = allPatients.firstWhere((p) => p.id == candidate.id);
+      } catch (_) {
+        matched = candidate;
+      }
+      _selectedPatient = matched;
+    } else {
+      _selectedPatient = allPatients.isNotEmpty ? allPatients.first : null;
+    }
     _loadPatientPrescriptionData(_selectedPatient);
   }
 
@@ -196,6 +221,10 @@ class _PrescriptionViewState extends State<PrescriptionView> {
   @override
   Widget build(BuildContext context) {
     final allPatients = PatientRepository.getAllPatients();
+    final List<Patient> dropdownPatients = List.from(allPatients);
+    if (_selectedPatient != null && !dropdownPatients.any((p) => p.id == _selectedPatient!.id)) {
+      dropdownPatients.insert(0, _selectedPatient!);
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(PageHeader.pagePadding),
@@ -238,7 +267,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                     searchable: true,
                     searchHint: 'Type patient name...',
                     items: [
-                      for (final p in allPatients)
+                      for (final p in dropdownPatients)
                         ClinicalPickerItem<Patient>(
                           value: p,
                           label: p.fullName,
