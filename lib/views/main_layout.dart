@@ -7,6 +7,7 @@ import '../widgets/clinic_dialogs.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/sync_status_indicator.dart';
 import '../services/team_service.dart';
+import '../services/workspace_store.dart';
 import 'calendar_page_view.dart';
 import 'dashboard_screen.dart';
 import 'eye_exam_view.dart';
@@ -842,7 +843,7 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
         ListenableBuilder(
-          listenable: ClinicalNotificationRepository(),
+          listenable: Listenable.merge([ClinicalNotificationRepository(), WorkspaceStore.instance]),
           builder: (context, child) {
             final unread = ClinicalNotificationRepository().unreadCount;
 

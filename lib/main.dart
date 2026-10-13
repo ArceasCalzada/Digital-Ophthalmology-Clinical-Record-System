@@ -16,6 +16,7 @@ import 'services/offline_sync_service.dart';
 import 'services/profile_store.dart';
 import 'services/security_settings_store.dart';
 import 'services/team_service.dart';
+import 'services/workspace_store.dart';
 import 'theme/app_theme.dart';
 import 'views/login_view.dart';
 import 'views/main_layout.dart';
@@ -150,59 +151,64 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     DraftManagerService().clearAllDrafts();
     ProfileStore.instance.reset();
     SecuritySettingsStore.instance.reset();
+    WorkspaceStore.instance.clear();
   }
 
   Future<void> _handleLogout() => AuthService.instance.signOut();
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        ThemeController.instance,
-        AuthService.instance,
-        SecuritySettingsStore.instance,
-      ]),
-      builder: (context, child) {
-        final auth = AuthService.instance;
-        final security = SecuritySettingsStore.instance;
+    return WorkspaceScope(
+      store: WorkspaceStore.instance,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          ThemeController.instance,
+          AuthService.instance,
+          SecuritySettingsStore.instance,
+          WorkspaceStore.instance,
+        ]),
+        builder: (context, child) {
+          final auth = AuthService.instance;
+          final security = SecuritySettingsStore.instance;
 
-        return MaterialApp(
-          title: 'DOCRS — Digital Ophthalmology Clinical Record System',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeController.instance.themeMode,
-          home: auth.isResolving
-              ? Scaffold(
-                  backgroundColor: AppTheme.lightBg,
-                  body: Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryBlue,
+          return MaterialApp(
+            title: 'DOCRS — Digital Ophthalmology Clinical Record System',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeController.instance.themeMode,
+            home: auth.isResolving
+                ? Scaffold(
+                    backgroundColor: AppTheme.lightBg,
+                    body: Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primaryBlue,
+                      ),
                     ),
-                  ),
-                )
-              : (auth.isSignedIn
-                  ? InactivityGuard(
-                      timeout: security.timeoutDuration,
-                      onTimeout: () => security.lockScreen(),
-                      child: Stack(
-                        children: [
-                          MainLayout(
-                            onLogout: _handleLogout,
-                          ),
-                          if (security.isLocked)
-                            SessionLockOverlay(
-                              onUnlock: (password) => security.unlockSession(password),
+                  )
+                : (auth.isSignedIn
+                    ? InactivityGuard(
+                        timeout: security.timeoutDuration,
+                        onTimeout: () => security.lockScreen(),
+                        child: Stack(
+                          children: [
+                            MainLayout(
                               onLogout: _handleLogout,
                             ),
-                        ],
-                      ),
-                    )
-                  : LoginView(
-                      onLoginSuccess: () {},
-                    )),
-        );
-      },
+                            if (security.isLocked)
+                              SessionLockOverlay(
+                                onUnlock: (password) => security.unlockSession(password),
+                                onLogout: _handleLogout,
+                              ),
+                          ],
+                        ),
+                      )
+                    : LoginView(
+                        onLoginSuccess: () {},
+                      )),
+          );
+        },
+      ),
     );
   }
 }

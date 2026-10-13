@@ -6,10 +6,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/calendar_event.dart';
+import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../models/team.dart';
 import 'firebase_gate.dart';
 import 'profile_store.dart';
+import 'workspace_store.dart';
 
 class TeamService extends ChangeNotifier {
   static final TeamService instance = TeamService._();
@@ -31,6 +33,7 @@ class TeamService extends ChangeNotifier {
   bool get loading => _loading;
   List<Team> get teams => List.unmodifiable(_teams);
   Team? get activeTeam => _activeTeam;
+  String? get activeWorkspaceId => _activeTeam?.id;
   TeamRole get activeRole => _activeRole;
   List<TeamMember> get members => List.unmodifiable(_members);
   List<TeamMember> get pendingMembers => List.unmodifiable(_pendingMembers);
@@ -180,9 +183,11 @@ class TeamService extends ChangeNotifier {
     }
 
     if (_activeTeam != null) {
+      WorkspaceStore.instance.setActiveWorkspace(_activeTeam!.id, workspace: _activeTeam);
       await _connectActiveTeamMembers(_activeTeam!.id);
       PatientRepository.connect(_activeTeam!.id);
       CalendarEventRepository().connect(_activeTeam!.id);
+      ClinicalNotificationRepository().connect(_activeTeam!.id);
     }
 
     _loading = false;
@@ -212,8 +217,10 @@ class TeamService extends ChangeNotifier {
         joinedAt: DateTime.now().toIso8601String(),
       ),
     ];
+    WorkspaceStore.instance.setActiveWorkspace(defaultTeam.id, workspace: defaultTeam);
     PatientRepository.connect(defaultTeam.id);
     CalendarEventRepository().connect(defaultTeam.id);
+    ClinicalNotificationRepository().connect(defaultTeam.id);
   }
 
   Future<void> _createInitialDefaultTeam(String uid) async {
@@ -383,6 +390,8 @@ class TeamService extends ChangeNotifier {
     if (target == null) return;
 
     _activeTeam = target;
+    WorkspaceStore.instance.setActiveWorkspace(teamId, workspace: target);
+
     final uid = _uid;
     if (uid != null) {
       try {
@@ -396,6 +405,7 @@ class TeamService extends ChangeNotifier {
     await _connectActiveTeamMembers(teamId);
     PatientRepository.connect(teamId);
     CalendarEventRepository().connect(teamId);
+    ClinicalNotificationRepository().connect(teamId);
     notifyListeners();
   }
 
@@ -672,6 +682,8 @@ class TeamService extends ChangeNotifier {
     _loading = false;
     PatientRepository.disconnect();
     CalendarEventRepository().disconnect();
+    ClinicalNotificationRepository().disconnect();
+    WorkspaceStore.instance.setActiveWorkspace(null, workspace: null);
     notifyListeners();
   }
 

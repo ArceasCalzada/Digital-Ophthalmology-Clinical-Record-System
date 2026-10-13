@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart' show Query;
 import 'package:flutter/material.dart';
 
 import '../services/firebase_gate.dart';
@@ -103,6 +104,7 @@ class CalendarEventRepository extends ChangeNotifier {
   static final CalendarEventRepository _instance = CalendarEventRepository._internal();
   factory CalendarEventRepository() => _instance;
 
+  final List<CalendarEvent> _allMemoryEvents = [];
   final List<CalendarEvent> _events = [];
   StreamSubscription? _eventsSub;
   String? _activeTeamId;
@@ -111,23 +113,52 @@ class CalendarEventRepository extends ChangeNotifier {
     _initSeedData();
   }
 
+  String? get activeTeamId => _activeTeamId;
+
   void connect([String? teamId]) {
-    _activeTeamId = teamId;
+    final targetTeamId = teamId ?? _activeTeamId;
+    final teamChanged = _activeTeamId != targetTeamId;
+    _activeTeamId = targetTeamId;
+
+    if (teamChanged) {
+      _events.clear();
+      notifyListeners();
+    }
+
     final firestore = FirebaseGate.firestoreIfReady();
-    if (firestore == null) return;
+    if (firestore == null) {
+      _events.clear();
+      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        _events.addAll(_allMemoryEvents.where((e) =>
+            e.teamId == _activeTeamId ||
+            (e.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
+      } else {
+        _events.addAll(_allMemoryEvents);
+      }
+      notifyListeners();
+      return;
+    }
+
     _eventsSub?.cancel();
-    
-    // Firestore rules require limit <= 500 for queries on calendarEvents
-    _eventsSub = firestore.collection('calendarEvents').limit(500).snapshots().listen((snapshot) {
+
+    Query<Map<String, dynamic>> query = firestore.collection('calendarEvents');
+    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+      query = query.where('teamId', isEqualTo: targetTeamId);
+    }
+    query = query.limit(500);
+
+    _eventsSub = query.snapshots().listen((snapshot) {
       _events.clear();
       for (final doc in snapshot.docs) {
         try {
           final data = FirebaseGate.decode(doc.data());
           data['id'] = doc.id;
           final event = CalendarEvent.fromJson(data);
-          
-          // Team scope filtering: include event if unassigned or matches active team
-          if (_activeTeamId == null || _activeTeamId!.isEmpty || event.teamId.isEmpty || event.teamId == _activeTeamId) {
+
+          if (targetTeamId == null ||
+              targetTeamId.isEmpty ||
+              event.teamId.isEmpty ||
+              event.teamId == targetTeamId) {
             _events.add(event);
           }
         } catch (e) {
@@ -150,13 +181,15 @@ class CalendarEventRepository extends ChangeNotifier {
 
   List<CalendarEvent> get events {
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-      return List.unmodifiable(_events.where((e) => e.teamId.isEmpty || e.teamId == _activeTeamId));
+      return List.unmodifiable(_events.where((e) =>
+          e.teamId == _activeTeamId ||
+          (e.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
     }
     return List.unmodifiable(_events);
   }
 
   List<CalendarEvent> getEventsForDay(DateTime day) {
-    return _events.where((e) {
+    return events.where((e) {
       return e.dateTime.year == day.year &&
           e.dateTime.month == day.month &&
           e.dateTime.day == day.day;
@@ -170,7 +203,7 @@ class CalendarEventRepository extends ChangeNotifier {
     DateTime? specificDay,
     bool? completedFilter,
   }) {
-    return _events.where((e) {
+    return events.where((e) {
       if (typeFilter != null && typeFilter != 'All' && e.eventType != typeFilter) {
         return false;
       }
@@ -194,7 +227,15 @@ class CalendarEventRepository extends ChangeNotifier {
     final eventWithTeam = event.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
         ? event.copyWith(teamId: _activeTeamId)
         : event;
-    _events.add(eventWithTeam);
+
+    _allMemoryEvents.add(eventWithTeam);
+    if (_activeTeamId == null ||
+        _activeTeamId!.isEmpty ||
+        eventWithTeam.teamId.isEmpty ||
+        eventWithTeam.teamId == _activeTeamId) {
+      _events.add(eventWithTeam);
+    }
+
     OfflineSyncService().enqueueMutation(
       id: eventWithTeam.id,
       entityType: 'CalendarEvent',
@@ -221,12 +262,24 @@ class CalendarEventRepository extends ChangeNotifier {
     final eventWithTeam = updated.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
         ? updated.copyWith(teamId: _activeTeamId)
         : updated;
+
+    final memIdx = _allMemoryEvents.indexWhere((e) => e.id == eventWithTeam.id);
+    if (memIdx != -1) {
+      _allMemoryEvents[memIdx] = eventWithTeam;
+    } else {
+      _allMemoryEvents.add(eventWithTeam);
+    }
+
     final idx = _events.indexWhere((e) => e.id == eventWithTeam.id);
     if (idx != -1) {
       _events[idx] = eventWithTeam;
-    } else {
+    } else if (_activeTeamId == null ||
+        _activeTeamId!.isEmpty ||
+        eventWithTeam.teamId.isEmpty ||
+        eventWithTeam.teamId == _activeTeamId) {
       _events.add(eventWithTeam);
     }
+
     OfflineSyncService().enqueueMutation(
       id: eventWithTeam.id,
       entityType: 'CalendarEvent',
@@ -253,6 +306,10 @@ class CalendarEventRepository extends ChangeNotifier {
     final idx = _events.indexWhere((e) => e.id == id);
     if (idx != -1) {
       _events[idx].isCompleted = !_events[idx].isCompleted;
+      final memIdx = _allMemoryEvents.indexWhere((e) => e.id == id);
+      if (memIdx != -1) {
+        _allMemoryEvents[memIdx].isCompleted = _events[idx].isCompleted;
+      }
       OfflineSyncService().enqueueMutation(
         id: id,
         entityType: 'CalendarEvent',
@@ -270,6 +327,7 @@ class CalendarEventRepository extends ChangeNotifier {
 
   void deleteEvent(String id) {
     _events.removeWhere((e) => e.id == id);
+    _allMemoryEvents.removeWhere((e) => e.id == id);
     OfflineSyncService().enqueueMutation(
       id: id,
       entityType: 'CalendarEvent',
@@ -281,7 +339,7 @@ class CalendarEventRepository extends ChangeNotifier {
 
   void _initSeedData() {
     final now = DateTime.now();
-    _events.addAll([
+    final seeds = [
       CalendarEvent(
         id: 'evt-101',
         title: 'Glaucoma Follow-up & IOP Check',
@@ -290,6 +348,7 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day, 9, 30),
         patientName: 'Eleanor Vance',
         patientId: 'P-10024',
+        teamId: 'c-default-team',
         reminderMinutes: 15,
         notes: 'Target IOP OD < 15 mmHg. Repeat applanation tonometer.',
       ),
@@ -301,6 +360,7 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day, 10, 45),
         patientName: 'Carlos Mendoza',
         patientId: 'P-10025',
+        teamId: 'c-default-team',
         reminderMinutes: 30,
         notes: 'Check OD corneal clarity and IOL alignment.',
       ),
@@ -312,6 +372,7 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day, 14, 0),
         patientName: 'Lourdes Sterling',
         patientId: 'P-10026',
+        teamId: 'c-default-team',
         reminderMinutes: 60,
         notes: 'Right eye phacoemulsification with toric IOL placement.',
       ),
@@ -323,6 +384,7 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day + 1, 11, 0),
         patientName: 'Arthur Pendelton',
         patientId: 'P-10027',
+        teamId: 'c-default-team',
         reminderMinutes: 30,
         notes: 'Widefield fundus photos and OCT macula scan.',
       ),
@@ -334,6 +396,7 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day + 1, 15, 30),
         patientName: 'Sophia Reyes',
         patientId: 'P-10028',
+        teamId: 'c-default-team',
         reminderMinutes: 15,
         notes: 'Rule out corneal ulcer vs anterior uveitis.',
       ),
@@ -345,9 +408,12 @@ class CalendarEventRepository extends ChangeNotifier {
         dateTime: DateTime(now.year, now.month, now.day + 2, 10, 0),
         patientName: 'Gabriel Santos',
         patientId: 'P-10029',
+        teamId: 'c-default-team',
         reminderMinutes: 30,
         notes: 'Post-cataract posterior capsule opacification.',
       ),
-    ]);
+    ];
+    _allMemoryEvents.addAll(seeds);
+    _events.addAll(seeds);
   }
 }

@@ -214,6 +214,7 @@ class _AddEventModalState extends State<AddEventModal> {
           timestamp: DateTime.now(),
           patientName: newEvent.patientName,
           patientId: newEvent.patientId,
+          teamId: newEvent.teamId.isNotEmpty ? newEvent.teamId : (TeamService.instance.activeWorkspaceId ?? ''),
         ),
       );
 

@@ -5,6 +5,7 @@ import '../models/calendar_event.dart';
 import '../models/patient.dart';
 import '../services/event_options_store.dart';
 import '../services/team_service.dart';
+import '../services/workspace_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/filter_pill.dart';
@@ -143,7 +144,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
     final repo = CalendarEventRepository();
 
     return ListenableBuilder(
-      listenable: Listenable.merge([repo, EventOptionsStore.instance, TeamService.instance]),
+      listenable: Listenable.merge([repo, EventOptionsStore.instance, TeamService.instance, WorkspaceStore.instance]),
       builder: (context, child) {
         // A filter whose type or location was just deleted goes back to showing everything.
         if (!_typeFilters.contains(_selectedTypeFilter)) _selectedTypeFilter = 'All';

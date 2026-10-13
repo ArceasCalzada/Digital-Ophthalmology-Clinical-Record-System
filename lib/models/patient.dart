@@ -582,6 +582,7 @@ class PatientRepository {
 
   static final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
   static final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
+  static final List<Patient> _allMemoryPatients = [];
   static final List<Patient> _patients = [];
 
   /// Patients created on this device that the cloud snapshot has not shown yet.
@@ -617,21 +618,23 @@ class PatientRepository {
 
     if (teamChanged) {
       _cancelDetails();
-      if (firestore != null) {
-        _patients.clear();
-        _pendingPatients.clear();
-      } else if (targetTeamId != null && targetTeamId.isNotEmpty) {
-        for (var i = 0; i < _patients.length; i++) {
-          if (_patients[i].teamId.isEmpty) {
-            _patients[i] = _patients[i].copyWith(teamId: targetTeamId);
-          }
-        }
-      }
+      _patients.clear();
+      _pendingPatients.clear();
+      isLoading.value = true;
       changeNotifier.value++;
     }
 
     if (firestore == null) {
+      _patients.clear();
+      if (targetTeamId != null && targetTeamId.isNotEmpty) {
+        _patients.addAll(_allMemoryPatients.where((p) =>
+            p.teamId == targetTeamId ||
+            (p.teamId.isEmpty && (targetTeamId == 'c-default-team' || targetTeamId == 'default'))));
+      } else {
+        _patients.addAll(_allMemoryPatients);
+      }
       isLoading.value = false;
+      changeNotifier.value++;
       return;
     }
     isLoading.value = true;
@@ -683,6 +686,8 @@ class PatientRepository {
     _cancelDetails();
     _patients.clear();
     _pendingPatients.clear();
+    _allMemoryPatients.clear();
+    _activeTeamId = null;
     isLoading.value = false;
     changeNotifier.value++;
   }
@@ -781,7 +786,9 @@ class PatientRepository {
 
   static List<Patient> getAllPatients() {
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-      return List.unmodifiable(_patients.where((p) => p.teamId.isEmpty || p.teamId == _activeTeamId));
+      return List.unmodifiable(_patients.where((p) =>
+          p.teamId == _activeTeamId ||
+          (p.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
     }
     return List.unmodifiable(_patients);
   }
@@ -906,6 +913,13 @@ class PatientRepository {
       throw const PatientLimitReachedException(maxPatients);
     }
 
+    final memIdx = _allMemoryPatients.indexWhere((p) => p.id == newPatient.id || p.mrn == newPatient.mrn);
+    if (memIdx == -1) {
+      _allMemoryPatients.insert(0, newPatient);
+    } else {
+      _allMemoryPatients[memIdx] = newPatient;
+    }
+
     final data = newPatient.toFirestore();
     StorageOptimizationService.auditAndOptimizePayload(
       data,
@@ -937,6 +951,7 @@ class PatientRepository {
         if (isNew) {
           _pendingPatients.remove(newPatient.id);
           _patients.removeWhere((p) => p.id == newPatient.id);
+          _allMemoryPatients.removeWhere((p) => p.id == newPatient.id);
           changeNotifier.value++;
         }
       },

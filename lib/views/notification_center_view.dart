@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/clinical_notification.dart';
+import '../services/workspace_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
 
@@ -25,7 +26,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ClinicalNotificationRepository(),
+      listenable: Listenable.merge([ClinicalNotificationRepository(), WorkspaceStore.instance]),
       builder: (context, child) {
         final repo = ClinicalNotificationRepository();
         final allNotifications = repo.notifications;
