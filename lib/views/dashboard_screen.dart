@@ -10,6 +10,7 @@ import '../services/workspace_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
+import '../widgets/skeleton_loader.dart';
 import 'new_patient_modal.dart';
 import 'patient_profile_view.dart';
 
@@ -660,14 +661,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           SizedBox(height: 16),
 
-          _allPatients.isEmpty
-              ? Padding(
+          ValueListenableBuilder<bool>(
+            valueListenable: PatientRepository.isLoading,
+            builder: (context, isLoading, _) {
+              if (isLoading) {
+                return _buildSkeletonGrid();
+              }
+              if (_allPatients.isEmpty) {
+                return Padding(
                   padding: EdgeInsets.all(32),
-                  child: Center(child: Text('No patient records in database.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14))),
-                )
-              : _buildPatientGrid(),
+                  child: Center(
+                    child: Text(
+                      'No patient records in database.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    ),
+                  ),
+                );
+              }
+              return _buildPatientGrid();
+            },
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossCount = math.max(1, (constraints.maxWidth / 420).floor());
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            mainAxisExtent: 220,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: 6,
+          itemBuilder: (context, index) => const SkeletonPatientCard(),
+        );
+      },
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
+import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart';
 import 'package:ophthalmology_clinical_record_system/views/patients_screen.dart';
 import 'package:ophthalmology_clinical_record_system/views/teams_view.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/skeleton_loader.dart';
@@ -96,6 +97,27 @@ void main() {
       expect(find.byType(SkeletonPatientCard), findsWidgets);
 
       // Now set isLoading to false and verify transition
+      PatientRepository.isLoading.value = false;
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SkeletonPatientCard), findsNothing);
+    });
+  });
+
+  group('DashboardScreen Skeleton Integration', () {
+    testWidgets('Displays skeleton cards when PatientRepository.isLoading is true', (tester) async {
+      PatientRepository.isLoading.value = true;
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: DashboardScreen(),
+          ),
+        ),
+      );
+
+      expect(find.byType(SkeletonPatientCard), findsWidgets);
+
       PatientRepository.isLoading.value = false;
       await tester.pumpAndSettle();
 
