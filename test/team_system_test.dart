@@ -379,6 +379,7 @@ void main() {
       expect(find.text('Reject'), findsOneWidget);
 
       // Tap Approve button
+      await tester.ensureVisible(find.text('Approve'));
       await tester.tap(find.text('Approve'));
       await tester.pumpAndSettle();
 

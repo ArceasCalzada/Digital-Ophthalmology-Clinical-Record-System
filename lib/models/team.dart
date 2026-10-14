@@ -141,6 +141,7 @@ class Team {
   final int patientCount;
   final int encounterCount;
   final int prescriptionCount;
+  final bool isArchived;
 
   const Team({
     required this.id,
@@ -152,6 +153,7 @@ class Team {
     this.patientCount = 0,
     this.encounterCount = 0,
     this.prescriptionCount = 0,
+    this.isArchived = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -164,6 +166,7 @@ class Team {
         'patientCount': patientCount,
         'encounterCount': encounterCount,
         'prescriptionCount': prescriptionCount,
+        'isArchived': isArchived,
       };
 
   factory Team.fromJson(Map<String, dynamic> json) {
@@ -177,6 +180,7 @@ class Team {
       patientCount: (json['patientCount'] as num?)?.toInt() ?? 0,
       encounterCount: (json['encounterCount'] as num?)?.toInt() ?? 0,
       prescriptionCount: (json['prescriptionCount'] as num?)?.toInt() ?? 0,
+      isArchived: json['isArchived'] as bool? ?? false,
     );
   }
 
@@ -190,6 +194,7 @@ class Team {
     int? patientCount,
     int? encounterCount,
     int? prescriptionCount,
+    bool? isArchived,
   }) {
     return Team(
       id: id ?? this.id,
@@ -201,6 +206,7 @@ class Team {
       patientCount: patientCount ?? this.patientCount,
       encounterCount: encounterCount ?? this.encounterCount,
       prescriptionCount: prescriptionCount ?? this.prescriptionCount,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 }

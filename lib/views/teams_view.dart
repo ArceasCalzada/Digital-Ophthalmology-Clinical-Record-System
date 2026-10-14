@@ -41,6 +41,8 @@ class TeamsView extends StatelessWidget {
                 _ActiveTeamMembersCard(teamService: teamService, team: activeTeam),
                 SizedBox(height: 20),
               ],
+              _ArchivedTeamsCard(teamService: teamService),
+              SizedBox(height: 20),
               const _PermissionsMatrixCard(),
             ],
           ),
@@ -75,12 +77,15 @@ class _Card extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 ?trailing,
@@ -163,63 +168,138 @@ class _TeamsListCard extends StatelessWidget {
                         : AppTheme.borderColor,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.groups_rounded, size: 22, color: AppTheme.primaryBlue),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            team.name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 4),
-                          Wrap(
-                            spacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 480;
+
+                    final teamInfo = Row(
+                      children: [
+                        Icon(Icons.groups_rounded, size: 22, color: AppTheme.primaryBlue),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Invite Code: ${team.inviteCode}',
-                                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                              ),
-                              if (team.id == active?.id)
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFF059669).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'Active Workspace',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF059669),
-                                    ),
-                                  ),
+                                team.name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 4),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  if (team.location.isNotEmpty)
+                                    Text(
+                                      team.location,
+                                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                    ),
+                                  Text(
+                                    'Invite Code: ${team.inviteCode}',
+                                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                  ),
+                                  if (team.id == active?.id)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF059669).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'Active Workspace',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF059669),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    if (team.id != active?.id)
-                      ElevatedButton(
-                        onPressed: () => teamService.switchTo(team.id),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
-                        child: Text('Switch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                  ],
+                      ],
+                    );
+
+                    final actionButtons = Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (team.id != active?.id)
+                          ElevatedButton(
+                            onPressed: () => teamService.switchTo(team.id),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            ),
+                            child: Text('Switch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        OutlinedButton.icon(
+                          icon: Icon(Icons.edit_outlined, size: 14, color: AppTheme.primaryBlue),
+                          label: Text('Edit', style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
+                          ),
+                          onPressed: () => _showEditTeamDialog(context, team),
+                        ),
+                        OutlinedButton.icon(
+                          icon: Icon(
+                            Icons.archive_outlined,
+                            size: 14,
+                            color: team.id == active?.id ? AppTheme.textSecondary.withValues(alpha: 0.6) : Colors.red,
+                          ),
+                          label: Text(
+                            'Archive',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: team.id == active?.id ? AppTheme.textSecondary.withValues(alpha: 0.6) : Colors.red,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            side: BorderSide(
+                              color: team.id == active?.id
+                                  ? AppTheme.borderColor
+                                  : Colors.red.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          onPressed: () => _handleArchiveClick(context, team, active?.id),
+                        ),
+                      ],
+                    );
+
+                    if (isWide) {
+                      return Row(
+                        children: [
+                          Expanded(child: teamInfo),
+                          SizedBox(width: 14),
+                          actionButtons,
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          teamInfo,
+                          SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: actionButtons,
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ),
             ),
@@ -399,6 +479,404 @@ class _TeamsListCard extends StatelessWidget {
               }
             },
             child: Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTeamDialog(BuildContext context, Team team) {
+    final nameController = TextEditingController(text: team.name);
+    final locationController = TextEditingController(text: team.location);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit Team Details'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Modify the clinic workspace name and physical address below. Changes will be saved across the system.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Team / Clinic Name',
+                  hintText: 'e.g. Metro Eye Center',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Team Name is required';
+                  }
+                  return null;
+                },
+                autofocus: true,
+              ),
+              SizedBox(height: 14),
+              TextFormField(
+                controller: locationController,
+                decoration: InputDecoration(
+                  labelText: 'Clinic Location',
+                  hintText: 'e.g. Suite 402, Davao City',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final newName = nameController.text.trim();
+              final newLocation = locationController.text.trim();
+              Navigator.pop(ctx);
+              try {
+                await teamService.updateTeam(team.id, name: newName, location: newLocation);
+                if (context.mounted) {
+                  showActionSuccessModal(
+                    context: context,
+                    title: 'Team Updated Successfully',
+                    message: 'Team "$newName" has been updated.',
+                    icon: Icons.check_circle_rounded,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to update team: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleArchiveClick(BuildContext context, Team team, String? activeId) {
+    if (team.id == activeId) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Cannot Archive Active Workspace'),
+          content: Text(
+            'Clinic "${team.name}" is currently your active workspace. Please switch to another workspace before archiving it.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Archive Team Workspace?'),
+        content: Text(
+          'Are you sure you want to archive "${team.name}"? Inactive clinic workspaces are moved to the "Archived Teams" section. All patient, visit, and clinical history records are safely preserved.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await teamService.archiveTeam(team.id);
+                if (context.mounted) {
+                  showActionSuccessModal(
+                    context: context,
+                    title: 'Team Archived',
+                    message: 'Team "${team.name}" has been moved to Archived Teams.',
+                    icon: Icons.archive_rounded,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to archive team: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Archive', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchivedTeamsCard extends StatefulWidget {
+  final TeamService teamService;
+  const _ArchivedTeamsCard({required this.teamService});
+
+  @override
+  State<_ArchivedTeamsCard> createState() => _ArchivedTeamsCardState();
+}
+
+class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final archived = widget.teamService.archivedTeams;
+
+    return Card(
+      color: AppTheme.cardBg,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.inventory_2_outlined, size: 20, color: AppTheme.textSecondary),
+                      SizedBox(width: 8),
+                      Text(
+                        'Archived Teams (${archived.length})',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        _expanded ? 'Hide' : 'Show',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                      Icon(
+                        _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_expanded) ...[
+              SizedBox(height: 16),
+              Text(
+                'Inactive or archived clinic workspaces. Restoring an archived workspace brings it back to your active teams without altering clinical history or records.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              SizedBox(height: 12),
+              if (archived.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.borderColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: AppTheme.textSecondary, size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'No archived teams. Inactive clinic workspaces you archive will appear here.',
+                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                for (final team in archived)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lightBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderColor),
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 700;
+
+                          final teamInfo = Row(
+                            children: [
+                              Icon(Icons.archive_outlined, size: 22, color: AppTheme.textSecondary),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 8,
+                                      children: [
+                                        Text(
+                                          team.name,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.textPrimary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            'Archived',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        if (team.location.isNotEmpty)
+                                          Text(
+                                            team.location,
+                                            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                          ),
+                                        Text(
+                                          'Invite Code: ${team.inviteCode}',
+                                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+
+                          final restoreButton = ElevatedButton.icon(
+                            icon: Icon(Icons.unarchive_rounded, size: 16, color: Colors.white),
+                            label: Text('Restore', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            onPressed: () => _confirmRestoreTeam(context, team),
+                          );
+
+                          if (isWide) {
+                            return Row(
+                              children: [
+                                Expanded(child: teamInfo),
+                                SizedBox(width: 14),
+                                restoreButton,
+                              ],
+                            );
+                          } else {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                teamInfo,
+                                SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: restoreButton,
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmRestoreTeam(BuildContext context, Team team) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Restore Team Workspace?'),
+        content: Text(
+          'Do you want to restore "${team.name}" back to your active teams list?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await widget.teamService.restoreTeam(team.id);
+                if (context.mounted) {
+                  showActionSuccessModal(
+                    context: context,
+                    title: 'Team Restored Successfully',
+                    message: 'Team "${team.name}" has been restored to your active teams.',
+                    icon: Icons.unarchive_rounded,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to restore team: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Restore Workspace'),
           ),
         ],
       ),
@@ -946,7 +1424,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 800;
+          final isWide = constraints.maxWidth > 550;
 
           final memberDetails = Row(
             children: [

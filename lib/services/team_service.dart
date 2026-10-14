@@ -31,7 +31,9 @@ class TeamService extends ChangeNotifier {
   StreamSubscription? _membersSub;
 
   bool get loading => _loading;
-  List<Team> get teams => List.unmodifiable(_teams);
+  List<Team> get teams => List.unmodifiable(_teams.where((t) => !t.isArchived));
+  List<Team> get archivedTeams => List.unmodifiable(_teams.where((t) => t.isArchived));
+  List<Team> get allTeams => List.unmodifiable(_teams);
   Team? get activeTeam => _activeTeam;
   String? get activeWorkspaceId => _activeTeam?.id;
   TeamRole get activeRole => _activeRole;
@@ -176,8 +178,11 @@ class TeamService extends ChangeNotifier {
     // Restore active team preference
     final prefs = await SharedPreferences.getInstance();
     final savedActiveId = prefs.getString(_localKey(uid));
-    if (savedActiveId != null && _teams.any((t) => t.id == savedActiveId)) {
-      _activeTeam = _teams.firstWhere((t) => t.id == savedActiveId);
+    final nonArchived = _teams.where((t) => !t.isArchived).toList();
+    if (savedActiveId != null && nonArchived.any((t) => t.id == savedActiveId)) {
+      _activeTeam = nonArchived.firstWhere((t) => t.id == savedActiveId);
+    } else if (nonArchived.isNotEmpty) {
+      _activeTeam = nonArchived.first;
     } else if (_teams.isNotEmpty) {
       _activeTeam = _teams.first;
     }
@@ -563,6 +568,98 @@ class TeamService extends ChangeNotifier {
     PatientRepository.connect(_activeTeam?.id);
     CalendarEventRepository().connect(_activeTeam?.id);
     notifyListeners();
+  }
+
+  /// Updates team details (name, location) in Firestore and memory.
+  Future<Team> updateTeam(String teamId, {required String name, String? location}) async {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      throw const FormatException('Team Name cannot be empty');
+    }
+
+    final idx = _teams.indexWhere((t) => t.id == teamId);
+    if (idx == -1) {
+      throw StateError('Team not found');
+    }
+
+    final existing = _teams[idx];
+    final updated = existing.copyWith(
+      name: cleanName,
+      location: location?.trim() ?? existing.location,
+    );
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      final updateData = <String, dynamic>{
+        'name': updated.name,
+        'location': updated.location,
+      };
+      await firestore.collection('teams').doc(teamId).update(updateData);
+    }
+
+    _teams[idx] = updated;
+    if (_activeTeam?.id == teamId) {
+      _activeTeam = updated;
+      WorkspaceStore.instance.setActiveWorkspace(teamId, workspace: updated);
+    }
+    notifyListeners();
+    return updated;
+  }
+
+  /// Convenience method to update team name.
+  Future<void> updateTeamName(String teamId, String newName) async {
+    await updateTeam(teamId, name: newName);
+  }
+
+  /// Soft deletes / archives a team workspace (isArchived: true).
+  /// Prevents archiving the active workspace without switching first.
+  Future<void> archiveTeam(String teamId) async {
+    if (_activeTeam?.id == teamId) {
+      throw StateError('Cannot archive active workspace. Switch to another workspace first.');
+    }
+
+    final idx = _teams.indexWhere((t) => t.id == teamId);
+    if (idx == -1) {
+      throw StateError('Team not found');
+    }
+
+    final existing = _teams[idx];
+    final updated = existing.copyWith(isArchived: true);
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      await firestore.collection('teams').doc(teamId).update({'isArchived': true});
+    }
+
+    _teams[idx] = updated;
+    notifyListeners();
+  }
+
+  /// Restores / unarchives a previously archived workspace (isArchived: false).
+  Future<void> restoreTeam(String teamId) async {
+    final idx = _teams.indexWhere((t) => t.id == teamId);
+    if (idx == -1) {
+      throw StateError('Team not found');
+    }
+
+    final existing = _teams[idx];
+    final updated = existing.copyWith(isArchived: false);
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      await firestore.collection('teams').doc(teamId).update({'isArchived': false});
+    }
+
+    _teams[idx] = updated;
+    notifyListeners();
+  }
+
+  /// Helper to check if current user has owner/admin privileges to manage a team.
+  bool canManageTeam(Team team) {
+    if (_uid == null) return true;
+    if (team.ownerId.isEmpty || team.ownerId == _uid) return true;
+    if (_activeRole == TeamRole.owner) return true;
+    return false;
   }
 
   /// Approves a pending user request, assigning them a team role and updating Firestore status.
