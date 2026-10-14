@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:perfect_freehand/perfect_freehand.dart';
 import '../../models/drawing_stroke.dart';
 import '../../models/eye_exam.dart';
@@ -67,6 +68,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   final double _cdRatio = 0.50;
 
   List<VectorStroke> _strokes = [];
+  final List<VectorStroke> _redoStack = [];
   List<Offset> _currentPoints = [];
   bool _showSavedIndicator = false;
 
@@ -88,6 +90,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
         } else {
           _strokes = [];
         }
+        _redoStack.clear();
       });
     }
   }
@@ -134,6 +137,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
       );
       setState(() {
         _strokes.add(symbolStroke);
+        _redoStack.clear();
         _showStampDrawer = false;
       });
       _triggerAutoSave();
@@ -169,6 +173,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
       setState(() {
         _strokes.add(newStroke);
+        _redoStack.clear();
         _currentPoints = [];
       });
       _triggerAutoSave();
@@ -178,7 +183,16 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   void _undoLastStroke() {
     if (_strokes.isNotEmpty) {
       setState(() {
-        _strokes.removeLast();
+        _redoStack.add(_strokes.removeLast());
+      });
+      _triggerAutoSave();
+    }
+  }
+
+  void _redoLastStroke() {
+    if (_redoStack.isNotEmpty) {
+      setState(() {
+        _strokes.add(_redoStack.removeLast());
       });
       _triggerAutoSave();
     }
@@ -187,6 +201,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
   void _clearCanvas() {
     setState(() {
       _strokes.clear();
+      _redoStack.clear();
       _currentPoints.clear();
     });
     _triggerAutoSave();
@@ -241,13 +256,47 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderColor),
-      ),
-      padding: EdgeInsets.all(12),
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): _undoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyY, meta: true): _redoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): _redoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true): _redoLastStroke,
+        const SingleActivator(LogicalKeyboardKey.keyP): () => setState(() {
+          _activeTool = DrawingTool.pen;
+          _showColorDrawer = false;
+          _showStampDrawer = false;
+        }),
+        const SingleActivator(LogicalKeyboardKey.keyE): () => setState(() {
+          _activeTool = DrawingTool.eraser;
+          _showColorDrawer = false;
+          _showStampDrawer = false;
+        }),
+        const SingleActivator(LogicalKeyboardKey.keyS): () => setState(() {
+          _activeTool = DrawingTool.symbol;
+          _showStampDrawer = !_showStampDrawer;
+          _showColorDrawer = false;
+        }),
+        const SingleActivator(LogicalKeyboardKey.keyC): () => setState(() {
+          _showColorDrawer = !_showColorDrawer;
+          _showStampDrawer = false;
+        }),
+        const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
+          _showColorDrawer = false;
+          _showStampDrawer = false;
+        }),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.borderColor),
+          ),
+          padding: EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -363,6 +412,8 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
           ),
         ],
       ),
+    ),
+    ),
     );
   }
 
@@ -475,7 +526,18 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
               color: _strokes.isNotEmpty ? Colors.white : Colors.white24,
               size: 20,
             ),
-            tooltip: 'Undo Stroke',
+            tooltip: 'Undo Stroke (Ctrl+Z)',
+          ),
+
+          // Redo Button
+          IconButton(
+            onPressed: _redoStack.isEmpty ? null : _redoLastStroke,
+            icon: Icon(
+              Icons.redo,
+              color: _redoStack.isNotEmpty ? Colors.white : Colors.white24,
+              size: 20,
+            ),
+            tooltip: 'Redo Stroke (Ctrl+Y)',
           ),
 
           // Clear Button
@@ -628,23 +690,28 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
         ),
         child: ClipRRect(
           borderRadius: isPlain ? BorderRadius.circular(13) : BorderRadius.circular(180),
-          child: GestureDetector(
-            onPanStart: (d) => _onPanStart(d, Size(canvasDimension, canvasDimension)),
-            onPanUpdate: (d) => _onPanUpdate(d, Size(canvasDimension, canvasDimension)),
-            onPanEnd: _onPanEnd,
-            child: CustomPaint(
-              size: Size(canvasDimension, canvasDimension),
-              painter: AnatomicalEyePainter(
-                eye: widget.eye,
-                diagramType: widget.diagramType,
-                cdRatio: _cdRatio,
-                strokes: _strokes,
-                currentPoints: _currentPoints,
-                currentColor: _selectedColor,
-                currentBrushSize: _brushSize,
-                currentTool: _activeTool,
-                priorStrokes: _showGhostOverlay ? widget.priorDrawingData?.strokes : null,
-                ghostOpacity: _ghostOpacity,
+          child: MouseRegion(
+            cursor: _activeTool == DrawingTool.eraser
+                ? SystemMouseCursors.cell
+                : SystemMouseCursors.precise,
+            child: GestureDetector(
+              onPanStart: (d) => _onPanStart(d, Size(canvasDimension, canvasDimension)),
+              onPanUpdate: (d) => _onPanUpdate(d, Size(canvasDimension, canvasDimension)),
+              onPanEnd: _onPanEnd,
+              child: CustomPaint(
+                size: Size(canvasDimension, canvasDimension),
+                painter: AnatomicalEyePainter(
+                  eye: widget.eye,
+                  diagramType: widget.diagramType,
+                  cdRatio: _cdRatio,
+                  strokes: _strokes,
+                  currentPoints: _currentPoints,
+                  currentColor: _selectedColor,
+                  currentBrushSize: _brushSize,
+                  currentTool: _activeTool,
+                  priorStrokes: _showGhostOverlay ? widget.priorDrawingData?.strokes : null,
+                  ghostOpacity: _ghostOpacity,
+                ),
               ),
             ),
           ),

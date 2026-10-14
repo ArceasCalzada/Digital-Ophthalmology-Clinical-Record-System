@@ -253,6 +253,15 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
         const SingleActivator(LogicalKeyboardKey.keyP): () => setState(() => _activeTool = DrawingTool.pen),
         const SingleActivator(LogicalKeyboardKey.keyH): () => setState(() => _activeTool = DrawingTool.highlighter),
         const SingleActivator(LogicalKeyboardKey.keyE): () => setState(() => _activeTool = DrawingTool.eraser),
+        const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
+          _showColorTray = false;
+          _showHighlighterColorTray = false;
+          _showSizeTray = false;
+        }),
+        if (widget.onSave != null)
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): () => widget.onSave?.call(),
+        if (widget.onSave != null)
+          const SingleActivator(LogicalKeyboardKey.keyS, meta: true): () => widget.onSave?.call(),
       },
       child: Focus(
         autofocus: true,
@@ -312,21 +321,26 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
 
                             // LAYER 2: Tablet Vector Inking Surface (Smooth stylus / touch gesture capture)
                             Positioned.fill(
-                              child: GestureDetector(
-                                key: _canvasKey,
-                                onPanStart: _onPanStart,
-                                onPanUpdate: _onPanUpdate,
-                                onPanEnd: _onPanEnd,
-                                child: CustomPaint(
-                                  size: Size(sheetWidth, sheetHeight),
-                                  painter: PaperSheetInkingPainter(
-                                    strokes: _strokes,
-                                    currentPoints: _currentPoints,
-                                    currentColor: _activeTool == DrawingTool.highlighter
-                                        ? _selectedHighlighterColor.withValues(alpha: 0.35)
-                                        : _selectedColor,
-                                    currentSize: _activeTool == DrawingTool.highlighter ? 16.0 : _selectedSize,
-                                    currentTool: _activeTool,
+                              child: MouseRegion(
+                                cursor: _activeTool == DrawingTool.eraser
+                                    ? SystemMouseCursors.cell
+                                    : SystemMouseCursors.precise,
+                                child: GestureDetector(
+                                  key: _canvasKey,
+                                  onPanStart: _onPanStart,
+                                  onPanUpdate: _onPanUpdate,
+                                  onPanEnd: _onPanEnd,
+                                  child: CustomPaint(
+                                    size: Size(sheetWidth, sheetHeight),
+                                    painter: PaperSheetInkingPainter(
+                                      strokes: _strokes,
+                                      currentPoints: _currentPoints,
+                                      currentColor: _activeTool == DrawingTool.highlighter
+                                          ? _selectedHighlighterColor.withValues(alpha: 0.35)
+                                          : _selectedColor,
+                                      currentSize: _activeTool == DrawingTool.highlighter ? 16.0 : _selectedSize,
+                                      currentTool: _activeTool,
+                                    ),
                                   ),
                                 ),
                               ),
