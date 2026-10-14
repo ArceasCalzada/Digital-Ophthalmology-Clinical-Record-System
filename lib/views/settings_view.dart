@@ -39,6 +39,9 @@ class _SettingsViewState extends State<SettingsView> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
   bool _autoLockEnabled = true;
   String _autoLockDuration = '15 minutes';
   bool _twoFactorEnabled = false;
@@ -818,16 +821,35 @@ class _SettingsViewState extends State<SettingsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPasswordField('Current Password', _currentPasswordController),
+              _buildPasswordField(
+                'Current Password',
+                _currentPasswordController,
+                obscureText: !_showCurrentPassword,
+                onToggleVisibility: () => setState(() => _showCurrentPassword = !_showCurrentPassword),
+                visibilityKey: const Key('toggle_current_password_visibility'),
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: _buildPasswordField('New Password', _newPasswordController, onChanged: (_) => setState(() {})),
+                    child: _buildPasswordField(
+                      'New Password',
+                      _newPasswordController,
+                      obscureText: !_showNewPassword,
+                      onToggleVisibility: () => setState(() => _showNewPassword = !_showNewPassword),
+                      visibilityKey: const Key('toggle_new_password_visibility'),
+                      onChanged: (_) => setState(() {}),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildPasswordField('Confirm New Password', _confirmPasswordController),
+                    child: _buildPasswordField(
+                      'Confirm New Password',
+                      _confirmPasswordController,
+                      obscureText: !_showConfirmPassword,
+                      onToggleVisibility: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                      visibilityKey: const Key('toggle_confirm_password_visibility'),
+                    ),
                   ),
                 ],
               ),
@@ -1067,6 +1089,9 @@ class _SettingsViewState extends State<SettingsView> {
       _currentPasswordController.clear();
       _newPasswordController.clear();
       _confirmPasswordController.clear();
+      _showCurrentPassword = false;
+      _showNewPassword = false;
+      _showConfirmPassword = false;
       if (mounted) {
         showActionSuccessModal(
           context: context,
@@ -2004,20 +2029,46 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildPasswordField(String label, TextEditingController controller, {ValueChanged<String>? onChanged}) {
+  Widget _buildPasswordField(
+    String label,
+    TextEditingController controller, {
+    bool obscureText = true,
+    VoidCallback? onToggleVisibility,
+    Key? visibilityKey,
+    ValueChanged<String>? onChanged,
+  }) {
+    final isMasked = obscureText;
+    final toggleTooltip = isMasked ? 'Show password' : 'Hide password';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
-        SizedBox(height: 6),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
-          obscureText: true,
+          obscureText: obscureText,
           onChanged: onChanged,
           style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             prefixIcon: Icon(Icons.lock_outline, size: 18, color: AppTheme.primaryBlue),
-            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            suffixIcon: onToggleVisibility != null
+                ? Semantics(
+                    label: toggleTooltip,
+                    button: true,
+                    child: IconButton(
+                      key: visibilityKey,
+                      icon: Icon(
+                        isMasked ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: AppTheme.textSecondary,
+                      ),
+                      tooltip: toggleTooltip,
+                      onPressed: onToggleVisibility,
+                    ),
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],

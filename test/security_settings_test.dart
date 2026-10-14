@@ -323,6 +323,81 @@ void main() {
       expect(find.text('New password and confirmation do not match.'), findsOneWidget);
     });
 
+    testWidgets('Password visibility toggle reveals and masks password fields independently', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1600, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SettingsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+
+      final toggleCurrent = find.byKey(const Key('toggle_current_password_visibility'));
+      final toggleNew = find.byKey(const Key('toggle_new_password_visibility'));
+      final toggleConfirm = find.byKey(const Key('toggle_confirm_password_visibility'));
+
+      expect(toggleCurrent, findsOneWidget);
+      expect(toggleNew, findsOneWidget);
+      expect(toggleConfirm, findsOneWidget);
+
+      final textFields = find.byType(TextField);
+      expect(tester.widget<TextField>(textFields.at(0)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(1)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(2)).obscureText, isTrue);
+
+      // Verify eye-off icons initially
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(3));
+      expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+
+      // Tap current password toggle -> reveals plain text
+      await tester.tap(toggleCurrent);
+      await tester.pump();
+
+      expect(tester.widget<TextField>(textFields.at(0)).obscureText, isFalse);
+      expect(tester.widget<TextField>(textFields.at(1)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(2)).obscureText, isTrue);
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
+
+      // Tap current password toggle second time -> re-masks input
+      await tester.tap(toggleCurrent);
+      await tester.pump();
+
+      expect(tester.widget<TextField>(textFields.at(0)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(1)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(2)).obscureText, isTrue);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(3));
+      expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+
+      // Tap new password toggle
+      await tester.tap(toggleNew);
+      await tester.pump();
+
+      expect(tester.widget<TextField>(textFields.at(0)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(1)).obscureText, isFalse);
+      expect(tester.widget<TextField>(textFields.at(2)).obscureText, isTrue);
+
+      // Tap confirm password toggle
+      await tester.tap(toggleConfirm);
+      await tester.pump();
+
+      expect(tester.widget<TextField>(textFields.at(0)).obscureText, isTrue);
+      expect(tester.widget<TextField>(textFields.at(1)).obscureText, isFalse);
+      expect(tester.widget<TextField>(textFields.at(2)).obscureText, isFalse);
+    });
+
     testWidgets('Toggling 2FA opens SMS phone number enrollment modal', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1600, 2400);
       tester.view.devicePixelRatio = 1.0;
