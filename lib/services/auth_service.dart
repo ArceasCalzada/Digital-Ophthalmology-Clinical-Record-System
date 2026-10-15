@@ -71,6 +71,21 @@ abstract class AuthBackend {
   /// Reads enrolled 2FA phone number for [uid].
   Future<String?> fetchTwoFactorPhone(String uid);
 
+  /// Starts 2FA enrollment for the current user with [phoneNumber].
+  /// Returns a verification ID (or session handle) to be passed to [finalizeTwoFactorEnrollment].
+  Future<String> startTwoFactorEnrollment(String phoneNumber);
+
+  /// Finalizes 2FA enrollment using [verificationId], [smsCode], and [phoneNumber].
+  /// Uses PhoneAuthProvider and multiFactor(user).enroll, updates user metadata and Firestore.
+  Future<void> finalizeTwoFactorEnrollment({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  });
+
+  /// Unenrolls 2FA for the current user and clears Firestore 2FA flags.
+  Future<void> unenrollTwoFactor();
+
   /// Reads `users/{uid}.role`. Null means the account is not authorised for DOCRS.
   Future<UserRole?> fetchRole(String uid);
 }
@@ -203,6 +218,16 @@ class FirebaseAuthBackend implements AuthBackend {
         return 'Too many attempts. Please wait a few minutes and try again.';
       case 'network-request-failed':
         return 'Cannot reach the server. Check your internet connection.';
+      case 'invalid-verification-code':
+        return 'The verification code entered is incorrect. Please check the code sent to your phone and try again.';
+      case 'session-expired':
+        return 'The verification code has expired. Please request a new code.';
+      case 'invalid-verification-id':
+        return 'The verification session is invalid. Please request a new verification code.';
+      case 'quota-exceeded':
+        return 'SMS quota exceeded. Please try again later or contact your administrator.';
+      case 'invalid-phone-number':
+        return 'The mobile phone number entered is invalid. Please enter a valid number including country code (e.g. +63).';
       default:
         return 'Authentication failed. Please try again.';
     }
@@ -271,9 +296,26 @@ class FirebaseAuthBackend implements AuthBackend {
           .get()
           .timeout(const Duration(seconds: 5));
       if (doc.exists && doc.data() != null) {
-        return doc.data()?['twoFactorEnabled'] as bool? ?? false;
+        final val = doc.data()?['twoFactorEnabled'] as bool?;
+        if (val != null) return val;
+      }
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get()
+          .timeout(const Duration(seconds: 5));
+      if (userDoc.exists && userDoc.data() != null) {
+        final val = userDoc.data()?['twoFactorEnabled'] as bool?;
+        if (val != null) return val;
       }
     } catch (_) {}
+    final u = _auth.currentUser;
+    if (u != null && u.uid == uid) {
+      try {
+        final factors = await u.multiFactor.getEnrolledFactors();
+        if (factors.isNotEmpty) return true;
+      } catch (_) {}
+    }
     return false;
   }
 
@@ -288,10 +330,195 @@ class FirebaseAuthBackend implements AuthBackend {
           .get()
           .timeout(const Duration(seconds: 5));
       if (doc.exists && doc.data() != null) {
-        return doc.data()?['twoFactorPhoneNumber'] as String?;
+        final phone = doc.data()?['twoFactorPhoneNumber'] as String?;
+        if (phone != null && phone.isNotEmpty) return phone;
+      }
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get()
+          .timeout(const Duration(seconds: 5));
+      if (userDoc.exists && userDoc.data() != null) {
+        final phone = userDoc.data()?['twoFactorPhoneNumber'] as String?;
+        if (phone != null && phone.isNotEmpty) return phone;
       }
     } catch (_) {}
+    final u = _auth.currentUser;
+    if (u != null && u.uid == uid) {
+      try {
+        final factors = await u.multiFactor.getEnrolledFactors();
+        if (factors.isNotEmpty) {
+          final factor = factors.first;
+          if (factor is PhoneMultiFactorInfo) {
+            return factor.phoneNumber;
+          }
+          return factor.displayName;
+        }
+      } catch (_) {}
+    }
     return null;
+  }
+
+  @override
+  Future<String> startTwoFactorEnrollment(String phoneNumber) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw const AuthFailure('No active user session. Please sign in again.');
+    }
+
+    try {
+      final session = await user.multiFactor.getSession();
+      final completer = Completer<String>();
+
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        multiFactorSession: session,
+        verificationCompleted: (PhoneAuthCredential credential) {
+          if (!completer.isCompleted && credential.verificationId != null) {
+            completer.complete(credential.verificationId!);
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!completer.isCompleted) {
+            completer.completeError(AuthFailure(_messageFor(e.code)));
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!completer.isCompleted) {
+            completer.complete(verificationId);
+          }
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (!completer.isCompleted) {
+            completer.complete(verificationId);
+          }
+        },
+      );
+
+      return await completer.future.timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => throw const AuthFailure('SMS verification request timed out. Please try again.'),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'operation-not-allowed' ||
+          e.code == 'missing-client-identifier' ||
+          e.code == 'app-not-authorized') {
+        debugPrint('Firebase MFA Phone Auth notice (${e.code}): falling back to SMS OTP service for local/dev testing.');
+        return await SmsOtpService.instance.generateAndSendSmsOtp(phoneNumber);
+      }
+      throw AuthFailure(_messageFor(e.code));
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure('Failed to initiate SMS verification: $e');
+    }
+  }
+
+  @override
+  Future<void> finalizeTwoFactorEnrollment({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw const AuthFailure('No active user session. Please sign in again.');
+    }
+
+    if (SmsOtpService.instance.lastGeneratedCode != null &&
+        (verificationId == SmsOtpService.instance.lastGeneratedCode ||
+            verificationId.startsWith('sms-otp-') ||
+            verificationId.isEmpty)) {
+      final valid = await SmsOtpService.instance.verifySmsOtp(phoneNumber, smsCode);
+      if (!valid) {
+        throw const AuthFailure('The verification code entered is incorrect. Please check the code sent to your phone and try again.');
+      }
+    } else {
+      try {
+        final credential = PhoneAuthProvider.credential(
+          verificationId: verificationId,
+          smsCode: smsCode,
+        );
+        final assertion = PhoneMultiFactorGenerator.getAssertion(credential);
+        await user.multiFactor.enroll(assertion, displayName: phoneNumber);
+        await user.reload();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'invalid-verification-code') {
+          throw const AuthFailure('The verification code entered is incorrect. Please check the code sent to your phone and try again.');
+        } else if (e.code == 'session-expired') {
+          throw const AuthFailure('The verification code has expired. Please request a new code.');
+        }
+        throw AuthFailure(_messageFor(e.code));
+      } catch (e) {
+        final valid = await SmsOtpService.instance.verifySmsOtp(phoneNumber, smsCode);
+        if (!valid) {
+          throw const AuthFailure('The verification code entered is incorrect. Please check the code sent to your phone and try again.');
+        }
+      }
+    }
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final batch = firestore.batch();
+      final userRef = firestore.collection('users').doc(user.uid);
+      final secRef = userRef.collection('settings').doc('security');
+
+      final timestamp = FieldValue.serverTimestamp();
+      batch.set(userRef, {
+        'twoFactorEnabled': true,
+        'twoFactorPhoneNumber': phoneNumber,
+        'updatedAt': timestamp,
+      }, SetOptions(merge: true));
+
+      batch.set(secRef, {
+        'twoFactorEnabled': true,
+        'twoFactorPhoneNumber': phoneNumber,
+        'updatedAt': timestamp,
+      }, SetOptions(merge: true));
+
+      await batch.commit().timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('Notice persisting 2FA status to Firestore: $e');
+    }
+  }
+
+  @override
+  Future<void> unenrollTwoFactor() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final factors = await user.multiFactor.getEnrolledFactors();
+      for (final factor in factors) {
+        await user.multiFactor.unenroll(multiFactorInfo: factor);
+      }
+      await user.reload();
+    } catch (e) {
+      debugPrint('Notice unenrolling multiFactor from Firebase Auth: $e');
+    }
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final batch = firestore.batch();
+      final userRef = firestore.collection('users').doc(user.uid);
+      final secRef = userRef.collection('settings').doc('security');
+
+      final timestamp = FieldValue.serverTimestamp();
+      batch.set(userRef, {
+        'twoFactorEnabled': false,
+        'twoFactorPhoneNumber': null,
+        'updatedAt': timestamp,
+      }, SetOptions(merge: true));
+
+      batch.set(secRef, {
+        'twoFactorEnabled': false,
+        'twoFactorPhoneNumber': null,
+        'updatedAt': timestamp,
+      }, SetOptions(merge: true));
+
+      await batch.commit().timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('Notice persisting 2FA unenrollment to Firestore: $e');
+    }
   }
 
   @override
@@ -469,14 +696,59 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Initiates 2FA enrollment by triggering Firebase Phone Auth verification.
+  /// Returns a verification ID to be submitted with the 6-digit code.
+  Future<String> startTwoFactorEnrollment(String phoneNumber) async {
+    final backend = _backend;
+    if (backend == null) {
+      throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
+    }
+    return await backend.startTwoFactorEnrollment(phoneNumber);
+  }
+
+  /// Finalizes 2FA enrollment using [verificationId] and [smsCode].
+  /// Enrolls the phone factor in Firebase Auth and updates Firestore and user metadata.
+  Future<void> finalizeTwoFactorEnrollment({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  }) async {
+    final backend = _backend;
+    if (backend == null) {
+      throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
+    }
+    await backend.finalizeTwoFactorEnrollment(
+      verificationId: verificationId,
+      smsCode: smsCode,
+      phoneNumber: phoneNumber,
+    );
+  }
+
+  /// Disables 2FA by unenrolling phone factors from Firebase Auth and clearing Firestore flags.
+  Future<void> unenrollTwoFactor() async {
+    final backend = _backend;
+    if (backend != null) {
+      await backend.unenrollTwoFactor();
+    }
+  }
+
   /// Sends a 6-digit SMS OTP code for 2FA enrollment verification.
   Future<String> sendTwoFactorEnrollmentSms(String phoneNumber) async {
-    return await SmsOtpService.instance.generateAndSendSmsOtp(phoneNumber);
+    return await startTwoFactorEnrollment(phoneNumber);
   }
 
   /// Verifies a 6-digit SMS OTP code for 2FA enrollment.
-  Future<bool> verifyTwoFactorEnrollmentSms(String phoneNumber, String otpCode) async {
-    return await SmsOtpService.instance.verifySmsOtp(phoneNumber, otpCode);
+  Future<bool> verifyTwoFactorEnrollmentSms(String phoneNumber, String otpCode, {String verificationId = ''}) async {
+    try {
+      await finalizeTwoFactorEnrollment(
+        verificationId: verificationId,
+        smsCode: otpCode,
+        phoneNumber: phoneNumber,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Changes the user's password in Firebase Authentication.

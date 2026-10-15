@@ -1148,217 +1148,28 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  void _showTwoFactorEnrollmentDialog() {
-    final phoneController = TextEditingController(
-      text: SecuritySettingsStore.instance.twoFactorPhoneNumber ?? _profile.doctorPhone.text.trim(),
-    );
-    final otpControllers = List.generate(6, (_) => TextEditingController());
-    final otpFocusNodes = List.generate(6, (_) => FocusNode());
-    int step = 1;
-    bool isLoading = false;
-    String? dialogError;
-
-    showDialog(
+  Future<void> _showTwoFactorEnrollmentDialog() async {
+    final initialPhone = SecuritySettingsStore.instance.twoFactorPhoneNumber ?? _profile.doctorPhone.text.trim();
+    final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (dialogCtx, setModalState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                Icon(Icons.shield_outlined, color: AppTheme.primaryBlue, size: 24),
-                const SizedBox(width: 10),
-                const Text(
-                  'Two-Factor Authentication',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: 440,
-              child: step == 1
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Protect your clinical workstation by requiring an SMS verification code whenever signing into DOCRS.',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Mobile Phone Number',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          key: const Key('two_factor_phone_field'),
-                          controller: phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            hintText: '+63 917 555 0192',
-                            prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        ),
-                        if (dialogError != null) ...[
-                          const SizedBox(height: 10),
-                          Text(dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
-                        ],
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Enter the 6-digit verification code sent to ${phoneController.text.trim()}:',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(6, (index) {
-                            return SizedBox(
-                              width: 46,
-                              height: 52,
-                              child: TextField(
-                                key: Key('two_factor_enroll_otp_$index'),
-                                controller: otpControllers[index],
-                                focusNode: otpFocusNodes[index],
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                maxLength: 1,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                decoration: InputDecoration(
-                                  counterText: '',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                                onChanged: (value) {
-                                  if (value.isNotEmpty && index < 5) {
-                                    otpFocusNodes[index + 1].requestFocus();
-                                  } else if (value.isEmpty && index > 0) {
-                                    otpFocusNodes[index - 1].requestFocus();
-                                  }
-                                },
-                              ),
-                            );
-                          }),
-                        ),
-                        if (dialogError != null) ...[
-                          const SizedBox(height: 10),
-                          Text(dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
-                        ],
-                      ],
-                    ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: isLoading
-                    ? null
-                    : () {
-                        for (final c in otpControllers) {
-                          c.dispose();
-                        }
-                        for (final f in otpFocusNodes) {
-                          f.dispose();
-                        }
-                        phoneController.dispose();
-                        Navigator.pop(dialogCtx);
-                      },
-                child: const Text('Cancel'),
-              ),
-              if (step == 1)
-                ElevatedButton(
-                  key: const Key('send_enrollment_sms_button'),
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          final phone = phoneController.text.trim();
-                          if (phone.isEmpty || phone.length < 7) {
-                            setModalState(() => dialogError = 'Please enter a valid mobile number.');
-                            return;
-                          }
-                          setModalState(() {
-                            isLoading = true;
-                            dialogError = null;
-                          });
-                          try {
-                            await AuthService.instance.sendTwoFactorEnrollmentSms(phone);
-                            setModalState(() {
-                              step = 2;
-                              isLoading = false;
-                            });
-                          } catch (e) {
-                            setModalState(() {
-                              dialogError = 'Failed to send SMS code: $e';
-                              isLoading = false;
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
-                  child: isLoading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Send Verification Code'),
-                )
-              else
-                ElevatedButton(
-                  key: const Key('verify_enrollment_sms_button'),
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          final enteredCode = otpControllers.map((c) => c.text.trim()).join();
-                          if (enteredCode.length < 6) {
-                            setModalState(() => dialogError = 'Please enter all 6 digits.');
-                            return;
-                          }
-                          setModalState(() {
-                            isLoading = true;
-                            dialogError = null;
-                          });
-                          final phone = phoneController.text.trim();
-                          final success = await AuthService.instance.verifyTwoFactorEnrollmentSms(phone, enteredCode);
-                          if (!success) {
-                            setModalState(() {
-                              dialogError = 'Invalid code. Please try again.';
-                              isLoading = false;
-                            });
-                            return;
-                          }
-                          final uid = AuthService.instance.user?.uid;
-                          await SecuritySettingsStore.instance.updateTwoFactor(
-                            enabled: true,
-                            phoneNumber: phone,
-                            uid: uid,
-                          );
-                          for (final c in otpControllers) {
-                            c.dispose();
-                          }
-                          for (final f in otpFocusNodes) {
-                            f.dispose();
-                          }
-                          if (dialogCtx.mounted) {
-                            Navigator.pop(dialogCtx);
-                          }
-                          if (!mounted) return;
-                          showActionSuccessModal(
-                            context: context,
-                            title: 'Two-Factor Authentication Enabled',
-                            message: 'SMS-based 2FA is now active. Your account is protected by two-factor verification on sign-in.',
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
-                  child: isLoading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Verify & Activate 2FA'),
-                ),
-            ],
-          );
-        },
-      ),
+      builder: (dialogCtx) => TwoFactorEnrollmentDialog(initialPhone: initialPhone),
     );
+    if (!mounted) return;
+    if (result == true) {
+      setState(() {
+        _twoFactorEnabled = true;
+      });
+      showActionSuccessModal(
+        context: context,
+        title: 'Two-Factor Authentication Enabled',
+        message: 'SMS-based 2FA is now active. Your account is protected by two-factor verification on sign-in.',
+      );
+    } else {
+      setState(() {
+        _twoFactorEnabled = SecuritySettingsStore.instance.twoFactorEnabled;
+      });
+    }
   }
 
   void _confirmDisableTwoFactor() {
@@ -1381,11 +1192,17 @@ class _SettingsViewState extends State<SettingsView> {
             onPressed: () async {
               Navigator.pop(dialogCtx);
               final uid = AuthService.instance.user?.uid;
+              await AuthService.instance.unenrollTwoFactor();
               await SecuritySettingsStore.instance.updateTwoFactor(
                 enabled: false,
                 phoneNumber: null,
                 uid: uid,
               );
+              if (mounted) {
+                setState(() {
+                  _twoFactorEnabled = false;
+                });
+              }
               _showSaveFeedback('Two-factor authentication disabled.');
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
@@ -2439,6 +2256,327 @@ class _SettingsViewState extends State<SettingsView> {
           },
           child: Text('Cancel'),
         ),
+      ],
+    );
+  }
+}
+
+class TwoFactorEnrollmentDialog extends StatefulWidget {
+  final String initialPhone;
+  const TwoFactorEnrollmentDialog({super.key, required this.initialPhone});
+
+  @override
+  State<TwoFactorEnrollmentDialog> createState() => _TwoFactorEnrollmentDialogState();
+}
+
+class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
+  late final TextEditingController _phoneController;
+  late final List<TextEditingController> _otpControllers;
+  late final List<FocusNode> _otpFocusNodes;
+  int _step = 1;
+  bool _isLoading = false;
+  bool _isResending = false;
+  String? _dialogError;
+  String? _verificationId;
+  String? _infoMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.initialPhone);
+    _otpControllers = List.generate(6, (_) => TextEditingController());
+    _otpFocusNodes = List.generate(6, (_) => FocusNode());
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    for (final c in _otpControllers) {
+      c.dispose();
+    }
+    for (final f in _otpFocusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _handleSendCode() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 7) {
+      setState(() => _dialogError = 'Please enter a valid mobile number.');
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _dialogError = null;
+      _infoMessage = null;
+    });
+    try {
+      final vId = await AuthService.instance.startTwoFactorEnrollment(phone);
+      if (!mounted) return;
+      setState(() {
+        _verificationId = vId;
+        _step = 2;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _dialogError = e is AuthFailure ? e.message : 'Failed to send SMS code: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleResendCode() async {
+    final phone = _phoneController.text.trim();
+    setState(() {
+      _isResending = true;
+      _dialogError = null;
+      _infoMessage = null;
+    });
+    try {
+      final vId = await AuthService.instance.startTwoFactorEnrollment(phone);
+      if (!mounted) return;
+      for (final c in _otpControllers) {
+        c.clear();
+      }
+      _otpFocusNodes[0].requestFocus();
+      setState(() {
+        _verificationId = vId;
+        _isResending = false;
+        _infoMessage = 'A new 6-digit code has been sent via SMS.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isResending = false;
+        _dialogError = e is AuthFailure ? e.message : 'Failed to resend code: $e';
+      });
+    }
+  }
+
+  Future<void> _handleVerifyAndActivate() async {
+    final enteredCode = _otpControllers.map((c) => c.text.trim()).join();
+    if (enteredCode.length < 6) {
+      setState(() => _dialogError = 'Please enter all 6 digits of the verification code.');
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _dialogError = null;
+      _infoMessage = null;
+    });
+    final phone = _phoneController.text.trim();
+    try {
+      await AuthService.instance.finalizeTwoFactorEnrollment(
+        verificationId: _verificationId ?? '',
+        smsCode: enteredCode,
+        phoneNumber: phone,
+      );
+
+      final uid = AuthService.instance.user?.uid;
+      await SecuritySettingsStore.instance.updateTwoFactor(
+        enabled: true,
+        phoneNumber: phone,
+        uid: uid,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on AuthFailure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _dialogError = e.message;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _dialogError = 'The verification code entered is incorrect or expired. Please check and try again.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.shield_outlined, color: AppTheme.primaryBlue, size: 24),
+          const SizedBox(width: 10),
+          const Text(
+            'Two-Factor Authentication',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 440,
+        child: _step == 1
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Protect your clinical workstation by requiring an SMS verification code whenever signing into DOCRS.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Mobile Phone Number',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    key: const Key('two_factor_phone_field'),
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: '+63 917 555 0192',
+                      prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  if (_dialogError != null) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(_dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Enter the 6-digit verification code sent to ${_phoneController.text.trim()}:',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) {
+                      return SizedBox(
+                        width: 46,
+                        height: 52,
+                        child: TextField(
+                          key: Key('two_factor_enroll_otp_$index'),
+                          controller: _otpControllers[index],
+                          focusNode: _otpFocusNodes[index],
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          maxLength: 1,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty && index < 5) {
+                              _otpFocusNodes[index + 1].requestFocus();
+                            } else if (value.isEmpty && index > 0) {
+                              _otpFocusNodes[index - 1].requestFocus();
+                            }
+                          },
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Didn't receive a code?",
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      TextButton.icon(
+                        key: const Key('two_factor_modal_resend_button'),
+                        onPressed: (_isLoading || _isResending) ? null : _handleResendCode,
+                        icon: _isResending
+                            ? const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(strokeWidth: 1.5),
+                              )
+                            : const Icon(Icons.refresh_rounded, size: 14),
+                        label: Text(
+                          _isResending ? 'Resending...' : 'Resend Code',
+                          style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_infoMessage != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(_infoMessage!, style: const TextStyle(fontSize: 12, color: Color(0xFF059669))),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (_dialogError != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(_dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          key: const Key('two_factor_modal_cancel_button'),
+          onPressed: _isLoading ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        if (_step == 1)
+          ElevatedButton(
+            key: const Key('send_enrollment_sms_button'),
+            onPressed: _isLoading ? null : _handleSendCode,
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            child: _isLoading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Send Verification Code'),
+          )
+        else
+          ElevatedButton(
+            key: const Key('verify_enrollment_sms_button'),
+            onPressed: _isLoading ? null : _handleVerifyAndActivate,
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
+            child: _isLoading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Verify & Activate 2FA'),
+          ),
       ],
     );
   }

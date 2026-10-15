@@ -398,7 +398,7 @@ void main() {
       expect(tester.widget<TextField>(textFields.at(2)).obscureText, isFalse);
     });
 
-    testWidgets('Toggling 2FA opens SMS phone number enrollment modal', (WidgetTester tester) async {
+    testWidgets('Toggling 2FA opens SMS phone number enrollment modal and completes activation with valid code', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1600, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -419,9 +419,12 @@ void main() {
       await tester.tap(find.text('Security'));
       await tester.pumpAndSettle();
 
-      // Find the 2FA switch
+      // Find the 2FA switch (initially false)
       final twoFactorSwitch = find.byKey(const Key('two_factor_switch'));
       expect(twoFactorSwitch, findsOneWidget);
+      expect(tester.widget<SwitchListTile>(twoFactorSwitch).value, isFalse);
+
+      // Tap switch to initiate enrollment
       await tester.tap(twoFactorSwitch);
       await tester.pumpAndSettle();
 
@@ -437,8 +440,168 @@ void main() {
       await tester.tap(find.text('Send Verification Code'));
       await tester.pumpAndSettle();
 
-      // Now asks for 6-digit code
+      // Step 2: Now asks for 6-digit code
       expect(find.text('Verify & Activate 2FA'), findsOneWidget);
+
+      final code = SmsOtpService.instance.lastGeneratedCode;
+      expect(code, isNotNull);
+
+      // Enter valid 6-digit code into OTP fields
+      for (var i = 0; i < 6; i++) {
+        await tester.enterText(find.byKey(Key('two_factor_enroll_otp_$i')), code![i]);
+      }
+      await tester.pump();
+
+      // Click "Verify & Activate 2FA"
+      await tester.tap(find.byKey(const Key('verify_enrollment_sms_button')));
+      await tester.pumpAndSettle();
+
+      // Success modal is displayed
+      expect(find.text('Two-Factor Authentication Enabled'), findsOneWidget);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      // Toggle switch in UI is now updated to true
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('two_factor_switch'))).value, isTrue);
+      expect(SecuritySettingsStore.instance.twoFactorEnabled, isTrue);
+      expect(backend.twoFactorAccounts['doctor@clinic.test'], isTrue);
+
+      // Verify subsequent login enforces 2FA challenge
+      await AuthService.instance.signOut();
+      expect(AuthService.instance.isSignedIn, isFalse);
+
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+      expect(AuthService.instance.isSignedIn, isFalse);
+      expect(AuthService.instance.is2faPending, isTrue);
+    });
+
+    testWidgets('Cancelling 2FA enrollment cleanly aborts without altering toggle state', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1600, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SettingsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+
+      // 1. Cancel on Step 1
+      final twoFactorSwitch = find.byKey(const Key('two_factor_switch'));
+      expect(tester.widget<SwitchListTile>(twoFactorSwitch).value, isFalse);
+
+      await tester.tap(twoFactorSwitch);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mobile Phone Number'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('two_factor_modal_cancel_button')));
+      await tester.pumpAndSettle();
+
+      // Switch remains unchanged (false)
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('two_factor_switch'))).value, isFalse);
+      expect(SecuritySettingsStore.instance.twoFactorEnabled, isFalse);
+
+      // 2. Cancel on Step 2
+      await tester.tap(find.byKey(const Key('two_factor_switch')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('two_factor_phone_field')), '+639175550192');
+      await tester.tap(find.text('Send Verification Code'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Verify & Activate 2FA'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('two_factor_modal_cancel_button')));
+      await tester.pumpAndSettle();
+
+      // Switch remains unchanged (false)
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('two_factor_switch'))).value, isFalse);
+      expect(SecuritySettingsStore.instance.twoFactorEnabled, isFalse);
+      expect(backend.twoFactorAccounts['doctor@clinic.test'], isNot(true));
+    });
+
+    testWidgets('2FA modal displays inline error for invalid verification code and allows resend', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1600, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SettingsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('two_factor_switch')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('two_factor_phone_field')), '+639175550192');
+      await tester.tap(find.text('Send Verification Code'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Verify & Activate 2FA'), findsOneWidget);
+
+      // Enter wrong 6-digit code
+      for (var i = 0; i < 6; i++) {
+        await tester.enterText(find.byKey(Key('two_factor_enroll_otp_$i')), '0');
+      }
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('verify_enrollment_sms_button')));
+      await tester.pumpAndSettle();
+
+      // Error message is displayed inline
+      expect(find.text('The verification code entered is incorrect. Please check the code sent to your phone and try again.'), findsOneWidget);
+      expect(find.text('Verify & Activate 2FA'), findsOneWidget);
+
+      // Switch remains false in background
+      expect(SecuritySettingsStore.instance.twoFactorEnabled, isFalse);
+
+      // Test Resend button
+      final resendBtn = find.byKey(const Key('two_factor_modal_resend_button'));
+      expect(resendBtn, findsOneWidget);
+      await tester.tap(resendBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('A new 6-digit code has been sent via SMS.'), findsOneWidget);
+
+      final newCode = SmsOtpService.instance.lastGeneratedCode;
+      expect(newCode, isNotNull);
+
+      // Enter the new valid code
+      for (var i = 0; i < 6; i++) {
+        await tester.enterText(find.byKey(Key('two_factor_enroll_otp_$i')), newCode![i]);
+      }
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('verify_enrollment_sms_button')));
+      await tester.pumpAndSettle();
+
+      // Successfully enrolled
+      expect(find.text('Two-Factor Authentication Enabled'), findsOneWidget);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<SwitchListTile>(find.byKey(const Key('two_factor_switch'))).value, isTrue);
+      expect(SecuritySettingsStore.instance.twoFactorEnabled, isTrue);
     });
   });
 

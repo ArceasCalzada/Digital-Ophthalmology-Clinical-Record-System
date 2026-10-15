@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
+import 'package:ophthalmology_clinical_record_system/services/sms_otp_service.dart';
 
 /// In-memory identity provider for tests. Accounts map email -> (password, role).
 /// A null role models an account that exists in Firebase Auth but is not listed
@@ -91,6 +92,7 @@ class FakeAuthBackend implements AuthBackend {
 
   final Map<String, bool> twoFactorAccounts = {};
   final Map<String, String> twoFactorPhoneNumbers = {};
+  String? lastVerificationId;
   int changePasswordCalls = 0;
 
   @override
@@ -124,6 +126,43 @@ class FakeAuthBackend implements AuthBackend {
   Future<String?> fetchTwoFactorPhone(String uid) async {
     final email = uid.replaceFirst('uid-', '');
     return twoFactorPhoneNumbers[email] ?? '+639175550192';
+  }
+
+  @override
+  Future<String> startTwoFactorEnrollment(String phoneNumber) async {
+    final code = await SmsOtpService.instance.generateAndSendSmsOtp(phoneNumber);
+    lastVerificationId = 'verif-$code';
+    return lastVerificationId!;
+  }
+
+  @override
+  Future<void> finalizeTwoFactorEnrollment({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  }) async {
+    final current = _current;
+    if (current == null || current.email == null) {
+      throw const AuthFailure('No active session found.');
+    }
+    final expectedCode = lastVerificationId?.replaceFirst('verif-', '') ??
+        SmsOtpService.instance.lastGeneratedCode;
+    if (smsCode != expectedCode) {
+      throw const AuthFailure('The verification code entered is incorrect. Please check the code sent to your phone and try again.');
+    }
+    final email = current.email!;
+    twoFactorAccounts[email] = true;
+    twoFactorPhoneNumbers[email] = phoneNumber;
+    SmsOtpService.instance.clearOtp(phoneNumber);
+  }
+
+  @override
+  Future<void> unenrollTwoFactor() async {
+    final current = _current;
+    if (current == null || current.email == null) return;
+    final email = current.email!;
+    twoFactorAccounts[email] = false;
+    twoFactorPhoneNumbers.remove(email);
   }
 
   @override
