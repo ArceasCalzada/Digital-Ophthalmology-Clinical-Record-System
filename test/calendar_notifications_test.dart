@@ -230,10 +230,11 @@ void main() {
       expect(find.textContaining('Total:'), findsNothing);
       expect(find.textContaining(' Events'), findsNothing);
 
-      // Day 15 appears once in the month grid (neighbouring-month cells are ≤12 or ≥24).
+      // Select tomorrow's date which has seeded events (now.day + 1)
+      final tomorrow = DateTime.now().add(const Duration(days: 1)).day;
       final agendaTitle = find.textContaining('Agenda for');
       final before = tester.widget<Text>(agendaTitle).data;
-      await tester.tap(find.text('15').first);
+      await tester.tap(find.text('$tomorrow').first);
       await tester.pump(const Duration(milliseconds: 100));
       // Mid-transition the outgoing and incoming agendas are both on screen.
       expect(agendaTitle, findsNWidgets(2));

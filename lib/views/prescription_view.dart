@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../services/prescription_pdf_service.dart';
@@ -21,6 +22,7 @@ class PrescriptionView extends StatefulWidget {
 
 class _PrescriptionViewState extends State<PrescriptionView> {
   Patient? _selectedPatient;
+  ClinicBranch? _selectedBranch;
   final List<PrescriptionItem> _medications = [];
   final _doctorName = 'Dr. Sigrid T. Robillos';
 
@@ -35,6 +37,10 @@ class _PrescriptionViewState extends State<PrescriptionView> {
   @override
   void initState() {
     super.initState();
+    final active = ProfileStore.instance.activeBranches;
+    if (active.isNotEmpty) {
+      _selectedBranch = active.first;
+    }
     final allPatients = PatientRepository.getAllPatients();
     _resolveAndSetPatient(widget.initialPatient, allPatients);
   }
@@ -68,7 +74,32 @@ class _PrescriptionViewState extends State<PrescriptionView> {
   void _loadPatientPrescriptionData(Patient? patient) {
     _medications.clear();
     if (patient != null && patient.prescriptions.isNotEmpty) {
-      _medications.addAll(patient.prescriptions.first.items);
+      final latestRx = patient.prescriptions.first;
+      _medications.addAll(latestRx.items);
+      if (latestRx.clinicBranch.isNotEmpty) {
+        final allBranches = ProfileStore.instance.branches;
+        try {
+          _selectedBranch = allBranches.firstWhere((b) => b.name == latestRx.clinicBranch);
+        } catch (_) {
+          _selectedBranch = ClinicBranch(
+            id: 'historical',
+            name: latestRx.clinicBranch,
+            address: '',
+            days: '',
+            hours: '',
+          );
+        }
+      } else {
+        final active = ProfileStore.instance.activeBranches;
+        if (active.isNotEmpty) {
+          _selectedBranch = active.first;
+        }
+      }
+    } else {
+      final active = ProfileStore.instance.activeBranches;
+      if (active.isNotEmpty) {
+        _selectedBranch = active.first;
+      }
     }
   }
 
@@ -106,6 +137,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       doctorName: _doctorName,
       date: DateTime.now().toString().substring(0, 10),
       items: List.from(_medications),
+      clinicBranch: _selectedBranch?.name ?? '',
     );
 
     try {
@@ -312,7 +344,82 @@ class _PrescriptionViewState extends State<PrescriptionView> {
               ),
             ),
           ),
-          SizedBox(height: 24),
+          const SizedBox(height: 14),
+
+          // Clinic Branch Selector Bar
+          Card(
+            color: AppTheme.cardBg,
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: AppTheme.borderColor),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListenableBuilder(
+                listenable: ProfileStore.instance,
+                builder: (context, _) {
+                  final activeBranches = ProfileStore.instance.activeBranches;
+                  return LayoutBuilder(
+                    builder: (context, selectorConstraints) {
+                      final isNarrow = selectorConstraints.maxWidth < 500;
+                      final branchDropdown = ClinicalDropdownField<ClinicBranch>(
+                        key: const Key('prescription_clinic_branch_dropdown'),
+                        placeholder: 'Select Clinic Branch Location...',
+                        value: activeBranches.any((b) => b.id == _selectedBranch?.id) ? _selectedBranch : null,
+                        displayText: _selectedBranch != null
+                            ? '${_selectedBranch!.name} (${_selectedBranch!.address})'
+                            : (activeBranches.isNotEmpty ? '${activeBranches.first.name} (${activeBranches.first.address})' : 'No Active Branches'),
+                        searchable: activeBranches.length > 3,
+                        searchHint: 'Search branch...',
+                        items: [
+                          for (final b in activeBranches)
+                            ClinicalPickerItem<ClinicBranch>(
+                              value: b,
+                              label: b.name,
+                              subtitle: '${b.address} • ${b.days} ${b.hours}',
+                            ),
+                        ],
+                        onChanged: (branch) {
+                          setState(() {
+                            _selectedBranch = branch;
+                          });
+                        },
+                      );
+
+                      if (isNarrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.business_outlined, color: AppTheme.primaryBlue),
+                                const SizedBox(width: 12),
+                                Text('Clinic Branch:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            branchDropdown,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          const Icon(Icons.business_outlined, color: AppTheme.primaryBlue),
+                          const SizedBox(width: 12),
+                          Text('Clinic Branch:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+                          const SizedBox(width: 16),
+                          Expanded(child: branchDropdown),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
 
           // Add Medication Form & Active Items (Responsive Stacking)
           LayoutBuilder(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../services/auth_service.dart';
@@ -628,76 +629,109 @@ class _SettingsViewState extends State<SettingsView> {
         // 2. Clinic Branch Headers & Schedules Card
         _buildCardContainer(
           title: 'Clinic Branch Headers & Schedules',
-          trailing: OutlinedButton.icon(
-            key: Key('edit_clinic_headers_button'),
-            icon: Icon(_isEditingClinicHeaders ? Icons.check : Icons.edit_outlined, size: 14),
-            label: Text(_isEditingClinicHeaders ? 'Done' : 'Edit'),
-            onPressed: () {
-              setState(() => _isEditingClinicHeaders = !_isEditingClinicHeaders);
-            },
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          trailing: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                'Customize the 3 clinic locations and consultation hours printed at the top of the prescription pad.',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ElevatedButton.icon(
+                key: const Key('add_branch_button'),
+                icon: const Icon(Icons.add, size: 14),
+                label: const Text('+ Add Branch'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onPressed: _showAddBranchModal,
               ),
-              SizedBox(height: 14),
-              if (!_isEditingClinicHeaders)
-                Container(
-                  padding: EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
+              OutlinedButton.icon(
+                key: const Key('edit_clinic_headers_button'),
+                icon: Icon(_isEditingClinicHeaders ? Icons.check : Icons.edit_outlined, size: 14),
+                label: Text(_isEditingClinicHeaders ? 'Done' : 'Edit'),
+                onPressed: () {
+                  if (_isEditingClinicHeaders) {
+                    _profile.syncControllersToBranches();
+                    _profile.saveToFirestore(teamId: TeamService.instance.activeTeam?.id);
+                  }
+                  setState(() => _isEditingClinicHeaders = !_isEditingClinicHeaders);
+                },
+              ),
+            ],
+          ),
+          child: ListenableBuilder(
+            listenable: _profile,
+            builder: (context, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Manage clinic locations and consultation hours printed at the top of the prescription pad.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+                SizedBox(height: 14),
+                if (!_isEditingClinicHeaders) ...[
+                  if (_profile.activeBranches.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No active clinic branches. Click "+ Add Branch" to add one.',
+                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: _profile.activeBranches.map((branch) => _buildBranchCard(branch)).toList(),
+                    ),
+                  if (_profile.archivedBranches.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Divider(color: AppTheme.borderColor),
+                    const SizedBox(height: 8),
+                    Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        initiallyExpanded: false,
+                        tilePadding: EdgeInsets.zero,
+                        leading: Icon(Icons.archive_outlined, size: 18, color: AppTheme.textSecondary),
+                        title: Text(
+                          'Archived Branches (${_profile.archivedBranches.length})',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                        ),
+                        subtitle: Text(
+                          'Retired clinic locations preserved for audit logs and historical records.',
+                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                        ),
+                        children: _profile.archivedBranches.map((branch) => _buildArchivedBranchCard(branch)).toList(),
+                      ),
+                    ),
+                  ],
+                ] else ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _buildClinicSummaryCol(
-                          _profile.clinic1Name.text,
-                          _profile.clinic1Location.text,
-                          _profile.clinic1Days.text,
-                          _profile.clinic1Hours.text,
-                        ),
-                      ),
-                      Container(height: 48, width: 1, color: AppTheme.borderColor),
-                      Expanded(
-                        child: _buildClinicSummaryCol(
-                          _profile.clinic2Name.text,
-                          _profile.clinic2Location.text,
-                          _profile.clinic2Days.text,
-                          _profile.clinic2Hours.text,
-                        ),
-                      ),
-                      Container(height: 48, width: 1, color: AppTheme.borderColor),
-                      Expanded(
-                        child: _buildClinicSummaryCol(
-                          _profile.clinic3Name.text,
-                          _profile.clinic3Location.text,
-                          _profile.clinic3Days.text,
-                          _profile.clinic3Hours.text,
-                        ),
-                      ),
+                      _buildClinicBranchEditor('Clinic Branch 1', _profile.clinic1Name, _profile.clinic1Location, _profile.clinic1Days, _profile.clinic1Hours),
+                      SizedBox(height: 16),
+                      Divider(color: AppTheme.borderColor),
+                      SizedBox(height: 12),
+                      _buildClinicBranchEditor('Clinic Branch 2', _profile.clinic2Name, _profile.clinic2Location, _profile.clinic2Days, _profile.clinic2Hours),
+                      SizedBox(height: 16),
+                      Divider(color: AppTheme.borderColor),
+                      SizedBox(height: 12),
+                      _buildClinicBranchEditor('Clinic Branch 3', _profile.clinic3Name, _profile.clinic3Location, _profile.clinic3Days, _profile.clinic3Hours),
                     ],
                   ),
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildClinicBranchEditor('Clinic Branch 1', _profile.clinic1Name, _profile.clinic1Location, _profile.clinic1Days, _profile.clinic1Hours),
-                    SizedBox(height: 16),
-                    Divider(color: AppTheme.borderColor),
-                    SizedBox(height: 12),
-                    _buildClinicBranchEditor('Clinic Branch 2', _profile.clinic2Name, _profile.clinic2Location, _profile.clinic2Days, _profile.clinic2Hours),
-                    SizedBox(height: 16),
-                    Divider(color: AppTheme.borderColor),
-                    SizedBox(height: 12),
-                    _buildClinicBranchEditor('Clinic Branch 3', _profile.clinic3Name, _profile.clinic3Location, _profile.clinic3Days, _profile.clinic3Hours),
-                  ],
-                ),
-            ],
+                ],
+              ],
+            ),
           ),
         ),
         SizedBox(height: 20),
@@ -1910,12 +1944,32 @@ class _SettingsViewState extends State<SettingsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                ?trailing,
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (trailing == null) {
+                  return Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary));
+                }
+                if (constraints.maxWidth < 500) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                      SizedBox(height: 10),
+                      trailing,
+                    ],
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                    ),
+                    SizedBox(width: 12),
+                    trailing,
+                  ],
+                );
+              },
             ),
             SizedBox(height: 16),
             child,
@@ -2012,18 +2066,303 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildClinicSummaryCol(String name, String loc, String days, String hours) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
+  Widget _buildBranchCard(ClinicBranch branch) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(name, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
-          SizedBox(height: 2),
-          Text(loc, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-          SizedBox(height: 2),
-          Text(days, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-          Text(hours, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.location_on_outlined, color: AppTheme.primaryBlue, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  branch.name,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  branch.address,
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.access_time_rounded, size: 13, color: AppTheme.primaryBlue),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${branch.days} • ${branch.hours}',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            key: Key('archive_branch_${branch.id}'),
+            icon: Icon(Icons.archive_outlined, size: 14, color: Colors.orange.shade800),
+            label: Text('Archive', style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.orange.shade300),
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => _confirmArchiveBranch(branch),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchivedBranchCard(ClinicBranch branch) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.archive, size: 18, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      branch.name,
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('Archived', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(branch.address, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            key: Key('restore_branch_${branch.id}'),
+            icon: const Icon(Icons.unarchive_outlined, size: 14, color: Color(0xFF059669)),
+            label: const Text('Restore', style: TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              await _profile.restoreBranch(branch.id, teamId: TeamService.instance.activeTeam?.id);
+              if (mounted) {
+                _showSaveFeedback('Clinic branch "${branch.name}" restored.');
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddBranchModal() {
+    final nameCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final daysCtrl = TextEditingController(text: 'Monday - Friday');
+    final hoursCtrl = TextEditingController(text: '9am - 12nn');
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.add_business_rounded, color: AppTheme.primaryBlue, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text('Add Clinic Branch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add a new clinic branch location and consultation schedule to appear on prescription headers.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    if (errorText != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, size: 16, color: Colors.redAccent),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(errorText!, style: const TextStyle(fontSize: 12, color: Colors.redAccent))),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _buildTextFieldItem(
+                      fieldKey: const Key('new_branch_name_input'),
+                      label: 'Clinic Name *',
+                      controller: nameCtrl,
+                      hint: 'e.g. Metro Vision Center',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextFieldItem(
+                      fieldKey: const Key('new_branch_address_input'),
+                      label: 'Address / Location *',
+                      controller: addressCtrl,
+                      hint: 'e.g. J.P. Laurel Ave, Davao City',
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('new_branch_days_input'),
+                            label: 'Consultation Days',
+                            controller: daysCtrl,
+                            hint: 'e.g. Wednesday & Friday',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextFieldItem(
+                            fieldKey: const Key('new_branch_hours_input'),
+                            label: 'Consultation Hours',
+                            controller: hoursCtrl,
+                            hint: 'e.g. 1pm - 5pm',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                key: const Key('submit_add_branch_button'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty) {
+                    setModalState(() => errorText = 'Clinic Name is required.');
+                    return;
+                  }
+                  if (addressCtrl.text.trim().isEmpty) {
+                    setModalState(() => errorText = 'Address / Location is required.');
+                    return;
+                  }
+                  Navigator.pop(dialogCtx);
+                  await _profile.addBranch(
+                    name: nameCtrl.text.trim(),
+                    address: addressCtrl.text.trim(),
+                    days: daysCtrl.text.trim(),
+                    hours: hoursCtrl.text.trim(),
+                    teamId: TeamService.instance.activeTeam?.id,
+                  );
+                  if (mounted) {
+                    _showSaveFeedback('Clinic branch "${nameCtrl.text.trim()}" added successfully.');
+                  }
+                },
+                child: const Text('Add Branch'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmArchiveBranch(ClinicBranch branch) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.archive_outlined, color: Colors.orange.shade800),
+            const SizedBox(width: 8),
+            const Text('Archive Clinic Branch'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to archive "${branch.name}"? '
+          'This branch will no longer appear on new prescription headers, '
+          'but historical records will remain intact.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            key: const Key('confirm_archive_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _profile.archiveBranch(branch.id, teamId: TeamService.instance.activeTeam?.id);
+              if (mounted) {
+                _showSaveFeedback('Clinic branch "${branch.name}" archived.');
+              }
+            },
+            child: const Text('Archive Branch'),
+          ),
         ],
       ),
     );

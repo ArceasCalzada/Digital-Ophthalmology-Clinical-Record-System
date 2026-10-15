@@ -167,35 +167,64 @@ class RxPadWidget extends StatelessWidget {
           ),
           SizedBox(height: 12),
 
-          // 2. Multi-Clinic Schedule Columns (3 Columns)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildClinicScheduleCol(
-                  effClinic1Name,
-                  effClinic1Location,
-                  effClinic1Days,
-                  effClinic1Hours,
-                ),
-              ),
-              Expanded(
-                child: _buildClinicScheduleCol(
-                  effClinic2Name,
-                  effClinic2Location,
-                  effClinic2Days,
-                  effClinic2Hours,
-                ),
-              ),
-              Expanded(
-                child: _buildClinicScheduleCol(
-                  effClinic3Name,
-                  effClinic3Location,
-                  effClinic3Days,
-                  effClinic3Hours,
-                ),
-              ),
-            ],
+          // 2. Multi-Clinic Schedule Columns (Active branches)
+          Builder(
+            builder: (context) {
+              final activeCols = <Widget>[];
+              final hasExplicitClinics = clinic1Name != null || clinic2Name != null || clinic3Name != null;
+              if (hasExplicitClinics) {
+                if (effClinic1Name.isNotEmpty) {
+                  activeCols.add(Expanded(
+                    child: _buildClinicScheduleCol(
+                      effClinic1Name,
+                      effClinic1Location,
+                      effClinic1Days,
+                      effClinic1Hours,
+                    ),
+                  ));
+                }
+                if (effClinic2Name.isNotEmpty) {
+                  activeCols.add(Expanded(
+                    child: _buildClinicScheduleCol(
+                      effClinic2Name,
+                      effClinic2Location,
+                      effClinic2Days,
+                      effClinic2Hours,
+                    ),
+                  ));
+                }
+                if (effClinic3Name.isNotEmpty) {
+                  activeCols.add(Expanded(
+                    child: _buildClinicScheduleCol(
+                      effClinic3Name,
+                      effClinic3Location,
+                      effClinic3Days,
+                      effClinic3Hours,
+                    ),
+                  ));
+                }
+              } else {
+                profile.syncControllersToBranches();
+                for (final branch in profile.activeBranches) {
+                  activeCols.add(Expanded(
+                    child: _buildClinicScheduleCol(
+                      branch.name,
+                      branch.address,
+                      branch.days,
+                      branch.hours,
+                    ),
+                  ));
+                }
+              }
+
+              if (activeCols.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: activeCols,
+              );
+            },
           ),
           SizedBox(height: 8),
 

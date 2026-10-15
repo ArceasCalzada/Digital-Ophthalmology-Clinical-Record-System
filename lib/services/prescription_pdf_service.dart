@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import 'profile_store.dart';
@@ -131,36 +132,40 @@ class PrescriptionPdfService {
                 ),
                 pw.SizedBox(height: 12),
 
-                // 2. Multi-Clinic Schedule Columns (3 Columns)
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Expanded(
-                      child: _buildClinicCol(
-                        effClinic1Name,
-                        effClinic1Location,
-                        effClinic1Days,
-                        effClinic1Hours,
-                      ),
-                    ),
-                    pw.Expanded(
-                      child: _buildClinicCol(
-                        effClinic2Name,
-                        effClinic2Location,
-                        effClinic2Days,
-                        effClinic2Hours,
-                      ),
-                    ),
-                    pw.Expanded(
-                      child: _buildClinicCol(
-                        effClinic3Name,
-                        effClinic3Location,
-                        effClinic3Days,
-                        effClinic3Hours,
-                      ),
-                    ),
-                  ],
-                ),
+                // 2. Multi-Clinic Schedule Columns (Active branches)
+                (() {
+                  final hasExplicitClinics = clinic1Name != null || clinic2Name != null || clinic3Name != null;
+                  final List<ClinicBranch> displayBranches;
+                  if (hasExplicitClinics) {
+                    displayBranches = [
+                      if (effClinic1Name.isNotEmpty) ClinicBranch(id: 'c1', name: effClinic1Name, address: effClinic1Location, days: effClinic1Days, hours: effClinic1Hours),
+                      if (effClinic2Name.isNotEmpty) ClinicBranch(id: 'c2', name: effClinic2Name, address: effClinic2Location, days: effClinic2Days, hours: effClinic2Hours),
+                      if (effClinic3Name.isNotEmpty) ClinicBranch(id: 'c3', name: effClinic3Name, address: effClinic3Location, days: effClinic3Days, hours: effClinic3Hours),
+                    ];
+                  } else {
+                    profile.syncControllersToBranches();
+                    displayBranches = profile.activeBranches;
+                  }
+
+                  if (displayBranches.isEmpty) {
+                    return pw.SizedBox.shrink();
+                  }
+
+                  return pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      for (final b in displayBranches)
+                        pw.Expanded(
+                          child: _buildClinicCol(
+                            b.name,
+                            b.address,
+                            b.days,
+                            b.hours,
+                          ),
+                        ),
+                    ],
+                  );
+                })(),
                 pw.SizedBox(height: 8),
 
                 // Divider Line
