@@ -6,6 +6,7 @@ import '../widgets/account_menu.dart';
 import '../widgets/clinic_dialogs.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/sync_status_indicator.dart';
+import '../services/offline_sync_service.dart';
 import '../services/team_service.dart';
 import '../services/workspace_store.dart';
 import 'calendar_page_view.dart';
@@ -539,10 +540,83 @@ class _MainLayoutState extends State<MainLayout> {
 
 
 
+  Future<bool> _confirmUnsyncedExit() async {
+    final sync = OfflineSyncService();
+    final unsynced = sync.pendingCount + sync.failedMutations.length;
+    if (unsynced == 0) return true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Unsaved Records Pending Sync',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You have $unsynced patient record or mutation(s) pending synchronization with the cloud.',
+              style: TextStyle(fontSize: 13, height: 1.4, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Navigating away, switching sessions, or logging out now may prevent these uncommitted offline changes from being saved to the clinic database.',
+              style: TextStyle(fontSize: 12, height: 1.4, color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Stay on Page'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Leave Anyway'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
+    return PopScope(
+      canPop: OfflineSyncService().pendingCount == 0 && OfflineSyncService().failedMutations.isEmpty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final canLeave = await _confirmUnsyncedExit();
+        if (canLeave && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
 
         return Scaffold(
@@ -715,6 +789,7 @@ class _MainLayoutState extends State<MainLayout> {
               : null,
         );
       },
+      ),
     );
   }
 
@@ -924,7 +999,12 @@ class _MainLayoutState extends State<MainLayout> {
             setState(() => _selectedIndex = 5);
             if (isDrawer) Navigator.pop(context);
           },
-          onLogout: widget.onLogout,
+          onLogout: () async {
+            final canLeave = await _confirmUnsyncedExit();
+            if (canLeave) {
+              widget.onLogout();
+            }
+          },
         ),
       ],
     );

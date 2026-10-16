@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../models/patient.dart' show PatientRepository;
 import 'auth_service.dart';
 import 'firebase_gate.dart';
 
@@ -125,8 +126,12 @@ class OfflineSyncService extends ChangeNotifier {
   void startAutoSyncTimer({Duration interval = const Duration(seconds: 15)}) {
     _autoSyncTimer?.cancel();
     _autoSyncTimer = Timer.periodic(interval, (_) {
-      if (isOnline && _pendingQueue.any((m) => !m.submitted) && _syncState != SyncStatusState.syncing) {
-        syncNow();
+      if (isOnline && _syncState != SyncStatusState.syncing) {
+        if (_pendingQueue.any((m) => !m.submitted)) {
+          syncNow();
+        } else if (_failed.isNotEmpty) {
+          retryFailed();
+        }
       }
     });
   }
@@ -145,9 +150,14 @@ class OfflineSyncService extends ChangeNotifier {
       if (_networkState == NetworkConnectivityState.offline) {
         _syncState = SyncStatusState.offlineSaved;
       } else {
-        // Network restored — trigger automatic background sync
-        if (_pendingQueue.isNotEmpty) {
-          syncNow();
+        // Network restored — trigger automatic background sync of all pending and failed writes
+        for (final m in _pendingQueue) {
+          m.submitted = false;
+        }
+        if (_failed.isNotEmpty) {
+          retryFailed();
+        } else if (_pendingQueue.isNotEmpty) {
+          syncNow(force: true);
         } else {
           _syncState = _failed.isEmpty ? SyncStatusState.upToDate : SyncStatusState.error;
         }
@@ -185,8 +195,57 @@ class OfflineSyncService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> syncNow() async {
+  /// Determines if an error is transient (e.g. network drops, socket timeouts, offline mode).
+  static bool isTransientError(Object e) {
+    if (e is TimeoutException) return true;
+    if (e is FirebaseException) {
+      const transientCodes = {
+        'unavailable',
+        'deadline-exceeded',
+        'aborted',
+        'network-request-failed',
+        'failed-precondition',
+        'cancelled',
+        'unknown',
+        'client-offline',
+      };
+      if (transientCodes.contains(e.code.toLowerCase())) return true;
+      final msg = (e.message ?? '').toLowerCase();
+      if (msg.contains('offline') ||
+          msg.contains('network') ||
+          msg.contains('connection') ||
+          msg.contains('transport') ||
+          msg.contains('unavailable') ||
+          msg.contains('timeout') ||
+          msg.contains('client is offline')) {
+        return true;
+      }
+    }
+    final errStr = e.toString().toLowerCase();
+    return errStr.contains('network') ||
+        errStr.contains('offline') ||
+        errStr.contains('socket') ||
+        errStr.contains('connection') ||
+        errStr.contains('timeout') ||
+        errStr.contains('unreachable') ||
+        errStr.contains('client is offline') ||
+        errStr.contains('failed host lookup');
+  }
+
+  Future<void> syncNow({bool force = false}) async {
     if (_syncState == SyncStatusState.syncing) return;
+
+    if (isOffline) {
+      _syncState = SyncStatusState.offlineSaved;
+      notifyListeners();
+      return;
+    }
+
+    if (force) {
+      for (final m in _pendingQueue) {
+        m.submitted = false;
+      }
+    }
 
     _syncState = SyncStatusState.syncing;
     notifyListeners();
@@ -255,12 +314,15 @@ class OfflineSyncService extends ChangeNotifier {
       _lastSyncedAt = DateTime.now();
       _retryAttempt = 0;
       _refreshState();
+      try {
+        PatientRepository.changeNotifier.value++;
+      } catch (_) {}
       notifyListeners();
     }).catchError((Object e) {
-      final transient = e is FirebaseException &&
-          (e.code == 'unavailable' || e.code == 'deadline-exceeded' || e.code == 'aborted');
+      final transient = isTransientError(e);
       if (transient) {
         mutation.submitted = false; // safe: the failed batch was not applied
+        _refreshState();
         _scheduleRetry();
       } else {
         _fail(mutation, e is FirebaseException ? '${e.code}: ${e.message}' : e.toString());
@@ -275,11 +337,8 @@ class OfflineSyncService extends ChangeNotifier {
     _pendingQueue.remove(mutation);
     _failed.add(mutation);
     debugPrint('Sync rejected ${mutation.entityType} ${mutation.id}: $reason');
-    try {
-      mutation.onRejected?.call(reason);
-    } catch (e) {
-      debugPrint('onRejected handler failed: $e');
-    }
+    // We retain the mutation in _failed for user inspection and manual retry.
+    // onRejected is deferred to discardFailed() so optimistic records are not wiped prematurely.
   }
 
   void _refreshState() {
@@ -312,11 +371,18 @@ class OfflineSyncService extends ChangeNotifier {
     _failed.clear();
     _syncState = SyncStatusState.offlineSaved;
     notifyListeners();
-    await syncNow();
+    await syncNow(force: true);
   }
 
-  /// Drops rejected mutations (the user has been told they were not saved).
+  /// Drops rejected mutations (the user has been told they were not saved and chose to discard).
   void discardFailed() {
+    for (final m in _failed) {
+      try {
+        m.onRejected?.call(m.error ?? 'Discarded by user');
+      } catch (e) {
+        debugPrint('onRejected handler failed: $e');
+      }
+    }
     _failed.clear();
     _refreshState();
     notifyListeners();

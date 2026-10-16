@@ -7,6 +7,7 @@ import '../widgets/clinical_modal_picker.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/page_header.dart';
 import '../widgets/skeleton_loader.dart';
+import '../services/offline_sync_service.dart';
 import '../services/team_service.dart';
 import 'new_patient_modal.dart';
 
@@ -38,19 +39,30 @@ class _PatientsScreenState extends State<PatientsScreen> {
   void initState() {
     super.initState();
     _loadPatients();
+    PatientRepository.changeNotifier.addListener(_loadPatients);
+    OfflineSyncService().addListener(_loadPatients);
     TeamService.instance.addListener(_loadPatients);
   }
 
   @override
   void dispose() {
+    PatientRepository.changeNotifier.removeListener(_loadPatients);
+    OfflineSyncService().removeListener(_loadPatients);
     TeamService.instance.removeListener(_loadPatients);
     _searchController.dispose();
     super.dispose();
   }
 
   void _loadPatients() {
+    if (!mounted) return;
     setState(() {
-      _patients = PatientRepository.getAllPatients();
+      if (_searchController.text.trim().isNotEmpty) {
+        _patients = PatientRepository.searchPatients(_searchController.text.trim());
+      } else if (_selectedFilter != 'All') {
+        _patients = PatientRepository.searchPatients(_selectedFilter);
+      } else {
+        _patients = PatientRepository.getAllPatients();
+      }
     });
   }
 
@@ -1018,7 +1030,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 600;
+            final isNarrow = constraints.maxWidth < 768;
 
             final infoText = Text(
               'Showing $startItem–$endItem of ${result.totalCount} records',

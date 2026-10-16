@@ -218,7 +218,11 @@ class SyncStatusIndicator extends StatelessWidget {
                   onPressed: isSyncing
                       ? null
                       : () async {
-                          await syncService.syncNow();
+                          if (syncService.failedMutations.isNotEmpty) {
+                            await syncService.retryFailed();
+                          } else {
+                            await syncService.syncNow(force: true);
+                          }
                         },
                   icon: isSyncing
                       ? SizedBox(
@@ -242,6 +246,50 @@ class SyncStatusIndicator extends StatelessWidget {
     );
   }
 
+  Widget _buildRetryButton(BuildContext context, OfflineSyncService syncService, Color color) {
+    return Tooltip(
+      message: 'Force retry pending writes now',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('sync-indicator-retry-button'),
+          borderRadius: BorderRadius.circular(10),
+          onTap: () async {
+            if (syncService.failedMutations.isNotEmpty) {
+              await syncService.retryFailed();
+            } else {
+              await syncService.syncNow(force: true);
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.refresh_rounded, size: 12, color: color),
+                const SizedBox(width: 3),
+                Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final syncService = OfflineSyncService();
@@ -252,6 +300,9 @@ class SyncStatusIndicator extends StatelessWidget {
         final isOffline = syncService.isOffline;
         final isSyncing = syncService.syncState == SyncStatusState.syncing;
         final pendingCount = syncService.pendingCount;
+        final failedCount = syncService.failedMutations.length;
+        final hasFailed = failedCount > 0;
+        final hasPending = pendingCount > 0;
         final lastSyncedText = _formatTimestamp(syncService.lastSyncedAt);
 
         Color badgeColor;
@@ -262,27 +313,32 @@ class SyncStatusIndicator extends StatelessWidget {
           badgeColor = AppTheme.primaryBlue;
           badgeIcon = Icons.sync_rounded;
           statusLabel = 'Syncing...';
-        } else if (syncService.failedMutations.isNotEmpty) {
-          badgeColor = Color(0xFFDC2626);
-          badgeIcon = Icons.error_outline_rounded;
-          statusLabel = 'Not saved (${syncService.failedMutations.length})';
+        } else if (hasFailed || hasPending) {
+          final unsavedCount = hasFailed ? failedCount : pendingCount;
+          badgeColor = hasFailed ? const Color(0xFFDC2626) : const Color(0xFFD97706);
+          badgeIcon = isOffline
+              ? Icons.wifi_off_rounded
+              : (hasFailed ? Icons.error_outline_rounded : Icons.cloud_upload_outlined);
+          statusLabel = 'Not saved ($unsavedCount)';
         } else if (isOffline) {
-          badgeColor = Color(0xFFD97706);
+          badgeColor = const Color(0xFFD97706);
           badgeIcon = Icons.wifi_off_rounded;
-          statusLabel = pendingCount > 0 ? 'Offline ($pendingCount saved)' : 'Offline (Saved locally)';
+          statusLabel = 'Offline (Saved locally)';
         } else {
-          badgeColor = Color(0xFF10B981);
+          badgeColor = const Color(0xFF10B981);
           badgeIcon = Icons.cloud_done_rounded;
           statusLabel = 'Up to date';
         }
 
-        final tooltipText = syncService.failedMutations.isNotEmpty
+        final tooltipText = hasFailed
             ? 'Some changes were rejected by the server and are not saved. Tap for details.'
+            : (!isOffline && hasPending)
+            ? 'Pending cloud synchronization: $pendingCount local writes waiting.'
             : isOffline
             ? 'Offline mode: Changes saved locally. Pending: $pendingCount'
             : (isSyncing ? 'Synchronizing payload with cloud...' : 'Up to date. Last synced: $lastSyncedText');
 
-        return Tooltip(
+        final badgeWidget = Tooltip(
           message: tooltipText,
           child: InkWell(
             onTap: () => _showSyncDetailsModal(context),
@@ -309,13 +365,16 @@ class SyncStatusIndicator extends StatelessWidget {
                   else
                     Icon(badgeIcon, size: 14, color: badgeColor),
                   if (!iconOnly) ...[
-                    SizedBox(width: 5),
-                    Text(
-                      statusLabel,
-                      style: TextStyle(
-                        fontSize: compact ? 10 : 11,
-                        fontWeight: FontWeight.bold,
-                        color: badgeColor,
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        statusLabel,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: compact ? 10 : 11,
+                          fontWeight: FontWeight.bold,
+                          color: badgeColor,
+                        ),
                       ),
                     ),
                   ],
@@ -323,6 +382,15 @@ class SyncStatusIndicator extends StatelessWidget {
               ),
             ),
           ),
+        );
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: badgeWidget),
+            if (!iconOnly && (hasFailed || hasPending) && !isSyncing)
+              _buildRetryButton(context, syncService, badgeColor),
+          ],
         );
       },
     );
