@@ -229,4 +229,78 @@ void main() {
     // Something had to move to the next line to make room.
     expect(tester.getRect(find.text('Cataract')).top, greaterThan(label.top + 10));
   });
+
+  testWidgets('showPatientCreatedSuccessModal renders patient details and triggers action callbacks', (tester) async {
+    final testPatient = Patient(
+      id: 'PT-999888',
+      mrn: 'PT-999888',
+      firstName: 'Elena',
+      lastName: 'Rostova',
+      fullName: 'Elena Rostova',
+      dateOfBirth: '1985-06-15',
+      gender: 'Female',
+      phone: '+63 917 555 1234',
+      address: 'Davao City',
+      medicalHistory: const [],
+      allergies: const [],
+      encounters: const [],
+      lastVisitDate: '2026-10-18',
+      totalVisits: 0,
+    );
+
+    bool startExamCalled = false;
+    bool viewProfileCalled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => showPatientCreatedSuccessModal(
+                context: context,
+                patient: testPatient,
+                onStartExam: () => startExamCalled = true,
+                onViewProfile: () => viewProfileCalled = true,
+              ),
+              child: const Text('Show Modal'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Show Modal'));
+    await tester.pumpAndSettle();
+
+    // Verify modal title & sync subtitle
+    expect(find.text('Patient Registered Successfully!'), findsOneWidget);
+    expect(find.text('Record saved locally & queued for Cloud Firestore sync.'), findsOneWidget);
+
+    // Verify patient information card
+    expect(find.text('Elena Rostova'), findsOneWidget);
+    expect(find.text('PT-999888'), findsOneWidget);
+    expect(find.textContaining('Gender & Age: Female, 41y'), findsOneWidget);
+    expect(find.text('Contact Phone: +63 917 555 1234'), findsOneWidget);
+    expect(find.text('Address: Davao City'), findsOneWidget);
+
+    // Verify action buttons
+    expect(find.text('Start Exam'), findsOneWidget);
+    expect(find.text('View Record'), findsOneWidget);
+
+    // Test Start Exam button callback
+    await tester.tap(find.text('Start Exam'));
+    await tester.pumpAndSettle();
+    expect(startExamCalled, isTrue);
+    expect(find.text('Patient Registered Successfully!'), findsNothing);
+
+    // Open again to test View Record button
+    await tester.tap(find.text('Show Modal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('View Record'));
+    await tester.pumpAndSettle();
+    expect(viewProfileCalled, isTrue);
+    expect(find.text('Patient Registered Successfully!'), findsNothing);
+  });
 }
+
