@@ -29,6 +29,7 @@ class _LoginViewState extends State<LoginView> {
   bool _obscureSignUpPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _isSuccessTransitioning = false;
   bool _rememberMe = false;
   String? _errorMessage;
 
@@ -78,12 +79,26 @@ class _LoginViewState extends State<LoginView> {
       );
       _signInPasswordController.clear();
       if (mounted && AuthService.instance.isSignedIn) {
-        widget.onLoginSuccess();
+        setState(() => _isSuccessTransitioning = true);
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          widget.onLoginSuccess();
+        }
       }
     } on AuthFailure catch (e) {
-      if (mounted) setState(() => _errorMessage = e.message);
+      if (mounted) {
+        setState(() {
+          _isSuccessTransitioning = false;
+          _errorMessage = e.message;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _errorMessage = 'Sign-in failed. Please try again.');
+      if (mounted) {
+        setState(() {
+          _isSuccessTransitioning = false;
+          _errorMessage = 'Sign-in failed. Please try again.';
+        });
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -111,12 +126,26 @@ class _LoginViewState extends State<LoginView> {
       _signUpPasswordController.clear();
       _confirmPasswordController.clear();
       if (mounted && AuthService.instance.isSignedIn) {
-        widget.onLoginSuccess();
+        setState(() => _isSuccessTransitioning = true);
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          widget.onLoginSuccess();
+        }
       }
     } on AuthFailure catch (e) {
-      if (mounted) setState(() => _errorMessage = e.message);
+      if (mounted) {
+        setState(() {
+          _isSuccessTransitioning = false;
+          _errorMessage = e.message;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() => _errorMessage = 'Registration failed. Please try again.');
+      if (mounted) {
+        setState(() {
+          _isSuccessTransitioning = false;
+          _errorMessage = 'Registration failed. Please try again.';
+        });
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -321,7 +350,9 @@ class _LoginViewState extends State<LoginView> {
                       SizedBox(height: 20),
 
                       // State Handler views
-                      if (auth.is2faPending)
+                      if (_isSuccessTransitioning)
+                        _buildSuccessTransitionView()
+                      else if (auth.is2faPending)
                         _buildTwoFactorPendingView(auth)
                       else if (auth.isPendingEmailVerification)
                         _buildEmailVerificationPendingView(auth)
@@ -340,12 +371,14 @@ class _LoginViewState extends State<LoginView> {
                             children: [
                               Expanded(
                                 child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _isSignUpMode = false;
-                                      _errorMessage = null;
-                                    });
-                                  },
+                                  onTap: _isLoading
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _isSignUpMode = false;
+                                            _errorMessage = null;
+                                          });
+                                        },
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     decoration: BoxDecoration(
@@ -375,12 +408,14 @@ class _LoginViewState extends State<LoginView> {
                               ),
                               Expanded(
                                 child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _isSignUpMode = true;
-                                      _errorMessage = null;
-                                    });
-                                  },
+                                  onTap: _isLoading
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _isSignUpMode = true;
+                                            _errorMessage = null;
+                                          });
+                                        },
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     decoration: BoxDecoration(
@@ -465,11 +500,21 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInEmailController,
+            enabled: !_isLoading,
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.email_outlined,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -487,21 +532,33 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInPasswordController,
+            enabled: !_isLoading,
             obscureText: _obscureSignInPassword,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: '••••••••••••',
-              prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.lock_outline,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignInPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppTheme.textSecondary,
+                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() => _obscureSignInPassword = !_obscureSignInPassword);
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        setState(() => _obscureSignInPassword = !_obscureSignInPassword);
+                      },
               ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -526,7 +583,7 @@ class _LoginViewState extends State<LoginView> {
                         value: _rememberMe,
                         activeColor: AppTheme.primaryBlue,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                        onChanged: (val) => setState(() => _rememberMe = val ?? true),
+                        onChanged: _isLoading ? null : (val) => setState(() => _rememberMe = val ?? true),
                       ),
                     ),
                     SizedBox(width: 6),
@@ -541,7 +598,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               TextButton(
-                onPressed: _showForgotPasswordDialog,
+                onPressed: _isLoading ? null : _showForgotPasswordDialog,
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
                   minimumSize: Size.zero,
@@ -549,7 +606,11 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 child: Text(
                   'Forgot Password?',
-                  style: TextStyle(color: AppTheme.primaryBlue, fontSize: 11, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -566,17 +627,23 @@ class _LoginViewState extends State<LoginView> {
               onPressed: _isLoading ? null : _handleSignIn,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
+                disabledBackgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.75),
                 foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: _isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
+                      key: Key('sign-in-loading-spinner'),
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
                     )
-                  : Row(
+                  : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.login_rounded, size: 20),
@@ -584,6 +651,53 @@ class _LoginViewState extends State<LoginView> {
                         Text('Sign In to Workstation', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       ],
                     ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessTransitionView() {
+    return Container(
+      key: const Key('login-transition-view'),
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Authenticating Session...',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Opening your clinical workstation dashboard',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -604,10 +718,20 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _fullNameController,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            enabled: !_isLoading,
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: 'Dr. Jane Doe',
-              prefixIcon: Icon(Icons.person_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.person_outline,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -625,11 +749,21 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signUpEmailController,
+            enabled: !_isLoading,
             keyboardType: TextInputType.emailAddress,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.email_outlined,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -650,21 +784,33 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signUpPasswordController,
+            enabled: !_isLoading,
             obscureText: _obscureSignUpPassword,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: 'At least 6 characters',
-              prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.lock_outline,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignUpPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppTheme.textSecondary,
+                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() => _obscureSignUpPassword = !_obscureSignUpPassword);
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        setState(() => _obscureSignUpPassword = !_obscureSignUpPassword);
+                      },
               ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -682,21 +828,33 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(height: 8),
           RequiredTextFormField(
             controller: _confirmPasswordController,
+            enabled: !_isLoading,
             obscureText: _obscureConfirmPassword,
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: 'Repeat password',
-              prefixIcon: Icon(Icons.lock_clock_outlined, color: AppTheme.primaryBlue, size: 20),
+              prefixIcon: Icon(
+                Icons.lock_clock_outlined,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: AppTheme.textSecondary,
+                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
                   size: 20,
                 ),
-                onPressed: () {
-                  setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                      },
               ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
@@ -717,17 +875,22 @@ class _LoginViewState extends State<LoginView> {
               onPressed: _isLoading ? null : _handleSignUp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
+                disabledBackgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.75),
                 foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: _isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
                     )
-                  : Row(
+                  : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.person_add_rounded, size: 20),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
+import 'package:ophthalmology_clinical_record_system/models/eye_exam.dart';
 import 'package:ophthalmology_clinical_record_system/views/main_layout.dart';
 import 'package:ophthalmology_clinical_record_system/views/prescription_view.dart';
+import 'package:ophthalmology_clinical_record_system/widgets/drawing/eye_drawing_canvas.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/drawing/paper_sheet_canvas.dart';
 
 void main() {
@@ -97,6 +99,41 @@ void main() {
 
       expect(find.byType(PaperSheetCanvas), findsOneWidget);
       expect(tester.takeException(), isNull, reason: 'Must not throw layout/overflow exceptions on tablet size');
+    });
+
+    testWidgets('EyeDrawingCanvas scales proportionally on tablet portrait (768px) and landscape (1024px)', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(768, 1024);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 350,
+                height: 480,
+                child: EyeDrawingCanvas(
+                  eye: EyeType.OD,
+                  onEyeChanged: (_) {},
+                  onDrawingSaved: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EyeDrawingCanvas), findsOneWidget);
+      expect(find.text('OD'), findsOneWidget);
+      expect(find.text('OS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      // Switch to OS
+      await tester.tap(find.text('OS'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     });
   });
 

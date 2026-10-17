@@ -307,13 +307,14 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
                 children: [
                   Text('Target Eye: ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                  SizedBox(width: 6),
                   SegmentedButton<EyeType>(
-                    segments: [
+                    segments: const [
                       ButtonSegment(value: EyeType.OD, label: Text('OD')),
                       ButtonSegment(value: EyeType.OS, label: Text('OS')),
                     ],
@@ -393,17 +394,24 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                   // Floating Canva-Style Toolbar at Bottom
                   Positioned(
                     bottom: 12,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Floating Expandable Color/Stamp Drawer Tray
-                        if (_showColorDrawer) _buildFloatingColorTray(),
-                        if (_showStampDrawer) _buildFloatingStampTray(),
-                        if (_showColorDrawer || _showStampDrawer) SizedBox(height: 8),
+                    left: 8,
+                    right: 8,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Floating Expandable Color/Stamp Drawer Tray
+                            if (_showColorDrawer) _buildFloatingColorTray(),
+                            if (_showStampDrawer) _buildFloatingStampTray(),
+                            if (_showColorDrawer || _showStampDrawer) const SizedBox(height: 8),
 
-                        // Canva Floating Bottom Toolbar Pill
-                        _buildCanvaFloatingToolbar(),
-                      ],
+                            // Canva Floating Bottom Toolbar Pill
+                            _buildCanvaFloatingToolbar(),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -665,7 +673,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
 
   Widget _buildCanvasFrame(BoxConstraints outerConstraints) {
     final double maxAvailWidth = outerConstraints.maxWidth.isFinite ? outerConstraints.maxWidth : 340.0;
-    final double canvasDimension = math.min(360.0, math.max(280.0, maxAvailWidth - 12));
+    final double canvasDimension = math.min(360.0, math.max(200.0, maxAvailWidth - 12));
     final isPlain = widget.diagramType == 'plain';
 
     return Center(

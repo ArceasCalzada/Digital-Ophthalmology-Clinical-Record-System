@@ -15,6 +15,7 @@ class RequiredTextFormField extends StatefulWidget {
   final int? maxLines;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final bool? enabled;
 
   /// Whether surrounding spaces are ignored when deciding if the field is empty.
   final bool trim;
@@ -31,6 +32,7 @@ class RequiredTextFormField extends StatefulWidget {
     this.maxLines = 1,
     this.keyboardType,
     this.onChanged,
+    this.enabled,
     this.trim = true,
     this.invalidMessage,
     this.validator,
@@ -87,6 +89,7 @@ class _RequiredTextFormFieldState extends State<RequiredTextFormField> {
         maxLines: widget.maxLines,
         keyboardType: widget.keyboardType,
         onChanged: widget.onChanged,
+        enabled: widget.enabled,
         decoration: widget.decoration.copyWith(
           // Nothing is printed for "empty"; only a real message takes up room.
           errorStyle: _showMessage ? null : const TextStyle(fontSize: 0, height: 0),
