@@ -323,6 +323,52 @@ void main() {
       expect(find.text('New password and confirmation do not match.'), findsOneWidget);
     });
 
+    testWidgets('Successful password change triggers success modal and clears input fields', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1600, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SettingsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+
+      final textFields = find.byType(TextField);
+      await tester.enterText(textFields.at(0), 'Doctor@123');
+      await tester.enterText(textFields.at(1), 'ValidNewPass123!');
+      await tester.enterText(textFields.at(2), 'ValidNewPass123!');
+
+      final updateBtn = find.text('Update Password');
+      await tester.ensureVisible(updateBtn);
+      await tester.tap(updateBtn);
+      await tester.pumpAndSettle();
+
+      // Verify success modal pops up
+      expect(find.text('Password Updated'), findsOneWidget);
+      expect(find.text('Your account password has been successfully updated in Firebase Authentication.'), findsOneWidget);
+
+      // Verify fields are cleared
+      expect(tester.widget<TextField>(textFields.at(0)).controller?.text, isEmpty);
+      expect(tester.widget<TextField>(textFields.at(1)).controller?.text, isEmpty);
+      expect(tester.widget<TextField>(textFields.at(2)).controller?.text, isEmpty);
+
+      // Dismiss modal
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('Password Updated'), findsNothing);
+    });
+
     testWidgets('Password visibility toggle reveals and masks password fields independently', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1600, 2400);
       tester.view.devicePixelRatio = 1.0;
