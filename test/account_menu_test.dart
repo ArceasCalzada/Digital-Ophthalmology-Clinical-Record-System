@@ -148,6 +148,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
+    // Modal is opened; user is not logged out yet
+    expect(loggedOut, isFalse);
+    expect(find.text('Confirm Logout'), findsWidgets);
+    expect(find.text('Cancel'), findsOneWidget);
+
+    // Confirming logout triggers callback
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm Logout'));
+    await tester.pumpAndSettle();
     expect(loggedOut, isTrue);
     expect(find.text('Log out'), findsNothing, reason: 'the menu closes');
   });

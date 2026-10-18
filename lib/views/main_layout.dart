@@ -1000,8 +1000,18 @@ class _MainLayoutState extends State<MainLayout> {
             if (isDrawer) Navigator.pop(context);
           },
           onLogout: () async {
-            final canLeave = await _confirmUnsyncedExit();
-            if (canLeave) {
+            final sync = OfflineSyncService();
+            final unsynced = sync.pendingCount + sync.failedMutations.length;
+            if (unsynced > 0) {
+              final canLeave = await _confirmUnsyncedExit();
+              if (canLeave) {
+                widget.onLogout();
+              }
+              return;
+            }
+
+            final confirmed = await showLogoutConfirmationDialog(context);
+            if (confirmed) {
               widget.onLogout();
             }
           },

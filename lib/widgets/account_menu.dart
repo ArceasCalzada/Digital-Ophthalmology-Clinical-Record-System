@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+export 'logout_confirmation_dialog.dart';
 
 import '../models/clinic.dart';
 import '../services/auth_service.dart';
