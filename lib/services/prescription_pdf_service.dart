@@ -305,7 +305,10 @@ class PrescriptionPdfService {
                           decoration: const pw.BoxDecoration(
                             border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1)),
                           ),
-                          child: pw.Text(followUpDate, style: const pw.TextStyle(fontSize: 10)),
+                          child: pw.Text(
+                            followUpDate.trim().isNotEmpty ? followUpDate.trim() : '_________________',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
                         ),
                       ],
                     ),
@@ -368,12 +371,14 @@ class PrescriptionPdfService {
     required List<PrescriptionItem> items,
     required String date,
     String? doctorName,
+    String followUpDate = '_________________',
   }) async {
     final bytes = await generatePrescriptionPdf(
       patient: patient,
       items: items,
       date: date,
       doctorName: doctorName,
+      followUpDate: followUpDate,
     );
     final fileName = 'Prescription_${(patient?.fullName ?? "Patient").replaceAll(' ', '_')}.pdf';
     await Printing.layoutPdf(
@@ -388,12 +393,14 @@ class PrescriptionPdfService {
     required List<PrescriptionItem> items,
     required String date,
     String? doctorName,
+    String followUpDate = '_________________',
   }) async {
     final bytes = await generatePrescriptionPdf(
       patient: patient,
       items: items,
       date: date,
       doctorName: doctorName,
+      followUpDate: followUpDate,
     );
     final fileName = 'Prescription_${(patient?.fullName ?? "Patient").replaceAll(' ', '_')}.pdf';
     await Printing.sharePdf(

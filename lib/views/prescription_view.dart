@@ -5,6 +5,7 @@ import '../models/prescription.dart';
 import '../services/prescription_pdf_service.dart';
 import '../services/profile_store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/clinical_date_picker.dart';
 import '../widgets/clinical_dropdown_field.dart';
 import '../widgets/clinical_modal_picker.dart';
 import '../widgets/page_header.dart';
@@ -33,6 +34,42 @@ class _PrescriptionViewState extends State<PrescriptionView> {
   final _frequencyController = TextEditingController();
   final _durationController = TextEditingController();
   final _instructionsController = TextEditingController();
+  final _followUpController = TextEditingController();
+
+  @override
+  void dispose() {
+    _medNameController.dispose();
+    _strengthController.dispose();
+    _dosageController.dispose();
+    _frequencyController.dispose();
+    _durationController.dispose();
+    _instructionsController.dispose();
+    _followUpController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFollowUpDate() async {
+    final now = DateTime.now();
+    DateTime initial = now.add(const Duration(days: 14));
+    if (_followUpController.text.trim().isNotEmpty) {
+      final parsed = DateTime.tryParse(_followUpController.text.trim());
+      if (parsed != null) {
+        initial = parsed;
+      }
+    }
+    final picked = await showClinicalDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked != null) {
+      final formatted = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      setState(() {
+        _followUpController.text = formatted;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -76,6 +113,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     if (patient != null && patient.prescriptions.isNotEmpty) {
       final latestRx = patient.prescriptions.first;
       _medications.addAll(latestRx.items);
+      _followUpController.text = latestRx.followUpDate;
       if (latestRx.clinicBranch.isNotEmpty) {
         final allBranches = ProfileStore.instance.branches;
         try {
@@ -96,6 +134,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
         }
       }
     } else {
+      _followUpController.clear();
       final active = ProfileStore.instance.activeBranches;
       if (active.isNotEmpty) {
         _selectedBranch = active.first;
@@ -138,6 +177,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
       date: DateTime.now().toString().substring(0, 10),
       items: List.from(_medications),
       clinicBranch: _selectedBranch?.name ?? '',
+      followUpDate: _followUpController.text.trim(),
     );
 
     try {
@@ -197,6 +237,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                   date: rx.date,
                   doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : ProfileStore.instance.doctorName.text,
                   showBorder: true,
+                  followUpDate: rx.followUpDate.isNotEmpty ? rx.followUpDate : '_________________',
                 ),
                 SizedBox(height: 20),
                 Row(
@@ -209,6 +250,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           items: rx.items,
                           date: rx.date,
                           doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : ProfileStore.instance.doctorName.text,
+                          followUpDate: rx.followUpDate.isNotEmpty ? rx.followUpDate : '_________________',
                         );
                         if (context.mounted) {
                           showActionSuccessModal(
@@ -231,6 +273,7 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           items: rx.items,
                           date: rx.date,
                           doctorName: rx.doctorName.isNotEmpty ? rx.doctorName : 'Dr. Sigrid T. Robillos',
+                          followUpDate: rx.followUpDate.isNotEmpty ? rx.followUpDate : '_________________',
                         );
                       },
                       icon: Icon(Icons.print, size: 16),
@@ -572,6 +615,39 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                           minimumSize: Size(double.infinity, 44),
                         ),
                       ),
+                      SizedBox(height: 20),
+                      Divider(color: AppTheme.borderColor),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.event_note_outlined, size: 18, color: AppTheme.primaryBlue),
+                          SizedBox(width: 8),
+                          Text(
+                            'Follow-Up Check-Up Schedule',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Set an upcoming consultation date or instructions (e.g. "In 2 weeks", "November 15, 2026").',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                      SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('prescription_follow_up_input'),
+                        controller: _followUpController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. In 2 weeks or select a date',
+                          prefixIcon: Icon(Icons.schedule, size: 18, color: AppTheme.textSecondary),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.calendar_month, size: 20, color: AppTheme.primaryBlue),
+                            tooltip: 'Select date',
+                            onPressed: _pickFollowUpDate,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -607,6 +683,9 @@ class _PrescriptionViewState extends State<PrescriptionView> {
                       date: DateTime.now().toString().substring(0, 10),
                       doctorName: ProfileStore.instance.doctorName.text,
                       showBorder: true,
+                      followUpDate: _followUpController.text.trim().isNotEmpty
+                          ? _followUpController.text.trim()
+                          : '_________________',
                     ),
                   ),
                 ],

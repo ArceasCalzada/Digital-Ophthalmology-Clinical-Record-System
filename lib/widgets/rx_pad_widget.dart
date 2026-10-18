@@ -366,12 +366,12 @@ class RxPadWidget extends StatelessWidget {
                     Text('Follow Up Check Up:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF0F172A))),
                     SizedBox(height: 4),
                     Container(
-                      width: 130,
-                      padding: EdgeInsets.only(bottom: 2),
-                      decoration: BoxDecoration(
+                      constraints: const BoxConstraints(minWidth: 130),
+                      padding: const EdgeInsets.only(bottom: 2),
+                      decoration: const BoxDecoration(
                         border: Border(bottom: BorderSide(color: Color(0xFF0F172A), width: 1)),
                       ),
-                      child: Text(followUpDate, style: TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis),
+                      child: Text(followUpDate, style: const TextStyle(fontSize: 11, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),

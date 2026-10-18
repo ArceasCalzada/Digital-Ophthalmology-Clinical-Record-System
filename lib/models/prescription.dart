@@ -48,6 +48,7 @@ class Prescription {
   final String notes;
   final String teamId;
   final String clinicBranch;
+  final String followUpDate;
 
   Prescription({
     required this.id,
@@ -59,6 +60,7 @@ class Prescription {
     this.notes = '',
     this.teamId = '',
     this.clinicBranch = '',
+    this.followUpDate = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -71,6 +73,7 @@ class Prescription {
         'notes': notes,
         if (teamId.isNotEmpty) 'teamId': teamId,
         if (clinicBranch.isNotEmpty) 'clinicBranch': clinicBranch,
+        if (followUpDate.isNotEmpty) 'followUpDate': followUpDate,
       };
 
   factory Prescription.fromJson(Map<String, dynamic> json) => Prescription(
@@ -85,5 +88,6 @@ class Prescription {
         notes: json['notes'] as String? ?? '',
         teamId: json['teamId'] as String? ?? json['team_id'] as String? ?? '',
         clinicBranch: json['clinicBranch'] as String? ?? json['clinic_branch'] as String? ?? '',
+        followUpDate: json['followUpDate'] as String? ?? json['follow_up_date'] as String? ?? '',
       );
 }
