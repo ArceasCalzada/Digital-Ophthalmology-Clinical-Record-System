@@ -993,9 +993,17 @@ class PatientRepository {
       requireLength('Instructions', item.instructions, AppLimits.maxShortTextLength);
     }
 
+    final p = _patients[idx];
+    final effectiveTeamId = prescription.teamId.isNotEmpty
+        ? prescription.teamId
+        : (p.teamId.isNotEmpty ? p.teamId : (_activeTeamId ?? ''));
+
     final data = prescription.toJson()
       ..['patientId'] = patientId
       ..['lastModified'] = DateTime.now().toIso8601String();
+    if (effectiveTeamId.isNotEmpty && (data['teamId'] == null || (data['teamId'] as String).isEmpty)) {
+      data['teamId'] = effectiveTeamId;
+    }
     final rxPath = 'patients/$patientId/prescriptions/${prescription.id}';
     StorageOptimizationService.auditAndOptimizePayload(
       data,
@@ -1003,8 +1011,14 @@ class PatientRepository {
       docPath: rxPath,
     );
 
-    final p = _patients[idx];
-    _patients[idx] = p.copyWith(prescriptions: [prescription, ...p.prescriptions]);
+    _patients[idx] = p.copyWith(
+      prescriptions: [
+        prescription.teamId.isEmpty && effectiveTeamId.isNotEmpty
+            ? prescription.copyWith(teamId: effectiveTeamId)
+            : prescription,
+        ...p.prescriptions,
+      ],
+    );
     changeNotifier.value++;
 
     OfflineSyncService().enqueueMutation(
@@ -1069,6 +1083,9 @@ class PatientRepository {
     final patientIndex = _patients.indexWhere((p) => p.id == patientId);
     if (patientIndex == -1) return;
     final existing = _patients[patientIndex];
+    final effectiveTeamId = encounter.teamId.isNotEmpty
+        ? encounter.teamId
+        : (existing.teamId.isNotEmpty ? existing.teamId : (_activeTeamId ?? ''));
 
     if (existing.encounters.length >= maxEncountersPerPatient) {
       throw const FormatException(
@@ -1078,18 +1095,25 @@ class PatientRepository {
 
     final encounterPath = 'patients/$patientId/encounters/${encounter.id}';
     final encounterData = encounter.toFirestore();
+    if (effectiveTeamId.isNotEmpty && (encounterData['teamId'] == null || (encounterData['teamId'] as String).isEmpty)) {
+      encounterData['teamId'] = effectiveTeamId;
+    }
     StorageOptimizationService.auditAndOptimizePayload(
       encounterData,
       maxDocBytes: AppLimits.maxEncounterDocBytes,
       docPath: encounterPath,
     );
 
+    final storedEncounter = encounter.teamId.isEmpty && effectiveTeamId.isNotEmpty
+        ? encounter.copyWith(teamId: effectiveTeamId)
+        : encounter;
+
     final updated = existing.copyWith(
-      previousDiagnoses: [encounter.diagnosis, ...existing.previousDiagnoses]
+      previousDiagnoses: [storedEncounter.diagnosis, ...existing.previousDiagnoses]
           .take(AppLimits.maxDiagnosisSummary)
           .toList(),
-      encounters: [encounter, ...existing.encounters],
-      lastVisitDate: encounter.date,
+      encounters: [storedEncounter, ...existing.encounters],
+      lastVisitDate: storedEncounter.date,
       totalVisits: existing.totalVisits + 1,
     );
     final summary = updated.toFirestore();

@@ -147,5 +147,76 @@ void main() {
       expect(find.text('Local-First Guarantee'), findsOneWidget);
       expect(find.text('Simulate Network Connection'), findsOneWidget);
     });
+
+    test('hasPermissionError flags permission errors and suppresses auto-retries', () {
+      final mut = SyncMutation(
+        id: 'mut-perm-1',
+        entityType: 'Prescription',
+        action: 'CREATE',
+        payload: {'patientId': 'pat-1'},
+        timestamp: DateTime.now(),
+      );
+
+      expect(syncService.hasPermissionError, isFalse);
+
+      syncService.failMutationForTesting(
+        mut,
+        'permission-denied: Missing or insufficient permissions.',
+      );
+
+      expect(syncService.hasPermissionError, isTrue);
+      expect(syncService.syncState, equals(SyncStatusState.error));
+      expect(syncService.failedMutations.length, equals(1));
+
+      // Network toggle should NOT auto-retry permission-denied errors
+      syncService.setNetworkState(NetworkConnectivityState.offline);
+      syncService.setNetworkState(NetworkConnectivityState.online);
+
+      expect(syncService.failedMutations.length, equals(1));
+      expect(syncService.hasPermissionError, isTrue);
+    });
+
+    testWidgets('SyncStatusIndicator displays clear guidance when permission-denied error occurs', (WidgetTester tester) async {
+      final mut = SyncMutation(
+        id: 'mut-perm-2',
+        entityType: 'Patient',
+        action: 'CREATE',
+        payload: {'fullName': 'Jane Doe'},
+        timestamp: DateTime.now(),
+      );
+
+      syncService.failMutationForTesting(
+        mut,
+        'permission-denied: Missing or insufficient permissions.',
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SyncStatusIndicator(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Not saved (1)'), findsOneWidget);
+
+      // Open details dialog
+      await tester.tap(find.byType(SyncStatusIndicator));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 change(s) were NOT saved to the cloud'), findsOneWidget);
+      expect(
+        find.textContaining('Permission Denied: Your account does not have write access to this workspace.'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: find.byType(AlertDialog), matching: find.text('Retry')),
+        findsOneWidget,
+      );
+      expect(find.text('Discard'), findsOneWidget);
+    });
   });
 }

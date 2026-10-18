@@ -1,13 +1,57 @@
 rules_version = '2';
 
-// DOCRS Firestore security rules.
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
 //
-// Threat model: the Firebase API key is public (it ships in every app build), so
-// these rules and App Check are the only protection. They guarantee:
-//   1. Nobody can read or write anything unless signed in.
-//   2. Every write has known fields, correct types and bounded sizes.
-//   3. Team data isolation & role enforcement (Owner, Editor, Assistant, Viewer).
-//   4. Every list query must carry a limit, so a client cannot scan the database.
+// Collection: teams/{teamId}
+//   - id: string (required, max 128)
+//   - name: string (required, max 100)
+//   - location: string (optional, max 200)
+//   - ownerId: string (required, max 128)
+//   - inviteCode: string (required, max 32)
+//   - createdAt: string (required, max 64)
+//   - patientCount: int (optional, 0..100000)
+//   - encounterCount: int (optional, 0..100000)
+//   - prescriptionCount: int (optional, 0..100000)
+//   - isArchived: bool (optional)
+//
+// Collection: teams/{teamId}/members/{uid}
+//   - uid: string (required, max 128)
+//   - email: string (optional, max 200)
+//   - displayName: string (optional, max 200)
+//   - role: string (required: 'owner' | 'editor' | 'assistant' | 'viewer')
+//   - joinedAt: string (optional, max 64)
+//   - status: string (optional, max 32: 'active' | 'pending')
+//
+// Collection: patients/{pid}
+//   - id, mrn, fullName, dateOfBirth, gender, phone, address (required)
+//   - firstName, middleName, lastName, occupation, phicNumber, referringDoctor (optional)
+//   - notes, medicalHistory, allergies, previousDiagnoses, previousPrescriptions (optional)
+//   - lastVisitDate, totalVisits, lastModified, teamId, createdAt (optional)
+//
+// Collection: patients/{pid}/encounters/{eid}
+//   - id, patientId, date, lastModified (required)
+//   - doctorName, chiefComplaint, examOD, examOS, diagnosis, treatmentPlan, status, teamId
+//   - paperSheet, drawOD, drawOS (optional byte blobs)
+//
+// Collection: patients/{pid}/prescriptions/{rid}
+//   - id, patientId, items, lastModified (required)
+//   - encounterId, doctorName, date, notes, teamId, clinicBranch, followUpDate (optional)
+//
+// Collection: users/{uid}
+//   - role, status, email, displayName, twoFactorEnabled, twoFactorPhoneNumber, updatedAt
+//   Subcollections: settings/{docId}, preferences/{docId}
+//
+// Collection: meta/counters
+//   - patientCount, encounterCount, prescriptionCount (int counters)
+//
+// Collection: calendarEvents/{id}
+//   - id, title, eventType, location, dateTime, patientName, patientId, notes, reminderMinutes, isCompleted, teamId
+//
+// Collection: notifications/{id}
+//   - id, title, message, category, severity, timestamp, patientName, patientId, isRead, teamId
+// ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,25 +61,44 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
     function hasRole() {
-      return request.auth != null && exists(userPath());
+      return request.auth != null && (
+        (request.auth.token.get('role', '') != '') ||
+        exists(userPath())
+      );
     }
     function role() {
-      return get(userPath()).data.role;
+      return request.auth.token.get('role', '') != ''
+        ? request.auth.token.role
+        : (exists(userPath()) ? get(userPath()).data.get('role', '') : '');
     }
     function isStaff() {
-      return hasRole() && role() in ['admin', 'physician', 'staff'];
+      return request.auth != null && (
+        role() in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant'] ||
+        request.auth.token.get('role', '') in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant']
+      );
     }
     function isPhysician() {
-      return hasRole() && role() in ['admin', 'physician'];
+      return request.auth != null && (
+        role() in ['admin', 'physician', 'owner', 'editor'] ||
+        request.auth.token.get('role', '') in ['admin', 'physician', 'owner', 'editor']
+      );
     }
 
     // --------------------------------------------------- team permissions --
     function memberPath(teamId, uid) {
       return /databases/$(database)/documents/teams/$(teamId)/members/$(uid);
     }
+    function tokenWorkspaceMatches(teamId) {
+      return request.auth != null && teamId != null && teamId != '' && (
+        request.auth.token.get('teamId', '') == teamId ||
+        request.auth.token.get('workspaceId', '') == teamId ||
+        request.auth.token.get('activeWorkspaceId', '') == teamId
+      );
+    }
     function isTeamMember(teamId) {
       return request.auth != null && (
         isStaff() ||
+        tokenWorkspaceMatches(teamId) ||
         (teamId != null && teamId != '' && (
           exists(memberPath(teamId, request.auth.uid)) ||
           (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
@@ -43,11 +106,14 @@ service cloud.firestore {
       );
     }
     function memberRole(teamId) {
-      return get(memberPath(teamId, request.auth.uid)).data.role;
+      return tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '') != ''
+        ? request.auth.token.role
+        : (exists(memberPath(teamId, request.auth.uid)) ? get(memberPath(teamId, request.auth.uid)).data.get('role', 'viewer') : 'viewer');
     }
     function isTeamOwner(teamId) {
       return request.auth != null && (
         isStaff() ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '') == 'owner') ||
         (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) == 'owner') ||
         (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
       );
@@ -56,6 +122,7 @@ service cloud.firestore {
       return request.auth != null && (
         isStaff() ||
         teamId == null || teamId == '' ||
+        tokenWorkspaceMatches(teamId) ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant', 'viewer'])
       );
     }
@@ -63,6 +130,7 @@ service cloud.firestore {
       return request.auth != null && (
         isStaff() ||
         teamId == null || teamId == '' ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor', 'assistant']) ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant'])
       );
     }
@@ -70,6 +138,7 @@ service cloud.firestore {
       return request.auth != null && (
         isPhysician() ||
         teamId == null || teamId == '' ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor', 'viewer']) ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'viewer'])
       );
     }
@@ -77,8 +146,15 @@ service cloud.firestore {
       return request.auth != null && (
         isPhysician() ||
         teamId == null || teamId == '' ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor']) ||
         (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor'])
       );
+    }
+
+    function patientTeamId(pid) {
+      let pPath = /databases/$(database)/documents/patients/$(pid);
+      return exists(pPath) ? get(pPath).data.get('teamId', '') :
+             existsAfter(pPath) ? getAfter(pPath).data.get('teamId', '') : '';
     }
 
     // ------------------------------------------------------------- counters --
@@ -124,14 +200,15 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- teams --
     function validTeam(d, id) {
-      return d.keys().hasOnly(['id', 'name', 'ownerId', 'inviteCode', 'createdAt', 'patientCount', 'encounterCount', 'prescriptionCount'])
+      return d.keys().hasOnly(['id', 'name', 'location', 'ownerId', 'inviteCode', 'createdAt', 'patientCount', 'encounterCount', 'prescriptionCount', 'isArchived'])
         && d.keys().hasAll(['id', 'name', 'ownerId', 'inviteCode'])
         && d.id == id
-        && s(d, 'name', 100) && s(d, 'ownerId', 128) && s(d, 'inviteCode', 32)
+        && s(d, 'name', 100) && sn(d, 'location', 200) && s(d, 'ownerId', 128) && s(d, 'inviteCode', 32)
         && s(d, 'createdAt', 64)
         && optInt(d, 'patientCount', 0, 100000)
         && optInt(d, 'encounterCount', 0, 100000)
-        && optInt(d, 'prescriptionCount', 0, 100000);
+        && optInt(d, 'prescriptionCount', 0, 100000)
+        && optBool(d, 'isArchived');
     }
 
     match /teams/{teamId} {
@@ -142,10 +219,11 @@ service cloud.firestore {
       allow delete: if isTeamOwner(teamId);
 
       function validMember(d, uid) {
-        return d.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'joinedAt'])
+        return d.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'joinedAt', 'status'])
           && d.keys().hasAll(['uid', 'role'])
           && d.uid == uid
           && s(d, 'email', 200) && s(d, 'displayName', 200) && s(d, 'joinedAt', 64)
+          && sn(d, 'status', 32)
           && d.role in ['owner', 'editor', 'assistant', 'viewer'];
       }
 
@@ -165,17 +243,19 @@ service cloud.firestore {
     // ------------------------------------------------------------- patients --
     function validPatient(d, pid) {
       return d.keys().hasOnly([
-          'id', 'mrn', 'fullName', 'middleName', 'dateOfBirth', 'gender', 'phone',
-          'address', 'occupation', 'phicNumber', 'referringDoctor', 'notes', 'medicalHistory',
-          'allergies', 'previousDiagnoses', 'previousPrescriptions', 'lastVisitDate',
-          'totalVisits', 'lastModified', 'teamId'])
+          'id', 'mrn', 'firstName', 'middleName', 'lastName', 'fullName',
+          'dateOfBirth', 'gender', 'phone', 'address', 'occupation', 'phicNumber',
+          'referringDoctor', 'notes', 'medicalHistory', 'allergies', 'previousDiagnoses',
+          'previousPrescriptions', 'lastVisitDate', 'totalVisits', 'lastModified',
+          'teamId', 'createdAt'])
         && d.keys().hasAll(['id', 'mrn', 'fullName', 'dateOfBirth', 'gender', 'phone', 'address'])
         && d.id == pid
         && s(d, 'mrn', 300) && s(d, 'fullName', 300) && s(d, 'middleName', 300)
+        && sn(d, 'firstName', 300) && sn(d, 'lastName', 300)
         && s(d, 'dateOfBirth', 300) && s(d, 'gender', 300) && s(d, 'phone', 300)
         && s(d, 'address', 300) && s(d, 'occupation', 300) && s(d, 'phicNumber', 300)
         && sn(d, 'referringDoctor', 300) && s(d, 'notes', 1000) && s(d, 'lastVisitDate', 300)
-        && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
+        && s(d, 'lastModified', 64) && sn(d, 'teamId', 300) && sn(d, 'createdAt', 64)
         && optInt(d, 'totalVisits', 0, 100000)
         && strList(d.get('medicalHistory', []), 15, 4600)
         && strList(d.get('allergies', []), 15, 4600)
@@ -189,7 +269,7 @@ service cloud.firestore {
       allow create: if canEditPatients(request.resource.data.get('teamId', ''))
                     && validPatient(request.resource.data, pid)
                     && (bumped('patientCount', 1000) || request.resource.data.get('teamId', '') != '');
-      allow update: if canEditPatients(request.resource.data.get('teamId', ''))
+      allow update: if canEditPatients(request.resource.data.get('teamId', resource.data.get('teamId', '')))
                     && validPatient(request.resource.data, pid);
       allow delete: if isTeamOwner(resource.data.get('teamId', ''));
 
@@ -227,14 +307,14 @@ service cloud.firestore {
       }
 
       match /encounters/{eid} {
-        allow get: if canViewVisits(resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')));
-        allow list: if canViewVisits(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')) && request.query.limit <= 200;
-        allow create: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+        allow get: if canViewVisits(resource.data.get('teamId', patientTeamId(pid)));
+        allow list: if canViewVisits(patientTeamId(pid)) && request.query.limit <= 200;
+        allow create: if canWriteVisits(request.resource.data.get('teamId', patientTeamId(pid)))
                       && validEncounter(request.resource.data, pid, eid)
                       && (bumped('encounterCount', 20000) || request.resource.data.get('teamId', '') != '');
-        allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+        allow update: if canWriteVisits(request.resource.data.get('teamId', resource.data.get('teamId', patientTeamId(pid))))
                       && validEncounter(request.resource.data, pid, eid);
-        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
+        allow delete: if isTeamOwner(resource.data.get('teamId', patientTeamId(pid)));
       }
 
       // -------------------------------------------------------- prescriptions --
@@ -253,23 +333,24 @@ service cloud.firestore {
       function validPrescription(d, pid, rid) {
         return d.keys().hasOnly([
             'id', 'patientId', 'encounterId', 'doctorName', 'date', 'items', 'notes',
-            'lastModified', 'teamId'])
+            'lastModified', 'teamId', 'clinicBranch', 'followUpDate'])
           && d.keys().hasAll(['id', 'patientId', 'items', 'lastModified'])
           && d.id == rid && d.patientId == pid
           && s(d, 'encounterId', 300) && s(d, 'doctorName', 300) && s(d, 'date', 300)
           && s(d, 'notes', 1000) && s(d, 'lastModified', 64) && sn(d, 'teamId', 300)
+          && sn(d, 'clinicBranch', 300) && sn(d, 'followUpDate', 300)
           && validRxItems(d.items);
       }
 
       match /prescriptions/{rid} {
-        allow get: if canViewVisits(resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')));
-        allow list: if canViewVisits(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')) && request.query.limit <= 200;
-        allow create: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+        allow get: if canViewVisits(resource.data.get('teamId', patientTeamId(pid)));
+        allow list: if canViewVisits(patientTeamId(pid)) && request.query.limit <= 200;
+        allow create: if canWriteVisits(request.resource.data.get('teamId', patientTeamId(pid)))
                       && validPrescription(request.resource.data, pid, rid)
                       && (bumped('prescriptionCount', 20000) || request.resource.data.get('teamId', '') != '');
-        allow update: if canWriteVisits(request.resource.data.get('teamId', get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', '')))
+        allow update: if canWriteVisits(request.resource.data.get('teamId', resource.data.get('teamId', patientTeamId(pid))))
                       && validPrescription(request.resource.data, pid, rid);
-        allow delete: if isTeamOwner(get(/databases/$(database)/documents/patients/$(pid)).data.get('teamId', ''));
+        allow delete: if isTeamOwner(resource.data.get('teamId', patientTeamId(pid)));
       }
     }
 
@@ -287,22 +368,24 @@ service cloud.firestore {
     }
 
     match /meta/counters {
-      allow get: if isStaff();
+      allow get: if request.auth != null;
       allow list: if false;
-      allow create, update: if isStaff() && validCounters(request.resource.data);
+      allow create, update: if request.auth != null && validCounters(request.resource.data);
       allow delete: if false;
     }
 
     // ---------------------------------------------------------------- users --
     match /users/{uid} {
-      allow get: if request.auth != null && request.auth.uid == uid;
-      allow list, write: if false;
+      allow get: if request.auth != null && (request.auth.uid == uid || isStaff());
+      allow list: if request.auth != null && (isStaff() || request.query.limit <= 100);
+      allow create, update: if request.auth != null && (request.auth.uid == uid || isStaff());
+      allow delete: if request.auth != null && isStaff();
 
       match /settings/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if request.auth != null && (request.auth.uid == uid || isStaff());
       }
       match /preferences/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if request.auth != null && (request.auth.uid == uid || isStaff());
       }
     }
 

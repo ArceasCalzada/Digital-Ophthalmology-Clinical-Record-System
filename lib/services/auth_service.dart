@@ -523,13 +523,26 @@ class FirebaseAuthBackend implements AuthBackend {
 
   @override
   Future<UserRole?> fetchRole(String uid) async {
+    final u = _auth.currentUser;
+    if (u != null && u.uid == uid) {
+      try {
+        final tokenResult = await u.getIdTokenResult();
+        final roleClaim = tokenResult.claims?['role'];
+        final parsed = parseUserRole(roleClaim);
+        if (parsed != null) return parsed;
+      } catch (_) {}
+    }
     // Bounded so a dead connection shows the login screen instead of a blank app.
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get()
-        .timeout(const Duration(seconds: 15));
-    return parseUserRole(doc.data()?['role']);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get()
+          .timeout(const Duration(seconds: 15));
+      return parseUserRole(doc.data()?['role']);
+    } catch (_) {
+      return null;
+    }
   }
 }
 

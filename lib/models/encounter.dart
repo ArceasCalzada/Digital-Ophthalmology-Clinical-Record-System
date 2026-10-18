@@ -144,6 +144,7 @@ class Encounter {
       diagnosis: base.diagnosis,
       treatmentPlan: base.treatmentPlan,
       status: base.status,
+      teamId: base.teamId,
       paperSheetDrawing: tryUnpack(
         json['paperSheet'],
         (b) => PaperSheetDrawingData.fromPacked(b, encounterId: id, patientId: patientId),
@@ -156,6 +157,40 @@ class Encounter {
         json['drawOS'],
         (b) => EyeDrawingData.fromPacked(b, encounterId: id, patientId: patientId, eye: EyeType.OS),
       ),
+    );
+  }
+
+  Encounter copyWith({
+    String? id,
+    String? patientId,
+    String? date,
+    String? doctorName,
+    String? chiefComplaint,
+    EyeExamData? examOD,
+    EyeExamData? examOS,
+    EyeDrawingData? drawingOD,
+    EyeDrawingData? drawingOS,
+    PaperSheetDrawingData? paperSheetDrawing,
+    String? diagnosis,
+    String? treatmentPlan,
+    String? status,
+    String? teamId,
+  }) {
+    return Encounter(
+      id: id ?? this.id,
+      patientId: patientId ?? this.patientId,
+      date: date ?? this.date,
+      doctorName: doctorName ?? this.doctorName,
+      chiefComplaint: chiefComplaint ?? this.chiefComplaint,
+      examOD: examOD ?? this.examOD,
+      examOS: examOS ?? this.examOS,
+      drawingOD: drawingOD ?? this.drawingOD,
+      drawingOS: drawingOS ?? this.drawingOS,
+      paperSheetDrawing: paperSheetDrawing ?? this.paperSheetDrawing,
+      diagnosis: diagnosis ?? this.diagnosis,
+      treatmentPlan: treatmentPlan ?? this.treatmentPlan,
+      status: status ?? this.status,
+      teamId: teamId ?? this.teamId,
     );
   }
 }

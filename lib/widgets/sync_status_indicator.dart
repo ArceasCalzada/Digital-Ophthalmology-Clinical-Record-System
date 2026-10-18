@@ -72,142 +72,183 @@ class SyncStatusIndicator extends StatelessWidget {
                   ),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Status Summary Card
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Connectivity State:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: isOffline ? Color(0xFFFEF3C7) : Color(0xFFD1FAE5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isOffline ? 'OFFLINE' : 'ONLINE',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isOffline ? Color(0xFFB45309) : Color(0xFF047857),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Pending Queue:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
-                            ),
-                            Text(
-                              '$pendingCount mutations',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Last Synced:',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
-                            ),
-                            Text(
-                              lastSyncedText,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (syncService.failedMutations.isNotEmpty) ...[
-                    SizedBox(height: 12),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status Summary Card
                     Container(
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFFEF2F2),
+                        color: AppTheme.cardBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFFCA5A5)),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${syncService.failedMutations.length} change(s) were NOT saved to the cloud',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            syncService.lastError ?? 'The server rejected the change.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Connectivity State:',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isOffline ? Color(0xFFFEF3C7) : Color(0xFFD1FAE5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isOffline ? 'OFFLINE' : 'ONLINE',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isOffline ? Color(0xFFB45309) : Color(0xFF047857),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 8),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              TextButton(
-                                onPressed: syncService.retryFailed,
-                                child: Text('Retry'),
+                              Text(
+                                'Pending Queue:',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                               ),
-                              TextButton(
-                                onPressed: syncService.discardFailed,
-                                child: Text('Discard'),
+                              Text(
+                                '$pendingCount mutations',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Last Synced:',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                              ),
+                              Text(
+                                lastSyncedText,
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                               ),
                             ],
                           ),
                         ],
                       ),
                     ),
-                  ],
-                  SizedBox(height: 16),
+                    if (syncService.failedMutations.isNotEmpty) ...[
+                      SizedBox(height: 12),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Color(0xFFFCA5A5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  syncService.hasPermissionError ? Icons.lock_person_outlined : Icons.error_outline_rounded,
+                                  size: 16,
+                                  color: Color(0xFFB91C1C),
+                                ),
+                                SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    '${syncService.failedMutations.length} change(s) were NOT saved to the cloud',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 6),
+                            if (syncService.hasPermissionError) ...[
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Color(0xFFFECACA)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Permission Denied: Your account does not have write access to this workspace. Please contact your clinic administrator to ensure your role is Editor, Physician, or Owner.',
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF991B1B), height: 1.3),
+                                    ),
+                                    if (syncService.lastError != null) ...[
+                                      SizedBox(height: 4),
+                                      Text(
+                                        syncService.lastError!,
+                                        style: TextStyle(fontSize: 10, color: Color(0xFF7F1D1D), fontFamily: 'monospace'),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              Text(
+                                syncService.lastError ?? 'The server rejected the change.',
+                                style: TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+                              ),
+                            ],
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed: syncService.retryFailed,
+                                  child: Text('Retry'),
+                                ),
+                                TextButton(
+                                  onPressed: syncService.discardFailed,
+                                  child: Text('Discard'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 16),
 
-                  Text(
-                    'Local-First Guarantee',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'All reads and writes execute locally first without blocking on network requests. Changes saved offline are queued and auto-synced when online.',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Toggle Network Connection Switch (for offline testing)
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('Simulate Network Connection', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      isOffline ? 'Currently Offline (Saving locally)' : 'Currently Online (Background sync active)',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                    Text(
+                      'Local-First Guarantee',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
-                    value: !isOffline,
-                    activeTrackColor: AppTheme.primaryBlue,
-                    onChanged: (val) {
-                      syncService.setNetworkState(val ? NetworkConnectivityState.online : NetworkConnectivityState.offline);
-                    },
-                  ),
-                ],
+                    SizedBox(height: 4),
+                    Text(
+                      'All reads and writes execute locally first without blocking on network requests. Changes saved offline are queued and auto-synced when online.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3),
+                    ),
+                    SizedBox(height: 16),
+
+                    // Toggle Network Connection Switch (for offline testing)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Simulate Network Connection', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                        isOffline ? 'Currently Offline (Saving locally)' : 'Currently Online (Background sync active)',
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      ),
+                      value: !isOffline,
+                      activeTrackColor: AppTheme.primaryBlue,
+                      onChanged: (val) {
+                        syncService.setNetworkState(val ? NetworkConnectivityState.online : NetworkConnectivityState.offline);
+                      },
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(

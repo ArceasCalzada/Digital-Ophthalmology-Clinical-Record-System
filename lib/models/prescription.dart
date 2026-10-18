@@ -90,4 +90,29 @@ class Prescription {
         clinicBranch: json['clinicBranch'] as String? ?? json['clinic_branch'] as String? ?? '',
         followUpDate: json['followUpDate'] as String? ?? json['follow_up_date'] as String? ?? '',
       );
+
+  Prescription copyWith({
+    String? id,
+    String? patientId,
+    String? encounterId,
+    String? doctorName,
+    String? date,
+    List<PrescriptionItem>? items,
+    String? notes,
+    String? teamId,
+    String? clinicBranch,
+    String? followUpDate,
+  }) =>
+      Prescription(
+        id: id ?? this.id,
+        patientId: patientId ?? this.patientId,
+        encounterId: encounterId ?? this.encounterId,
+        doctorName: doctorName ?? this.doctorName,
+        date: date ?? this.date,
+        items: items ?? this.items,
+        notes: notes ?? this.notes,
+        teamId: teamId ?? this.teamId,
+        clinicBranch: clinicBranch ?? this.clinicBranch,
+        followUpDate: followUpDate ?? this.followUpDate,
+      );
 }

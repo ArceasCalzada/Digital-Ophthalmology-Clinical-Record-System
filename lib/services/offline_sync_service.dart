@@ -120,6 +120,12 @@ class OfflineSyncService extends ChangeNotifier {
   List<SyncMutation> get failedMutations => List.unmodifiable(_failed);
   String? get lastError => _failed.isEmpty ? null : _failed.last.error;
 
+  /// True when any failed mutation was rejected due to permission-denied errors.
+  bool get hasPermissionError => _failed.any((m) {
+        final err = (m.error ?? '').toLowerCase();
+        return err.contains('permission-denied') || err.contains('missing or insufficient permissions');
+      });
+
   bool get isOnline => _networkState == NetworkConnectivityState.online;
   bool get isOffline => _networkState == NetworkConnectivityState.offline;
 
@@ -129,7 +135,7 @@ class OfflineSyncService extends ChangeNotifier {
       if (isOnline && _syncState != SyncStatusState.syncing) {
         if (_pendingQueue.any((m) => !m.submitted)) {
           syncNow();
-        } else if (_failed.isNotEmpty) {
+        } else if (_failed.isNotEmpty && !hasPermissionError) {
           retryFailed();
         }
       }
@@ -154,7 +160,7 @@ class OfflineSyncService extends ChangeNotifier {
         for (final m in _pendingQueue) {
           m.submitted = false;
         }
-        if (_failed.isNotEmpty) {
+        if (_failed.isNotEmpty && !hasPermissionError) {
           retryFailed();
         } else if (_pendingQueue.isNotEmpty) {
           syncNow(force: true);
@@ -428,6 +434,13 @@ class OfflineSyncService extends ChangeNotifier {
     _networkState = NetworkConnectivityState.online;
     _syncState = SyncStatusState.upToDate;
     _lastSyncedAt = DateTime.now();
+  }
+
+  @visibleForTesting
+  void failMutationForTesting(SyncMutation mutation, String reason) {
+    _fail(mutation, reason);
+    _refreshState();
+    notifyListeners();
   }
 
   @override
