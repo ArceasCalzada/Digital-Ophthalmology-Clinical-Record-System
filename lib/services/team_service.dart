@@ -246,7 +246,9 @@ class TeamService extends ChangeNotifier {
         .listen((snapshot) async {
       final activeList = <TeamMember>[];
       final pendingList = <TeamMember>[];
-      TeamRole myRole = TeamRole.viewer;
+      TeamRole myRole = (_activeTeam != null && _activeTeam!.ownerId == _uid)
+          ? TeamRole.owner
+          : TeamRole.viewer;
 
       for (final doc in snapshot.docs) {
         final data = FirebaseGate.decode(doc.data());
@@ -259,6 +261,10 @@ class TeamService extends ChangeNotifier {
             myRole = member.role;
           }
         }
+      }
+
+      if (_activeTeam != null && _activeTeam!.ownerId == _uid) {
+        myRole = TeamRole.owner;
       }
 
       // Also query pending users from users collection if user has admin permissions
@@ -395,6 +401,9 @@ class TeamService extends ChangeNotifier {
     if (target == null) return;
 
     _activeTeam = target;
+    if (_uid != null && target.ownerId == _uid) {
+      _activeRole = TeamRole.owner;
+    }
     WorkspaceStore.instance.setActiveWorkspace(teamId, workspace: target);
 
     final uid = _uid;

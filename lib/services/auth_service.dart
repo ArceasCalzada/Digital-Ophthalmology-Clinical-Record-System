@@ -12,12 +12,19 @@ import 'sms_otp_service.dart';
 enum UserRole { admin, physician, staff }
 
 UserRole? parseUserRole(Object? raw) {
-  switch (raw) {
+  if (raw == null || raw is! String) return null;
+  final str = raw.trim().toLowerCase();
+  switch (str) {
     case 'admin':
+    case 'owner':
+    case 'leader':
       return UserRole.admin;
     case 'physician':
+    case 'editor':
+    case 'doctor':
       return UserRole.physician;
     case 'staff':
+    case 'assistant':
       return UserRole.staff;
     default:
       return null;
@@ -29,11 +36,13 @@ class AuthUser {
   final String? email;
   final String? displayName;
   final bool isEmailVerified;
+  final Map<String, dynamic> customClaims;
   const AuthUser(
     this.uid,
     this.email, {
     this.displayName,
     this.isEmailVerified = true,
+    this.customClaims = const {},
   });
 }
 
@@ -527,7 +536,12 @@ class FirebaseAuthBackend implements AuthBackend {
     if (u != null && u.uid == uid) {
       try {
         final tokenResult = await u.getIdTokenResult();
-        final roleClaim = tokenResult.claims?['role'];
+        final claims = tokenResult.claims ?? {};
+        final roleClaim = claims['role'] ??
+            claims['userRole'] ??
+            claims['user_role'] ??
+            claims['membershipRole'] ??
+            claims['teamRole'];
         final parsed = parseUserRole(roleClaim);
         if (parsed != null) return parsed;
       } catch (_) {}
@@ -562,6 +576,15 @@ class AuthService extends ChangeNotifier {
   AuthUser? _user;
   UserRole? _role;
   bool _resolving = false;
+
+  Map<String, dynamic> _customClaims = {};
+  Map<String, dynamic> get customClaims =>
+      _user?.customClaims.isNotEmpty == true ? _user!.customClaims : _customClaims;
+
+  void setCustomClaims(Map<String, dynamic> claims) {
+    _customClaims = Map<String, dynamic>.from(claims);
+    notifyListeners();
+  }
 
   bool _otpVerifiedLocally = false;
   bool _is2faPending = false;

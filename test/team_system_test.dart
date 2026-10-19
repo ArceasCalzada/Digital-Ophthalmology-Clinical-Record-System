@@ -52,12 +52,21 @@ void main() {
       expect(role.canManageMembers, isFalse);
     });
 
-    test('TeamRole parses legacy strings gracefully', () {
+    test('TeamRole parses legacy strings gracefully and handles case sensitivity', () {
       expect(TeamRole.parse('owner'), TeamRole.owner);
+      expect(TeamRole.parse('Owner'), TeamRole.owner);
       expect(TeamRole.parse('leader'), TeamRole.owner);
+      expect(TeamRole.parse('admin'), TeamRole.owner);
+      expect(TeamRole.parse('Admin'), TeamRole.owner);
       expect(TeamRole.parse('editor'), TeamRole.editor);
+      expect(TeamRole.parse('Editor'), TeamRole.editor);
+      expect(TeamRole.parse('physician'), TeamRole.editor);
+      expect(TeamRole.parse('Physician'), TeamRole.editor);
+      expect(TeamRole.parse('doctor'), TeamRole.editor);
       expect(TeamRole.parse('assistant'), TeamRole.assistant);
+      expect(TeamRole.parse('staff'), TeamRole.assistant);
       expect(TeamRole.parse('viewer'), TeamRole.viewer);
+      expect(TeamRole.parse('Viewer'), TeamRole.viewer);
       expect(TeamRole.parse('member'), TeamRole.viewer);
       expect(TeamRole.parse(null), TeamRole.viewer);
     });

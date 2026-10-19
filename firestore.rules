@@ -71,22 +71,36 @@ service cloud.firestore {
         ? request.auth.token.role
         : (exists(userPath()) ? get(userPath()).data.get('role', '') : '');
     }
+    function roleLower() {
+      let r = request.auth.token.get('role', '');
+      return r != ''
+        ? r.lower()
+        : (exists(userPath()) ? get(userPath()).data.get('role', '').lower() : '');
+    }
     function isStaff() {
       return request.auth != null && (
-        role() in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant'] ||
-        request.auth.token.get('role', '') in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant']
+        roleLower() in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant', 'doctor', 'leader'] ||
+        request.auth.token.get('role', '').lower() in ['admin', 'physician', 'staff', 'owner', 'editor', 'assistant', 'doctor', 'leader']
       );
     }
     function isPhysician() {
       return request.auth != null && (
-        role() in ['admin', 'physician', 'owner', 'editor'] ||
-        request.auth.token.get('role', '') in ['admin', 'physician', 'owner', 'editor']
+        roleLower() in ['admin', 'physician', 'owner', 'editor', 'doctor'] ||
+        request.auth.token.get('role', '').lower() in ['admin', 'physician', 'owner', 'editor', 'doctor']
       );
     }
 
     // --------------------------------------------------- team permissions --
     function memberPath(teamId, uid) {
       return /databases/$(database)/documents/teams/$(teamId)/members/$(uid);
+    }
+    function teamPath(teamId) {
+      return /databases/$(database)/documents/teams/$(teamId);
+    }
+    function teamOwnerId(teamId) {
+      return (teamId != null && teamId != '' && exists(teamPath(teamId)))
+        ? get(teamPath(teamId)).data.get('ownerId', '')
+        : '';
     }
     function tokenWorkspaceMatches(teamId) {
       return request.auth != null && teamId != null && teamId != '' && (
@@ -101,6 +115,7 @@ service cloud.firestore {
         tokenWorkspaceMatches(teamId) ||
         (teamId != null && teamId != '' && (
           exists(memberPath(teamId, request.auth.uid)) ||
+          teamOwnerId(teamId) == request.auth.uid ||
           (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
         ))
       );
@@ -108,13 +123,16 @@ service cloud.firestore {
     function memberRole(teamId) {
       return tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '') != ''
         ? request.auth.token.role
-        : (exists(memberPath(teamId, request.auth.uid)) ? get(memberPath(teamId, request.auth.uid)).data.get('role', 'viewer') : 'viewer');
+        : (exists(memberPath(teamId, request.auth.uid))
+            ? get(memberPath(teamId, request.auth.uid)).data.get('role', 'viewer')
+            : (teamOwnerId(teamId) == request.auth.uid ? 'owner' : 'viewer'));
     }
     function isTeamOwner(teamId) {
       return request.auth != null && (
         isStaff() ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '') == 'owner') ||
-        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) == 'owner') ||
+        (teamId != null && teamId != '' && teamOwnerId(teamId) == request.auth.uid) ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'leader']) ||
         (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
       );
     }
@@ -122,32 +140,36 @@ service cloud.firestore {
       return request.auth != null && (
         isStaff() ||
         teamId == null || teamId == '' ||
+        isTeamOwner(teamId) ||
         tokenWorkspaceMatches(teamId) ||
-        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant', 'viewer'])
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'editor', 'assistant', 'viewer'])
       );
     }
     function canEditPatients(teamId) {
       return request.auth != null && (
         isStaff() ||
         teamId == null || teamId == '' ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor', 'assistant']) ||
-        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'assistant'])
+        isTeamOwner(teamId) ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor').lower() in ['owner', 'editor', 'assistant']) ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'editor', 'assistant'])
       );
     }
     function canViewVisits(teamId) {
       return request.auth != null && (
         isPhysician() ||
         teamId == null || teamId == '' ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor', 'viewer']) ||
-        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor', 'viewer'])
+        isTeamOwner(teamId) ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor').lower() in ['owner', 'editor', 'viewer']) ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'editor', 'viewer'])
       );
     }
     function canWriteVisits(teamId) {
       return request.auth != null && (
         isPhysician() ||
         teamId == null || teamId == '' ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor') in ['owner', 'editor']) ||
-        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId) in ['owner', 'editor'])
+        isTeamOwner(teamId) ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', 'editor').lower() in ['owner', 'editor']) ||
+        (exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'editor'])
       );
     }
 
@@ -224,7 +246,7 @@ service cloud.firestore {
           && d.uid == uid
           && s(d, 'email', 200) && s(d, 'displayName', 200) && s(d, 'joinedAt', 64)
           && sn(d, 'status', 32)
-          && d.role in ['owner', 'editor', 'assistant', 'viewer'];
+          && d.role.lower() in ['owner', 'editor', 'assistant', 'viewer'];
       }
 
       match /members/{uid} {

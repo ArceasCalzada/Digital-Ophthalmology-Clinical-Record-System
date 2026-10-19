@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/calendar_event.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
+import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/sync_status_indicator.dart';
 
@@ -217,6 +218,148 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Discard'), findsOneWidget);
+    });
+
+    test('canUserWriteToWorkspace validates Owner, Editor, Physician, and Admin roles case-insensitively', () {
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Owner'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'owner'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'OWNER'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Editor'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'editor'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Physician'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'physician'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Doctor'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Admin'), isTrue);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Leader'), isTrue);
+
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Viewer'), isFalse);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'viewer'), isFalse);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'Guest'), isFalse);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'unauthorized'), isFalse);
+      expect(syncService.canUserWriteToWorkspace(roleOverride: 'readonly'), isFalse);
+    });
+
+    test('canUserWriteToWorkspace evaluates custom claims mapping and workspace-scoped roles', () {
+      // Global claims mapping
+      expect(
+        syncService.canUserWriteToWorkspace(customClaims: {'role': 'Owner'}),
+        isTrue,
+      );
+      expect(
+        syncService.canUserWriteToWorkspace(customClaims: {'userRole': 'Editor'}),
+        isTrue,
+      );
+      expect(
+        syncService.canUserWriteToWorkspace(customClaims: {'teamRole': 'Physician'}),
+        isTrue,
+      );
+      expect(
+        syncService.canUserWriteToWorkspace(customClaims: {'role': 'Viewer'}),
+        isFalse,
+      );
+
+      // Workspace-scoped claims mapping
+      final scopedClaims = {
+        'workspaces': {
+          'ws-clinic-alpha': {'role': 'Editor'},
+          'ws-clinic-beta': {'role': 'Viewer'},
+        }
+      };
+      expect(
+        syncService.canUserWriteToWorkspace(
+          workspaceId: 'ws-clinic-alpha',
+          customClaims: scopedClaims,
+        ),
+        isTrue,
+      );
+      expect(
+        syncService.canUserWriteToWorkspace(
+          workspaceId: 'ws-clinic-beta',
+          customClaims: scopedClaims,
+        ),
+        isFalse,
+      );
+    });
+
+    test('Security context binds activeWorkspaceId, UID, role, and custom claims', () {
+      final sec = syncService.securityContext;
+      expect(sec, isNotNull);
+      expect(sec.customClaims, isNotNull);
+      expect(sec.toString(), contains('SyncSecurityContext'));
+    });
+
+    test('Syncing as Owner or Editor pushes queued mutations without permission errors', () async {
+      syncService.enqueueMutation(
+        id: 'mut-owner-1',
+        entityType: 'Patient',
+        action: 'CREATE',
+        payload: {'fullName': 'Owner Test Patient', 'teamId': 'c-default-team'},
+      );
+
+      expect(syncService.pendingCount, equals(1));
+
+      // With default/owner permissions, wait for background sync to complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      expect(syncService.pendingCount, equals(0));
+      expect(syncService.hasPermissionError, isFalse);
+      expect(syncService.failedMutations, isEmpty);
+      expect(syncService.syncState, equals(SyncStatusState.upToDate));
+    });
+
+    test('Unauthorized role (Viewer) is restricted and triggers permission error', () async {
+      // Inject restricted viewer claim
+      AuthService.instance.setCustomClaims({'role': 'Viewer'});
+
+      syncService.enqueueMutation(
+        id: 'mut-viewer-1',
+        entityType: 'Patient',
+        action: 'CREATE',
+        payload: {'fullName': 'Unauthorized Patient Mutation', 'teamId': 'restricted-workspace'},
+      );
+
+      await syncService.syncNow();
+
+      expect(syncService.hasPermissionError, isTrue);
+      expect(syncService.failedMutations.length, equals(1));
+      expect(
+        syncService.lastError,
+        contains('Your account does not have write access to this workspace'),
+      );
+      expect(syncService.syncState, equals(SyncStatusState.error));
+
+      // Clean up claim
+      AuthService.instance.setCustomClaims({});
+    });
+
+    test('Retry as workspace Owner successfully clears mutation queue and syncs without error', () async {
+      // 1. Simulate initial permission rejection under restricted role
+      AuthService.instance.setCustomClaims({'role': 'Viewer'});
+      syncService.enqueueMutation(
+        id: 'mut-retry-1',
+        entityType: 'Patient',
+        action: 'CREATE',
+        payload: {'fullName': 'Pending Retry Patient', 'teamId': 'c-default-team'},
+      );
+      await syncService.syncNow();
+
+      expect(syncService.hasPermissionError, isTrue);
+      expect(syncService.failedMutations.length, equals(1));
+
+      // 2. Elevate user role credentials to Owner via custom claims
+      AuthService.instance.setCustomClaims({'role': 'Owner'});
+
+      // 3. User clicks "Retry"
+      await syncService.retryFailed();
+
+      // 4. Mutation queue is cleared and synced cleanly
+      expect(syncService.hasPermissionError, isFalse);
+      expect(syncService.failedMutations, isEmpty);
+      expect(syncService.pendingCount, equals(0));
+      expect(syncService.syncState, equals(SyncStatusState.upToDate));
+
+      // Clean up claim
+      AuthService.instance.setCustomClaims({});
     });
   });
 }

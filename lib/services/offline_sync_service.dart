@@ -4,12 +4,35 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/patient.dart' show PatientRepository;
+import '../models/team.dart' show TeamRole;
 import 'auth_service.dart';
 import 'firebase_gate.dart';
+import 'team_service.dart';
+import 'workspace_store.dart';
 
 enum NetworkConnectivityState { online, offline }
 
 enum SyncStatusState { upToDate, syncing, offlineSaved, error }
+
+/// Security context for synchronization requests, binding active workspace ID,
+/// authenticated user UID, roles, and claims.
+class SyncSecurityContext {
+  final String? activeWorkspaceId;
+  final String? uid;
+  final String? role;
+  final Map<String, dynamic> customClaims;
+
+  const SyncSecurityContext({
+    this.activeWorkspaceId,
+    this.uid,
+    this.role,
+    this.customClaims = const {},
+  });
+
+  @override
+  String toString() =>
+      'SyncSecurityContext(workspace: $activeWorkspaceId, uid: $uid, role: $role, claims: $customClaims)';
+}
 
 /// One Firestore write inside a [SyncMutation].
 class SyncOp {
@@ -123,8 +146,127 @@ class OfflineSyncService extends ChangeNotifier {
   /// True when any failed mutation was rejected due to permission-denied errors.
   bool get hasPermissionError => _failed.any((m) {
         final err = (m.error ?? '').toLowerCase();
-        return err.contains('permission-denied') || err.contains('missing or insufficient permissions');
+        return err.contains('permission-denied') ||
+            err.contains('missing or insufficient permissions') ||
+            err.contains('does not have write access');
       });
+
+  /// Current security context containing activeWorkspaceId, UID, roles, and claims.
+  SyncSecurityContext get securityContext {
+    final user = AuthService.instance.user;
+    final activeWId = TeamService.instance.activeWorkspaceId ??
+        WorkspaceStore.instance.activeWorkspaceId;
+    final activeRole = TeamService.instance.activeRole.name;
+    return SyncSecurityContext(
+      activeWorkspaceId: activeWId,
+      uid: user?.uid,
+      role: activeRole,
+      customClaims: AuthService.instance.customClaims,
+    );
+  }
+
+  /// Inspects and evaluates whether the user has write privileges to synchronize mutations
+  /// to the target workspace before committing them to Firestore.
+  ///
+  /// Handles case-insensitive role checks, workspace team ownership, custom claims, and active roles.
+  bool canUserWriteToWorkspace({
+    String? workspaceId,
+    String? uid,
+    Map<String, dynamic>? customClaims,
+    String? roleOverride,
+  }) {
+    final effectiveUid = uid ?? AuthService.instance.user?.uid;
+    final effectiveWorkspaceId = workspaceId ??
+        TeamService.instance.activeWorkspaceId ??
+        WorkspaceStore.instance.activeWorkspaceId;
+
+    // 1. Direct role override (for testing or explicit evaluation)
+    if (roleOverride != null) {
+      return _isAuthorizedRoleString(roleOverride);
+    }
+
+    // 2. Custom Claims mapping and case-insensitive evaluation
+    final claims = customClaims ?? AuthService.instance.customClaims;
+    if (claims.isNotEmpty) {
+      final claimRole = claims['role'] ??
+          claims['userRole'] ??
+          claims['user_role'] ??
+          claims['membershipRole'] ??
+          claims['teamRole'];
+      if (claimRole != null) {
+        final roleStr = claimRole.toString().trim().toLowerCase();
+        if (_isAuthorizedRoleString(roleStr)) return true;
+        if (_isExplicitlyRestrictedRoleString(roleStr)) return false;
+      }
+
+      if (effectiveWorkspaceId != null) {
+        final workspaces = claims['workspaces'];
+        if (workspaces is Map && workspaces[effectiveWorkspaceId] is Map) {
+          final wsRole = workspaces[effectiveWorkspaceId]['role'];
+          if (wsRole != null) {
+            final roleStr = wsRole.toString().trim().toLowerCase();
+            if (_isAuthorizedRoleString(roleStr)) return true;
+            if (_isExplicitlyRestrictedRoleString(roleStr)) return false;
+          }
+        }
+      }
+    }
+
+    // 3. Team ownership evaluation
+    final activeTeam = TeamService.instance.activeTeam;
+    if (effectiveWorkspaceId != null && activeTeam != null && activeTeam.id == effectiveWorkspaceId) {
+      if (effectiveUid != null && activeTeam.ownerId == effectiveUid) {
+        return true;
+      }
+    }
+    for (final team in TeamService.instance.allTeams) {
+      if (team.id == effectiveWorkspaceId) {
+        if (effectiveUid != null && team.ownerId == effectiveUid) {
+          return true;
+        }
+      }
+    }
+
+    // 4. Team membership role evaluation
+    final activeRole = TeamService.instance.activeRole;
+    if (activeRole == TeamRole.owner || activeRole == TeamRole.editor) {
+      return true;
+    }
+    if (activeRole == TeamRole.viewer) {
+      if (effectiveUid != null && activeTeam?.ownerId == effectiveUid) {
+        return true;
+      }
+      return false;
+    }
+
+    // 5. AuthService UserRole evaluation (Admin / Physician)
+    final authRole = AuthService.instance.role;
+    if (authRole == UserRole.admin || authRole == UserRole.physician) {
+      return true;
+    }
+
+    return true;
+  }
+
+  static bool _isAuthorizedRoleString(String role) {
+    final lower = role.trim().toLowerCase();
+    return lower == 'owner' ||
+        lower == 'editor' ||
+        lower == 'physician' ||
+        lower == 'admin' ||
+        lower == 'doctor' ||
+        lower == 'leader' ||
+        lower == 'assistant';
+  }
+
+  static bool _isExplicitlyRestrictedRoleString(String role) {
+    final lower = role.trim().toLowerCase();
+    return lower == 'viewer' ||
+        lower == 'guest' ||
+        lower == 'unauthorized' ||
+        lower == 'read-only' ||
+        lower == 'readonly';
+  }
 
   bool get isOnline => _networkState == NetworkConnectivityState.online;
   bool get isOffline => _networkState == NetworkConnectivityState.offline;
@@ -257,14 +399,34 @@ class OfflineSyncService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Validate permissions for pending mutations before committing to Firestore
+      for (final mutation in List<SyncMutation>.from(_pendingQueue)) {
+        if (mutation.submitted) continue;
+        final targetWorkspaceId = mutation.payload['teamId'] as String? ??
+            mutation.payload['workspaceId'] as String? ??
+            TeamService.instance.activeWorkspaceId ??
+            WorkspaceStore.instance.activeWorkspaceId;
+
+        if (!canUserWriteToWorkspace(workspaceId: targetWorkspaceId)) {
+          _fail(mutation, 'permission-denied: Your account does not have write access to this workspace.');
+        }
+      }
+
+      if (_failed.isNotEmpty && hasPermissionError && _pendingQueue.isEmpty) {
+        _refreshState();
+        return;
+      }
+
       final firestore = FirebaseGate.firestoreIfReady();
 
       if (firestore == null) {
         // No cloud configured (tests / local-only mode): nothing to upload.
         await Future.delayed(const Duration(milliseconds: 300));
-        _pendingQueue.clear();
+        _pendingQueue.removeWhere((m) => m.error == null);
         _lastSyncedAt = DateTime.now();
-        _syncState = isOffline ? SyncStatusState.offlineSaved : SyncStatusState.upToDate;
+        _syncState = isOffline
+            ? SyncStatusState.offlineSaved
+            : (_failed.isNotEmpty ? SyncStatusState.error : SyncStatusState.upToDate);
         return;
       }
 
@@ -297,20 +459,27 @@ class OfflineSyncService extends ChangeNotifier {
   /// Hands [mutation] to Firestore and returns a future that completes once the
   /// server has answered (successfully or not). Never throws.
   Future<void> _submit(FirebaseFirestore firestore, SyncMutation mutation) {
+    final activeWId = securityContext.activeWorkspaceId;
     final batch = firestore.batch();
     for (final op in mutation.resolveOps()) {
       final ref = firestore.doc(op.path);
+      final opData = Map<String, dynamic>.from(op.data);
+      if (activeWId != null && activeWId.isNotEmpty && !op.path.startsWith('meta/')) {
+        if (!opData.containsKey('teamId') || (opData['teamId'] as String?)?.isEmpty == true) {
+          opData['teamId'] = activeWId;
+        }
+      }
       switch (op.kind) {
         case 'delete':
           batch.delete(ref);
         case 'increment':
           batch.set(
             ref,
-            {for (final e in op.data.entries) e.key: FieldValue.increment(e.value as num)},
+            {for (final e in opData.entries) e.key: FieldValue.increment(e.value as num)},
             SetOptions(merge: true),
           );
         default:
-          batch.set(ref, FirebaseGate.encode(op.data), SetOptions(merge: true));
+          batch.set(ref, FirebaseGate.encode(opData), SetOptions(merge: true));
       }
     }
     mutation.submitted = true;
@@ -331,7 +500,13 @@ class OfflineSyncService extends ChangeNotifier {
         _refreshState();
         _scheduleRetry();
       } else {
-        _fail(mutation, e is FirebaseException ? '${e.code}: ${e.message}' : e.toString());
+        final errMsg = e is FirebaseException ? '${e.code}: ${e.message}' : e.toString();
+        final lower = errMsg.toLowerCase();
+        if (lower.contains('permission-denied') || lower.contains('insufficient permissions')) {
+          _fail(mutation, 'permission-denied: Your account does not have write access to this workspace.');
+        } else {
+          _fail(mutation, errMsg);
+        }
       }
       _refreshState();
       notifyListeners();

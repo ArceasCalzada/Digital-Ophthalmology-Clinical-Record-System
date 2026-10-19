@@ -124,11 +124,21 @@ void main() {
     expect(AuthService.instance.isAvailable, isFalse);
   });
 
-  test('parseUserRole only accepts known roles', () {
+  test('parseUserRole only accepts known roles and handles case sensitivity', () {
     expect(parseUserRole('admin'), UserRole.admin);
+    expect(parseUserRole('Admin'), UserRole.admin);
+    expect(parseUserRole('owner'), UserRole.admin);
+    expect(parseUserRole('Owner'), UserRole.admin);
     expect(parseUserRole('physician'), UserRole.physician);
+    expect(parseUserRole('Physician'), UserRole.physician);
+    expect(parseUserRole('editor'), UserRole.physician);
+    expect(parseUserRole('Editor'), UserRole.physician);
+    expect(parseUserRole('doctor'), UserRole.physician);
     expect(parseUserRole('staff'), UserRole.staff);
+    expect(parseUserRole('Staff'), UserRole.staff);
+    expect(parseUserRole('assistant'), UserRole.staff);
     expect(parseUserRole('root'), isNull);
+    expect(parseUserRole('viewer'), isNull);
     expect(parseUserRole(null), isNull);
     expect(parseUserRole(1), isNull);
   });

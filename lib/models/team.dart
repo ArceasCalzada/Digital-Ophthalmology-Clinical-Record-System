@@ -17,10 +17,14 @@ enum TeamRole {
     switch (lower) {
       case 'owner':
       case 'leader':
+      case 'admin':
         return TeamRole.owner;
       case 'editor':
+      case 'physician':
+      case 'doctor':
         return TeamRole.editor;
       case 'assistant':
+      case 'staff':
         return TeamRole.assistant;
       case 'viewer':
       case 'member':
