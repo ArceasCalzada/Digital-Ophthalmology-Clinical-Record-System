@@ -358,6 +358,57 @@ void main() {
       expect(service.members.any((m) => m.uid == 'unauth-user'), isFalse);
     });
 
+    test('Joining a team via invite code writes pending approval record', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      final team = await service.createTeam('Cornea Specialty Clinic');
+      final code = team.inviteCode;
+
+      // New assistant loads service
+      await service.load('assistant-uid', userEmail: 'assistant@cornea.ph', displayName: 'Staff Anna');
+      final joinedTeam = await service.joinWithCode(code);
+
+      expect(joinedTeam.id, team.id);
+      expect(service.pendingMembers.any((m) => m.uid == 'assistant-uid'), isTrue);
+      final pendingRecord = service.pendingMembers.firstWhere((m) => m.uid == 'assistant-uid');
+      expect(pendingRecord.status, 'pending');
+      expect(pendingRecord.isPending, isTrue);
+      expect(pendingRecord.requestedWorkspaceId, team.id);
+      expect(pendingRecord.email, 'assistant@cornea.ph');
+    });
+
+    test('streamPendingMembers broadcasts updates when pending members change', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      final activeId = service.activeTeam?.id;
+      final stream = service.streamPendingMembers(activeId);
+
+      const applicant = TeamMember(
+        uid: 'user-stream-1',
+        email: 'stream.applicant@clinic.ph',
+        displayName: 'Stream Applicant',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-19T10:00:00.000',
+        status: 'pending',
+      );
+
+      final expectation = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          predicate<List<TeamMember>>((list) => list.length == 1 && list.first.uid == 'user-stream-1'),
+        ]),
+      );
+
+      await pumpEventQueue();
+      service.addPendingMemberForTesting(applicant);
+      await expectation;
+    });
+
     testWidgets('TeamsView renders Pending Approvals section for admins and processes approval', (tester) async {
       final service = TeamService.instance;
       await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
@@ -394,8 +445,45 @@ void main() {
 
       // Check success modal
       expect(find.text('User Approved Successfully'), findsOneWidget);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+
       expect(service.pendingMembers.isEmpty, isTrue);
       expect(service.members.any((m) => m.uid == 'user-widget-1'), isTrue);
+    });
+
+    testWidgets('Pending Approvals updates dynamically in real-time when new request arrives', (tester) async {
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: TeamsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Initially no pending approvals
+      expect(find.textContaining('No pending approval requests'), findsOneWidget);
+
+      // New pending request arrives in real-time
+      const dynamicApplicant = TeamMember(
+        uid: 'user-realtime-99',
+        email: 'nurse.joy@clinic.ph',
+        displayName: 'Nurse Joy',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-19T10:00:00.000',
+        status: 'pending',
+      );
+      service.addPendingMemberForTesting(dynamicApplicant);
+      await tester.pump();
+
+      // Dynamically displayed without full refresh
+      expect(find.text('Nurse Joy'), findsOneWidget);
+      expect(find.text('nurse.joy@clinic.ph'), findsOneWidget);
+      expect(find.textContaining('Pending Approvals (1)'), findsOneWidget);
     });
 
     test('Switching active team reconnects CalendarEventRepository to target workspace teamId', () async {

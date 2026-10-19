@@ -73,6 +73,7 @@ class TeamMember {
   final TeamRole role;
   final String joinedAt;
   final String status; // 'active' or 'pending'
+  final String? requestedWorkspaceId;
 
   bool get isPending => status == 'pending';
 
@@ -83,6 +84,7 @@ class TeamMember {
     required this.role,
     required this.joinedAt,
     this.status = 'active',
+    this.requestedWorkspaceId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -92,6 +94,8 @@ class TeamMember {
         'role': role.name,
         'joinedAt': joinedAt,
         'status': status,
+        'isApproved': !isPending,
+        if (requestedWorkspaceId != null) 'requestedWorkspaceId': requestedWorkspaceId,
       };
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
@@ -105,6 +109,10 @@ class TeamMember {
         roleRaw == 'pending' ||
         roleRaw == null;
 
+    final workspaceId = json['requestedWorkspaceId'] as String? ??
+        json['workspaceId'] as String? ??
+        json['teamId'] as String?;
+
     return TeamMember(
       uid: json['uid'] as String? ?? '',
       email: json['email'] as String? ?? '',
@@ -112,6 +120,7 @@ class TeamMember {
       role: TeamRole.parse(roleRaw),
       joinedAt: json['joinedAt'] as String? ?? DateTime.now().toIso8601String(),
       status: isPending ? 'pending' : (statusStr ?? 'active'),
+      requestedWorkspaceId: workspaceId,
     );
   }
 
@@ -122,6 +131,7 @@ class TeamMember {
     TeamRole? role,
     String? joinedAt,
     String? status,
+    String? requestedWorkspaceId,
   }) {
     return TeamMember(
       uid: uid ?? this.uid,
@@ -130,6 +140,7 @@ class TeamMember {
       role: role ?? this.role,
       joinedAt: joinedAt ?? this.joinedAt,
       status: status ?? this.status,
+      requestedWorkspaceId: requestedWorkspaceId ?? this.requestedWorkspaceId,
     );
   }
 }

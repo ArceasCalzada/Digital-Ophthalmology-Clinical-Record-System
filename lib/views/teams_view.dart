@@ -465,9 +465,9 @@ class _TeamsListCard extends StatelessWidget {
                 if (context.mounted) {
                   showActionSuccessModal(
                     context: context,
-                    title: 'Joined Team Successfully',
-                    message: 'You have joined team "${team.name}" as a member.',
-                    icon: Icons.group_add_rounded,
+                    title: 'Join Request Submitted',
+                    message: 'Your request to join "${team.name}" has been submitted for administrator approval.',
+                    icon: Icons.hourglass_top_rounded,
                   );
                 }
               } catch (e) {
@@ -1360,54 +1360,62 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final pending = widget.teamService.pendingMembers;
+    final activeId = widget.teamService.activeWorkspaceId;
 
-    return _Card(
-      title: 'Pending Approvals (${pending.length})',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Review newly registered user accounts and join requests. Assign an access role and approve to grant entry to the clinic database.',
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-          ),
-          SizedBox(height: 16),
-          if (widget.teamService.loading)
-            Column(
-              children: const [
-                SkeletonMemberTile(),
-                SkeletonMemberTile(),
-              ],
-            )
-          else if (pending.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.lightBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderColor),
+    return StreamBuilder<List<TeamMember>>(
+      stream: widget.teamService.streamPendingMembers(activeId),
+      initialData: widget.teamService.pendingMembers,
+      builder: (context, snapshot) {
+        final pending = snapshot.data ?? widget.teamService.pendingMembers;
+
+        return _Card(
+          title: 'Pending Approvals (${pending.length})',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Review newly registered user accounts and join requests. Assign an access role and approve to grant entry to the clinic database.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 22),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'No pending approval requests. Newly registered users will appear here for administrator review.',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                    ),
+              SizedBox(height: 16),
+              if (widget.teamService.loading)
+                Column(
+                  children: const [
+                    SkeletonMemberTile(),
+                    SkeletonMemberTile(),
+                  ],
+                )
+              else if (pending.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 22),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No pending approval requests. Newly registered users will appear here for administrator review.',
+                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                for (final member in pending) ...[
+                  _buildPendingRow(context, member),
+                  if (member != pending.last) Divider(height: 24, color: AppTheme.borderColor),
                 ],
-              ),
-            )
-          else
-            for (final member in pending) ...[
-              _buildPendingRow(context, member),
-              if (member != pending.last) Divider(height: 24, color: AppTheme.borderColor),
             ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/required_text_form_field.dart';
 
@@ -23,6 +24,7 @@ class _LoginViewState extends State<LoginView> {
   final _signUpEmailController = TextEditingController();
   final _signUpPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _signUpInviteCodeController = TextEditingController();
 
   bool _isSignUpMode = false;
   bool _obscureSignInPassword = true;
@@ -49,6 +51,7 @@ class _LoginViewState extends State<LoginView> {
     _signUpEmailController.dispose();
     _signUpPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _signUpInviteCodeController.dispose();
     for (final c in _otpControllers) {
       c.dispose();
     }
@@ -123,8 +126,17 @@ class _LoginViewState extends State<LoginView> {
         _signUpPasswordController.text,
         _fullNameController.text,
       );
+      final inviteCode = _signUpInviteCodeController.text.trim();
+      if (inviteCode.isNotEmpty) {
+        try {
+          await TeamService.instance.joinWithCode(inviteCode);
+        } catch (e) {
+          debugPrint('Notice joining with code during signup: $e');
+        }
+      }
       _signUpPasswordController.clear();
       _confirmPasswordController.clear();
+      _signUpInviteCodeController.clear();
       if (mounted && AuthService.instance.isSignedIn) {
         setState(() => _isSuccessTransitioning = true);
         await Future.delayed(const Duration(milliseconds: 300));
@@ -863,6 +875,34 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
+          SizedBox(height: 14),
+
+          Text(
+            'Clinic Invite Code (Optional)',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          ),
+          SizedBox(height: 8),
+          TextFormField(
+            controller: _signUpInviteCodeController,
+            enabled: !_isLoading,
+            textCapitalization: TextCapitalization.characters,
+            style: TextStyle(
+              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              fontSize: 14,
+            ),
+            decoration: InputDecoration(
+              hintText: 'DOC-XXXX (If joining a clinic)',
+              prefixIcon: Icon(
+                Icons.group_add_outlined,
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                size: 20,
+              ),
+              filled: _isLoading,
+              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            ),
+          ),
           if (_errorMessage != null) ...[
             SizedBox(height: 12),
             _buildErrorContainer(_errorMessage!),
@@ -1124,11 +1164,120 @@ class _LoginViewState extends State<LoginView> {
             ),
           ),
           SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _showJoinClinicModalForPending(context, auth),
+            icon: Icon(Icons.group_add_outlined, size: 18),
+            label: Text('Enter Clinic Invite Code'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlue,
+              side: BorderSide(color: AppTheme.primaryBlue),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          SizedBox(height: 8),
           TextButton(
             onPressed: () => auth.signOut(),
             child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showJoinClinicModalForPending(BuildContext context, AuthService auth) {
+    final codeController = TextEditingController();
+    bool isSubmitting = false;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.group_add_rounded, color: AppTheme.primaryBlue),
+              SizedBox(width: 8),
+              Text('Join Clinic Team', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter the 6-character invite code provided by your clinic owner to submit your join request for approval.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: 'Invite Code',
+                  hintText: 'e.g. ABC123',
+                  prefixIcon: Icon(Icons.vpn_key_outlined),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  errorText: errorText,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) {
+                        setDialogState(() => errorText = 'Please enter an invite code');
+                        return;
+                      }
+                      setDialogState(() {
+                        isSubmitting = true;
+                        errorText = null;
+                      });
+                      try {
+                        await TeamService.instance.joinWithCode(code);
+                        if (!mounted) return;
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(dialogCtx);
+                        }
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Join request submitted! Waiting for clinic administrator approval.'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                        await auth.reloadUserAndCheckRole();
+                      } catch (e) {
+                        setDialogState(() {
+                          isSubmitting = false;
+                          errorText = e.toString().replaceAll('Exception: ', '').replaceAll('FormatException: ', '');
+                        });
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: isSubmitting
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text('Submit Request'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -150,6 +150,20 @@ class FirebaseAuthBackend implements AuthBackend {
       } catch (e) {
         debugPrint('Firebase email verification link trigger failed: $e');
       }
+      try {
+        final firestore = FirebaseFirestore.instance;
+        await firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email.trim(),
+          'displayName': fullName.trim(),
+          'status': 'pending',
+          'isApproved': false,
+          'createdAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Notice persisting initial pending user document: $e');
+      }
       return AuthUser(
         user.uid,
         user.email,
