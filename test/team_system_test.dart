@@ -7,8 +7,10 @@ import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/models/encounter.dart';
 import 'package:ophthalmology_clinical_record_system/models/prescription.dart';
 import 'package:ophthalmology_clinical_record_system/models/eye_exam.dart';
+import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
 import 'package:ophthalmology_clinical_record_system/views/teams_view.dart';
+import 'helpers/fake_auth_backend.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -377,6 +379,32 @@ void main() {
       expect(pendingRecord.isPending, isTrue);
       expect(pendingRecord.requestedWorkspaceId, team.id);
       expect(pendingRecord.email, 'assistant@cornea.ph');
+    });
+
+    test('Newly registered pending user joins team via invite code and resolves identity', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      final team = await service.createTeam('Ophthalmology Associates');
+      final code = team.inviteCode;
+
+      // Simulate a freshly signed-up assistant whose role is pending (TeamService.load not yet called)
+      service.unload();
+      final fakeBackend = FakeAuthBackend({});
+      await AuthService.instance.attach(fakeBackend);
+      await fakeBackend.signUp('assistant@oa.ph', 'password123', 'Assistant Maria');
+
+      final joinedTeam = await service.joinWithCode(code);
+
+      expect(joinedTeam.id, team.id);
+      expect(service.pendingMembers.any((m) => m.email == 'assistant@oa.ph'), isTrue);
+      final pendingRecord = service.pendingMembers.firstWhere((m) => m.email == 'assistant@oa.ph');
+      expect(pendingRecord.uid, 'uid-assistant@oa.ph');
+      expect(pendingRecord.status, 'pending');
+      expect(pendingRecord.isPending, isTrue);
+      expect(pendingRecord.displayName, 'Assistant Maria');
+      expect(pendingRecord.requestedWorkspaceId, team.id);
     });
 
     test('streamPendingMembers broadcasts updates when pending members change', () async {

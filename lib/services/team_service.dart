@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,6 +10,7 @@ import '../models/calendar_event.dart';
 import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../models/team.dart';
+import 'auth_service.dart';
 import 'firebase_gate.dart';
 import 'profile_store.dart';
 import 'workspace_store.dart';
@@ -32,6 +34,26 @@ class TeamService extends ChangeNotifier {
   StreamSubscription? _teamsSub;
   StreamSubscription? _membersSub;
   StreamSubscription? _pendingUsersSub;
+
+  void _resolveCurrentUser() {
+    final authUser = AuthService.instance.user;
+    if (authUser != null) {
+      _uid ??= authUser.uid;
+      _userEmail ??= authUser.email;
+      _displayName ??= authUser.displayName;
+    }
+
+    if (FirebaseGate.isReady) {
+      try {
+        final fbUser = FirebaseAuth.instance.currentUser;
+        if (fbUser != null) {
+          _uid ??= fbUser.uid;
+          _userEmail ??= fbUser.email;
+          _displayName ??= fbUser.displayName;
+        }
+      } catch (_) {}
+    }
+  }
 
   bool get loading => _loading;
   List<Team> get teams => List.unmodifiable(_teams.where((t) => !t.isArchived));
@@ -370,6 +392,7 @@ class TeamService extends ChangeNotifier {
 
   /// Creates a new team with creator as Owner.
   Future<Team> createTeam(String name, {String location = ''}) async {
+    _resolveCurrentUser();
     final uid = _uid ?? 'dev-user';
     final teamId = _generateTeamId();
     final inviteCode = _generateInviteCode();
@@ -417,6 +440,14 @@ class TeamService extends ChangeNotifier {
       throw const FormatException('Enter a valid invite code');
     }
 
+    _resolveCurrentUser();
+    final uid = _uid ?? 'dev-user';
+    final email = _userEmail ?? 'user@docrs.app';
+    final displayName = _displayName ?? 'New Member';
+    _uid ??= uid;
+    _userEmail ??= email;
+    _displayName ??= displayName;
+
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) {
       final target = _teams.where((t) => t.inviteCode == cleanCode).firstOrNull ??
@@ -424,7 +455,6 @@ class TeamService extends ChangeNotifier {
       if (target == null) {
         throw const FormatException('No team found matching that invite code.');
       }
-      final uid = _uid ?? 'dev-user';
       if (target.ownerId == uid) {
         await switchTo(target.id);
         return target;
@@ -436,8 +466,8 @@ class TeamService extends ChangeNotifier {
       }
       final pendingMember = TeamMember(
         uid: uid,
-        email: _userEmail ?? 'user@docrs.app',
-        displayName: _displayName ?? 'New Member',
+        email: email,
+        displayName: displayName,
         role: TeamRole.viewer,
         joinedAt: DateTime.now().toIso8601String(),
         status: 'pending',
@@ -465,11 +495,15 @@ class TeamService extends ChangeNotifier {
     teamData['id'] = teamDoc.id;
     final team = Team.fromJson(teamData);
 
-    final uid = _uid ?? 'dev-user';
     final memberRef = firestore.collection('teams').doc(team.id).collection('members').doc(uid);
-    final existingMember = await memberRef.get();
+    DocumentSnapshot<Map<String, dynamic>>? existingMember;
+    try {
+      existingMember = await memberRef.get();
+    } catch (e) {
+      debugPrint('Notice checking existing team member: $e');
+    }
 
-    if (existingMember.exists && existingMember.data() != null) {
+    if (existingMember != null && existingMember.exists && existingMember.data() != null) {
       final existingData = FirebaseGate.decode(existingMember.data()!);
       final existingStatus = (existingData['status'] as String?)?.toLowerCase();
       final isApproved = existingData['isApproved'] as bool? ?? true;
@@ -483,8 +517,8 @@ class TeamService extends ChangeNotifier {
     final now = DateTime.now().toIso8601String();
     final member = TeamMember(
       uid: uid,
-      email: _userEmail ?? 'user@docrs.app',
-      displayName: _displayName ?? 'New Member',
+      email: email,
+      displayName: displayName,
       role: TeamRole.viewer,
       joinedAt: now,
       status: 'pending',
@@ -503,10 +537,17 @@ class TeamService extends ChangeNotifier {
       'teamId': team.id,
       'joinedAt': now,
       'requestedAt': now,
+      'inviteCode': cleanCode,
+      'createdAt': now,
+      'updatedAt': now,
     };
 
     final batch = firestore.batch();
     batch.set(memberRef, memberPayload);
+
+    // Also persist join request to dedicated subcollection
+    final joinRequestRef = firestore.collection('teams').doc(team.id).collection('joinRequests').doc(uid);
+    batch.set(joinRequestRef, memberPayload);
 
     final userRef = firestore.collection('users').doc(uid);
     batch.set(userRef, {
@@ -850,6 +891,13 @@ class TeamService extends ChangeNotifier {
         'requestedWorkspaceId': active.id,
       }, SetOptions(merge: true));
 
+      final joinRequestRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('joinRequests')
+          .doc(memberUid);
+      batch.delete(joinRequestRef);
+
       await batch.commit();
     }
 
@@ -905,6 +953,13 @@ class TeamService extends ChangeNotifier {
         'requestedWorkspaceId': null,
       }, SetOptions(merge: true));
 
+      final joinRequestRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('joinRequests')
+          .doc(memberUid);
+      batch.delete(joinRequestRef);
+
       await batch.commit();
     }
 
@@ -920,6 +975,8 @@ class TeamService extends ChangeNotifier {
 
   void unload() {
     _uid = null;
+    _userEmail = null;
+    _displayName = null;
     _teamsSub?.cancel();
     _membersSub?.cancel();
     _pendingUsersSub?.cancel();

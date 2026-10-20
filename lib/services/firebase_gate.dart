@@ -9,6 +9,8 @@ import 'package:firebase_core/firebase_core.dart';
 class FirebaseGate {
   FirebaseGate._();
 
+  static bool get isReady => firestoreIfReady() != null;
+
   static FirebaseFirestore? firestoreIfReady() {
     try {
       if (Firebase.apps.isEmpty) return null;

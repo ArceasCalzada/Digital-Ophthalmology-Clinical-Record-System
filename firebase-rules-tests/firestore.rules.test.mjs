@@ -614,5 +614,52 @@ describe('Teams multi-tenancy and permission levels', () => {
     await assertFails(db.doc('patients/p-teamA/encounters/enc-teamA').get());
     await assertFails(db.doc('patients/p-teamA').update({ fullName: 'Hacked Name' }));
   });
+
+  test('Authenticated user with pending status can submit join request to team with their own UID', async () => {
+    const applicantDb = as('applicantA');
+    const now = '2026-10-20T10:00:00.000Z';
+    // User can get team doc
+    await assertSucceeds(applicantDb.doc('teams/teamA').get());
+
+    // User can create member doc with pending status using their own UID
+    await assertSucceeds(applicantDb.doc('teams/teamA/members/applicantA').set({
+      uid: 'applicantA',
+      email: 'applicantA@docrs.app',
+      displayName: 'Applicant A',
+      role: 'viewer',
+      status: 'pending',
+      isApproved: false,
+      requestedWorkspaceId: 'teamA',
+      teamId: 'teamA',
+      joinedAt: now,
+      requestedAt: now,
+    }));
+
+    // User can read their own member doc
+    await assertSucceeds(applicantDb.doc('teams/teamA/members/applicantA').get());
+
+    // User can create joinRequest doc using their own UID
+    await assertSucceeds(applicantDb.doc('teams/teamA/joinRequests/applicantA').set({
+      uid: 'applicantA',
+      email: 'applicantA@docrs.app',
+      displayName: 'Applicant A',
+      role: 'viewer',
+      status: 'pending',
+      isApproved: false,
+      requestedWorkspaceId: 'teamA',
+      teamId: 'teamA',
+      joinedAt: now,
+      requestedAt: now,
+    }));
+
+    // User CANNOT write join request using another user's UID
+    await assertFails(applicantDb.doc('teams/teamA/members/impersonatedUser').set({
+      uid: 'impersonatedUser',
+      email: 'impersonated@docrs.app',
+      displayName: 'Impersonated',
+      role: 'viewer',
+      status: 'pending',
+    }));
+  });
 });
 

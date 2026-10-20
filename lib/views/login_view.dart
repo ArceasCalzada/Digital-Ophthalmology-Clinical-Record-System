@@ -1210,6 +1210,30 @@ class _LoginViewState extends State<LoginView> {
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
               SizedBox(height: 16),
+              if (errorText != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          errorText!,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C), height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               TextField(
                 controller: codeController,
                 textCapitalization: TextCapitalization.characters,
@@ -1218,7 +1242,6 @@ class _LoginViewState extends State<LoginView> {
                   hintText: 'e.g. ABC123',
                   prefixIcon: Icon(Icons.vpn_key_outlined),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  errorText: errorText,
                 ),
               ),
             ],
@@ -1252,6 +1275,7 @@ class _LoginViewState extends State<LoginView> {
                             const SnackBar(
                               content: Text('Join request submitted! Waiting for clinic administrator approval.'),
                               backgroundColor: Colors.green,
+                              duration: Duration(seconds: 4),
                             ),
                           );
                         }
@@ -1259,7 +1283,12 @@ class _LoginViewState extends State<LoginView> {
                       } catch (e) {
                         setDialogState(() {
                           isSubmitting = false;
-                          errorText = e.toString().replaceAll('Exception: ', '').replaceAll('FormatException: ', '');
+                          final rawMsg = e.toString().replaceAll('Exception: ', '').replaceAll('FormatException: ', '');
+                          if (rawMsg.contains('permission-denied')) {
+                            errorText = 'Permission error submitting join request. Please verify credentials.';
+                          } else {
+                            errorText = rawMsg;
+                          }
                         });
                       }
                     },

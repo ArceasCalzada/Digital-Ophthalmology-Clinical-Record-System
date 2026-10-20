@@ -263,7 +263,7 @@ service cloud.firestore {
     }
 
     match /teams/{teamId} {
-      allow get: if isTeamMember(teamId) || (request.auth != null && resource.data.get('ownerId', '') == request.auth.uid);
+      allow get: if request.auth != null;
       allow list: if request.auth != null && request.query.limit <= 100;
       allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid && validTeam(request.resource.data, teamId);
       allow update: if (isTeamOwner(teamId) || isTeamAdmin(teamId)) && validTeam(request.resource.data, teamId);
@@ -272,30 +272,77 @@ service cloud.firestore {
       function validMember(d, uid) {
         return d.keys().hasOnly([
             'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
-            'isApproved', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt'
+            'isApproved', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
+            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole'
           ])
           && d.keys().hasAll(['uid', 'role'])
           && d.uid == uid
-          && s(d, 'email', 200) && s(d, 'displayName', 200) && sn(d, 'joinedAt', 64)
-          && sn(d, 'requestedAt', 64)
+          && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
+          && (sn(d, 'requestedAt', 64) || d.get('requestedAt', null) is timestamp)
+          && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
+          && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
           && sn(d, 'status', 32)
           && optBool(d, 'isApproved')
           && sn(d, 'requestedWorkspaceId', 128)
           && sn(d, 'workspaceId', 128)
           && sn(d, 'teamId', 128)
+          && sn(d, 'inviteCode', 32)
+          && sn(d, 'requestedRole', 32)
           && d.role.lower() in ['owner', 'editor', 'assistant', 'viewer', 'pending', 'admin', 'leader'];
       }
 
+      function validJoinRequest(d, uid) {
+        return d.keys().hasOnly([
+            'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
+            'isApproved', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
+            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole'
+          ])
+          && d.get('uid', uid) == uid
+          && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
+          && (sn(d, 'requestedAt', 64) || d.get('requestedAt', null) is timestamp)
+          && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
+          && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
+          && sn(d, 'status', 32)
+          && optBool(d, 'isApproved')
+          && sn(d, 'requestedWorkspaceId', 128)
+          && sn(d, 'workspaceId', 128)
+          && sn(d, 'teamId', 128)
+          && sn(d, 'inviteCode', 32)
+          && sn(d, 'requestedRole', 32);
+      }
+
       match /members/{uid} {
-        allow get, list: if isTeamMember(teamId) || isTeamOwner(teamId);
-        allow create: if (isTeamOwner(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
-        allow update: if (isTeamOwner(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
-        allow delete: if isTeamOwner(teamId) || (request.auth != null && request.auth.uid == uid);
+        allow get: if (request.auth != null && request.auth.uid == uid) || isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId);
+        allow list: if isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId);
+        allow create: if request.auth != null && (isTeamOwner(teamId) || isTeamAdmin(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
+        allow update: if request.auth != null && (isTeamOwner(teamId) || isTeamAdmin(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
+        allow delete: if isTeamOwner(teamId) || isTeamAdmin(teamId) || (request.auth != null && request.auth.uid == uid);
+      }
+
+      match /joinRequests/{uid} {
+        allow get: if request.auth != null && (request.auth.uid == uid || isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId));
+        allow list: if isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId);
+        allow create, update: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId)) && validJoinRequest(request.resource.data, uid);
+        allow delete: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId));
+      }
+
+      match /requests/{uid} {
+        allow get: if request.auth != null && (request.auth.uid == uid || isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId));
+        allow list: if isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId);
+        allow create, update: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId)) && validJoinRequest(request.resource.data, uid);
+        allow delete: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId));
       }
     }
 
     // Collection group rule for querying team members across teams
     match /{path=**}/members/{uid} {
+      allow read: if request.auth != null;
+    }
+
+    // Collection group rule for querying join requests across teams
+    match /{path=**}/joinRequests/{uid} {
       allow read: if request.auth != null;
     }
 
@@ -438,14 +485,19 @@ service cloud.firestore {
       allow get: if request.auth != null && (
         request.auth.uid == uid ||
         isStaff() ||
-        isTeamOwner(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', '')))
+        isTeamOwner(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', ''))) ||
+        isTeamAdmin(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', '')))
       );
       allow list: if request.auth != null && (isStaff() || request.query.limit <= 100);
       allow create, update: if request.auth != null && (
         request.auth.uid == uid ||
         isStaff() ||
         isTeamOwner(request.resource.data.get('requestedWorkspaceId', request.resource.data.get('teamId', ''))) ||
-        (resource != null && isTeamOwner(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', ''))))
+        isTeamAdmin(request.resource.data.get('requestedWorkspaceId', request.resource.data.get('teamId', ''))) ||
+        (resource != null && (
+          isTeamOwner(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', ''))) ||
+          isTeamAdmin(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', '')))
+        ))
       );
       allow delete: if request.auth != null && isStaff();
 
