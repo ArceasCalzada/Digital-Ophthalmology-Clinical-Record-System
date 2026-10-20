@@ -60,7 +60,14 @@ abstract class AuthBackend {
   AuthUser? get currentUser;
   Stream<AuthUser?> get userChanges;
   Future<AuthUser> signIn(String email, String password, {required bool remember});
-  Future<AuthUser> signUp(String email, String password, String fullName);
+  Future<AuthUser> signUp(
+    String email,
+    String password,
+    String fullName, {
+    String requestedRole = 'assistant',
+    String? inviteCode,
+    String? workspaceId,
+  });
   Future<void> sendPasswordResetEmail(String email);
   Future<void> sendEmailVerification();
   Future<String> sendEmailOtp(String email);
@@ -135,7 +142,14 @@ class FirebaseAuthBackend implements AuthBackend {
   }
 
   @override
-  Future<AuthUser> signUp(String email, String password, String fullName) async {
+  Future<AuthUser> signUp(
+    String email,
+    String password,
+    String fullName, {
+    String requestedRole = 'assistant',
+    String? inviteCode,
+    String? workspaceId,
+  }) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       final user = cred.user;
@@ -152,17 +166,71 @@ class FirebaseAuthBackend implements AuthBackend {
       }
       try {
         final firestore = FirebaseFirestore.instance;
-        await firestore.collection('users').doc(user.uid).set({
+        final now = DateTime.now().toIso8601String();
+        String? targetWorkspaceId = workspaceId;
+
+        final cleanInvite = inviteCode?.trim().toUpperCase();
+        if ((targetWorkspaceId == null || targetWorkspaceId.isEmpty) && cleanInvite != null && cleanInvite.isNotEmpty) {
+          try {
+            final tSnap = await firestore
+                .collection('teams')
+                .where('inviteCode', isEqualTo: cleanInvite)
+                .limit(1)
+                .get();
+            if (tSnap.docs.isNotEmpty) {
+              targetWorkspaceId = tSnap.docs.first.id;
+            }
+          } catch (e) {
+            debugPrint('[AuthService.signUp] Resolving workspace by invite code error: $e');
+          }
+        }
+
+        final userPayload = <String, dynamic>{
           'uid': user.uid,
           'email': email.trim(),
           'displayName': fullName.trim(),
           'status': 'pending',
           'isApproved': false,
-          'createdAt': DateTime.now().toIso8601String(),
-          'updatedAt': DateTime.now().toIso8601String(),
-        }, SetOptions(merge: true));
+          'requestedRole': requestedRole,
+          'createdAt': now,
+          'updatedAt': now,
+          if (cleanInvite != null && cleanInvite.isNotEmpty) 'inviteCode': cleanInvite,
+          if (targetWorkspaceId != null && targetWorkspaceId.isNotEmpty) ...{
+            'requestedWorkspaceId': targetWorkspaceId,
+            'workspaceId': targetWorkspaceId,
+            'teamId': targetWorkspaceId,
+          },
+        };
+
+        await firestore.collection('users').doc(user.uid).set(userPayload, SetOptions(merge: true));
+
+        if (targetWorkspaceId != null && targetWorkspaceId.isNotEmpty) {
+          final memberPayload = <String, dynamic>{
+            'uid': user.uid,
+            'email': email.trim(),
+            'displayName': fullName.trim(),
+            'role': 'viewer',
+            'requestedRole': requestedRole,
+            'status': 'pending',
+            'isApproved': false,
+            'requestedWorkspaceId': targetWorkspaceId,
+            'workspaceId': targetWorkspaceId,
+            'teamId': targetWorkspaceId,
+            'joinedAt': now,
+            'requestedAt': now,
+            'createdAt': now,
+            'updatedAt': now,
+            if (cleanInvite != null && cleanInvite.isNotEmpty) 'inviteCode': cleanInvite,
+          };
+          final batch = firestore.batch();
+          final mRef = firestore.collection('teams').doc(targetWorkspaceId).collection('members').doc(user.uid);
+          final jRef = firestore.collection('teams').doc(targetWorkspaceId).collection('joinRequests').doc(user.uid);
+          batch.set(mRef, memberPayload, SetOptions(merge: true));
+          batch.set(jRef, memberPayload, SetOptions(merge: true));
+          await batch.commit();
+        }
       } catch (e) {
-        debugPrint('Notice persisting initial pending user document: $e');
+        debugPrint('[AuthService.signUp] Notice persisting initial pending user document: $e');
       }
       return AuthUser(
         user.uid,
@@ -839,7 +907,14 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Registers a new account.
-  Future<void> signUp(String email, String password, String fullName) async {
+  Future<void> signUp(
+    String email,
+    String password,
+    String fullName, {
+    String requestedRole = 'assistant',
+    String? inviteCode,
+    String? workspaceId,
+  }) async {
     final backend = _backend;
     if (backend == null) {
       throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
@@ -852,7 +927,14 @@ class AuthService extends ChangeNotifier {
     if (password.length < 6) {
       throw const AuthFailure('Password is too weak. Please use at least 6 characters.');
     }
-    final newUser = await backend.signUp(trimmedEmail, password, trimmedName);
+    final newUser = await backend.signUp(
+      trimmedEmail,
+      password,
+      trimmedName,
+      requestedRole: requestedRole,
+      inviteCode: inviteCode,
+      workspaceId: workspaceId,
+    );
     await _onUserChanged(newUser);
   }
 

@@ -38,7 +38,14 @@ class DevAuthBackend implements AuthBackend {
   }
 
   @override
-  Future<AuthUser> signUp(String email, String password, String fullName) async {
+  Future<AuthUser> signUp(
+    String email,
+    String password,
+    String fullName, {
+    String requestedRole = 'assistant',
+    String? inviteCode,
+    String? workspaceId,
+  }) async {
     _current = AuthUser('dev-user', email, displayName: fullName, isEmailVerified: true);
     _changes.add(_current);
     return _current!;

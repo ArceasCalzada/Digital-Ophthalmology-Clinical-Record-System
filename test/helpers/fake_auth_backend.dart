@@ -41,7 +41,14 @@ class FakeAuthBackend implements AuthBackend {
   }
 
   @override
-  Future<AuthUser> signUp(String email, String password, String fullName) async {
+  Future<AuthUser> signUp(
+    String email,
+    String password,
+    String fullName, {
+    String requestedRole = 'assistant',
+    String? inviteCode,
+    String? workspaceId,
+  }) async {
     if (accounts.containsKey(email)) {
       throw const AuthFailure('An account with this email address already exists.');
     }

@@ -117,6 +117,31 @@ void main() {
       expect(reconstructed.displayName, member.displayName);
       expect(reconstructed.role, TeamRole.assistant);
     });
+
+    test('TeamMember converts to/from JSON with requestedRole and requestedWorkspaceId', () {
+      const member = TeamMember(
+        uid: 'u-101',
+        email: 'staff@clinic.com',
+        displayName: 'Staff Jane',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-01T12:00:00.000',
+        status: 'pending',
+        requestedRole: 'assistant',
+        requestedWorkspaceId: 'ws-456',
+        workspaceId: 'ws-456',
+      );
+
+      final json = member.toJson();
+      expect(json['requestedRole'], 'assistant');
+      expect(json['requestedWorkspaceId'], 'ws-456');
+      expect(json['workspaceId'], 'ws-456');
+
+      final reconstructed = TeamMember.fromJson(json);
+      expect(reconstructed.requestedRole, 'assistant');
+      expect(reconstructed.requestedWorkspaceId, 'ws-456');
+      expect(reconstructed.workspaceId, 'ws-456');
+      expect(reconstructed.isPending, isTrue);
+    });
   });
 
   group('Model Team Isolation Stamping Tests', () {
@@ -337,6 +362,37 @@ void main() {
       expect(approved.isPending, isFalse);
     });
 
+    test('TeamService approves pending member with specified targetWorkspaceId', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
+
+      final teamA = await service.createTeam('Branch Alpha');
+      final teamB = await service.createTeam('Branch Beta');
+
+      final applicant = TeamMember(
+        uid: 'user-multi-ws-1',
+        email: 'applicant@branchb.ph',
+        displayName: 'Branch Assistant',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-19T10:00:00.000',
+        status: 'pending',
+        requestedRole: 'assistant',
+        requestedWorkspaceId: teamA.id,
+      );
+      service.addPendingMemberForTesting(applicant);
+
+      // Admin approves and assigns member to Branch Beta
+      await service.approvePendingMember(
+        'user-multi-ws-1',
+        TeamRole.assistant,
+        targetWorkspaceId: teamB.id,
+      );
+
+      // Verify member is removed from pending
+      expect(service.pendingMembers.any((m) => m.uid == 'user-multi-ws-1'), isFalse);
+    });
+
     test('TeamService rejects pending member request', () async {
       final service = TeamService.instance;
       await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
@@ -360,7 +416,7 @@ void main() {
       expect(service.members.any((m) => m.uid == 'unauth-user'), isFalse);
     });
 
-    test('Joining a team via invite code writes pending approval record', () async {
+    test('Joining a team via invite code writes pending approval record with requestedRole', () async {
       SharedPreferences.setMockInitialValues({});
       final service = TeamService.instance;
       await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
@@ -370,13 +426,14 @@ void main() {
 
       // New assistant loads service
       await service.load('assistant-uid', userEmail: 'assistant@cornea.ph', displayName: 'Staff Anna');
-      final joinedTeam = await service.joinWithCode(code);
+      final joinedTeam = await service.joinWithCode(code, requestedRole: 'assistant');
 
       expect(joinedTeam.id, team.id);
       expect(service.pendingMembers.any((m) => m.uid == 'assistant-uid'), isTrue);
       final pendingRecord = service.pendingMembers.firstWhere((m) => m.uid == 'assistant-uid');
       expect(pendingRecord.status, 'pending');
       expect(pendingRecord.isPending, isTrue);
+      expect(pendingRecord.requestedRole, 'assistant');
       expect(pendingRecord.requestedWorkspaceId, team.id);
       expect(pendingRecord.email, 'assistant@cornea.ph');
     });
@@ -393,9 +450,9 @@ void main() {
       service.unload();
       final fakeBackend = FakeAuthBackend({});
       await AuthService.instance.attach(fakeBackend);
-      await fakeBackend.signUp('assistant@oa.ph', 'password123', 'Assistant Maria');
+      await fakeBackend.signUp('assistant@oa.ph', 'password123', 'Assistant Maria', requestedRole: 'assistant');
 
-      final joinedTeam = await service.joinWithCode(code);
+      final joinedTeam = await service.joinWithCode(code, requestedRole: 'assistant');
 
       expect(joinedTeam.id, team.id);
       expect(service.pendingMembers.any((m) => m.email == 'assistant@oa.ph'), isTrue);
@@ -403,6 +460,7 @@ void main() {
       expect(pendingRecord.uid, 'uid-assistant@oa.ph');
       expect(pendingRecord.status, 'pending');
       expect(pendingRecord.isPending, isTrue);
+      expect(pendingRecord.requestedRole, 'assistant');
       expect(pendingRecord.displayName, 'Assistant Maria');
       expect(pendingRecord.requestedWorkspaceId, team.id);
     });
@@ -437,7 +495,7 @@ void main() {
       await expectation;
     });
 
-    testWidgets('TeamsView renders Pending Approvals section for admins and processes approval', (tester) async {
+    testWidgets('TeamsView renders Pending Approvals section with requestedRole badge and preselects role', (tester) async {
       final service = TeamService.instance;
       await service.load('owner-uid', userEmail: 'owner@docrs.app', displayName: 'Dr. Owner');
 
@@ -448,6 +506,7 @@ void main() {
         role: TeamRole.viewer,
         joinedAt: '2026-10-06T10:00:00.000',
         status: 'pending',
+        requestedRole: 'assistant',
       );
       service.addPendingMemberForTesting(pendingMember);
 
@@ -463,6 +522,7 @@ void main() {
       expect(find.textContaining('Pending Approvals (1)'), findsOneWidget);
       expect(find.text('Dr. New Registrant'), findsOneWidget);
       expect(find.text('dr.new@clinic.com'), findsOneWidget);
+      expect(find.text('Requested: ASSISTANT'), findsOneWidget);
       expect(find.text('Approve'), findsOneWidget);
       expect(find.text('Reject'), findsOneWidget);
 
@@ -478,6 +538,8 @@ void main() {
 
       expect(service.pendingMembers.isEmpty, isTrue);
       expect(service.members.any((m) => m.uid == 'user-widget-1'), isTrue);
+      final approved = service.members.firstWhere((m) => m.uid == 'user-widget-1');
+      expect(approved.role, TeamRole.assistant);
     });
 
     testWidgets('Pending Approvals updates dynamically in real-time when new request arrives', (tester) async {

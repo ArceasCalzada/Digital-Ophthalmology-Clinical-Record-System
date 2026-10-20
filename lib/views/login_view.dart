@@ -121,17 +121,19 @@ class _LoginViewState extends State<LoginView> {
     });
 
     try {
+      final inviteCode = _signUpInviteCodeController.text.trim();
       await AuthService.instance.signUp(
         _signUpEmailController.text,
         _signUpPasswordController.text,
         _fullNameController.text,
+        requestedRole: 'assistant',
+        inviteCode: inviteCode.isNotEmpty ? inviteCode : null,
       );
-      final inviteCode = _signUpInviteCodeController.text.trim();
       if (inviteCode.isNotEmpty) {
         try {
-          await TeamService.instance.joinWithCode(inviteCode);
+          await TeamService.instance.joinWithCode(inviteCode, requestedRole: 'assistant');
         } catch (e) {
-          debugPrint('Notice joining with code during signup: $e');
+          debugPrint('[LoginView._handleSignUp] Notice joining with code during signup: $e');
         }
       }
       _signUpPasswordController.clear();
@@ -1265,7 +1267,7 @@ class _LoginViewState extends State<LoginView> {
                         errorText = null;
                       });
                       try {
-                        await TeamService.instance.joinWithCode(code);
+                        await TeamService.instance.joinWithCode(code, requestedRole: 'assistant');
                         if (!mounted) return;
                         if (dialogCtx.mounted) {
                           Navigator.pop(dialogCtx);

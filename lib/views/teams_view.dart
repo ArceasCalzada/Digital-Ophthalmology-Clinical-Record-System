@@ -461,7 +461,7 @@ class _TeamsListCard extends StatelessWidget {
               if (code.isEmpty) return;
               Navigator.pop(ctx);
               try {
-                final team = await TeamService.instance.joinWithCode(code);
+                final team = await TeamService.instance.joinWithCode(code, requestedRole: 'assistant');
                 if (context.mounted) {
                   showActionSuccessModal(
                     context: context,
@@ -1396,6 +1396,7 @@ class _PendingApprovalsCard extends StatefulWidget {
 
 class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
   final Map<String, TeamRole> _selectedRoles = {};
+  final Map<String, String> _selectedWorkspaces = {};
 
   @override
   Widget build(BuildContext context) {
@@ -1459,7 +1460,12 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
   }
 
   Widget _buildPendingRow(BuildContext context, TeamMember member) {
-    final selectedRole = _selectedRoles[member.uid] ?? (member.role == TeamRole.viewer ? TeamRole.editor : member.role);
+    final memberRequestedRole = member.requestedRole != null ? TeamRole.parse(member.requestedRole) : null;
+    final defaultRole = memberRequestedRole ?? (member.role == TeamRole.viewer ? TeamRole.assistant : member.role);
+    final selectedRole = _selectedRoles[member.uid] ?? defaultRole;
+    final targetWsId = _selectedWorkspaces[member.uid] ??
+        member.requestedWorkspaceId ??
+        widget.teamService.activeWorkspaceId;
     final dateStr = _formatDate(member.joinedAt);
 
     return Container(
@@ -1520,6 +1526,22 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                             ),
                           ),
                         ),
+                        if (member.requestedRole != null)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF2563EB).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Requested: ${member.requestedRole!.toUpperCase()}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     SizedBox(height: 2),
@@ -1537,6 +1559,38 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               ),
             ],
           );
+
+          final workspaceDropdown = widget.teamService.teams.length > 1
+              ? Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.borderColor),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: widget.teamService.teams.any((t) => t.id == targetWsId)
+                          ? targetWsId
+                          : widget.teamService.activeWorkspaceId,
+                      isDense: true,
+                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                      items: [
+                        for (final t in widget.teamService.teams)
+                          DropdownMenuItem(
+                            value: t.id,
+                            child: Text('Workspace: ${t.name}', overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
+                      onChanged: (newWs) {
+                        if (newWs != null) {
+                          setState(() => _selectedWorkspaces[member.uid] = newWs);
+                        }
+                      },
+                    ),
+                  ),
+                )
+              : null;
 
           final roleDropdown = Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -1571,6 +1625,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
             runSpacing: 8,
             alignment: WrapAlignment.end,
             children: [
+              ?workspaceDropdown,
               roleDropdown,
               OutlinedButton.icon(
                 icon: Icon(Icons.close_rounded, size: 16, color: Colors.red),
@@ -1590,12 +1645,18 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                 ),
                 onPressed: () async {
                   try {
-                    await widget.teamService.approvePendingMember(member.uid, selectedRole);
+                    await widget.teamService.approvePendingMember(
+                      member.uid,
+                      selectedRole,
+                      targetWorkspaceId: targetWsId,
+                    );
                     if (context.mounted) {
+                      final assignedTeam = widget.teamService.teams.where((t) => t.id == targetWsId).firstOrNull ?? widget.teamService.activeTeam;
+                      final teamName = assignedTeam != null ? ' to "${assignedTeam.name}"' : '';
                       showActionSuccessModal(
                         context: context,
                         title: 'User Approved Successfully',
-                        message: '${member.displayName} (${member.email}) has been approved as ${selectedRole.label} and added to active team members.',
+                        message: '${member.displayName} (${member.email}) has been approved as ${selectedRole.label} and assigned$teamName.',
                         icon: Icons.verified_user_rounded,
                       );
                     }

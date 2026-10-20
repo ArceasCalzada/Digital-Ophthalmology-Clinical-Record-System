@@ -74,8 +74,10 @@ class TeamMember {
   final String joinedAt;
   final String status; // 'active' or 'pending'
   final String? requestedWorkspaceId;
+  final String? requestedRole;
 
   bool get isPending => status == 'pending';
+  String? get workspaceId => requestedWorkspaceId;
 
   const TeamMember({
     required this.uid,
@@ -84,8 +86,10 @@ class TeamMember {
     required this.role,
     required this.joinedAt,
     this.status = 'active',
-    this.requestedWorkspaceId,
-  });
+    String? requestedWorkspaceId,
+    String? workspaceId,
+    this.requestedRole,
+  }) : requestedWorkspaceId = requestedWorkspaceId ?? workspaceId;
 
   Map<String, dynamic> toJson() => {
         'uid': uid,
@@ -96,6 +100,9 @@ class TeamMember {
         'status': status,
         'isApproved': !isPending,
         if (requestedWorkspaceId != null) 'requestedWorkspaceId': requestedWorkspaceId,
+        if (requestedWorkspaceId != null) 'workspaceId': requestedWorkspaceId,
+        if (requestedWorkspaceId != null) 'teamId': requestedWorkspaceId,
+        if (requestedRole != null) 'requestedRole': requestedRole,
       };
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
@@ -111,7 +118,11 @@ class TeamMember {
 
     final workspaceId = json['requestedWorkspaceId'] as String? ??
         json['workspaceId'] as String? ??
+        json['targetWorkspaceId'] as String? ??
         json['teamId'] as String?;
+
+    final reqRole = json['requestedRole'] as String? ??
+        (isPending && roleRaw != 'viewer' && roleRaw != 'pending' ? roleRaw : null);
 
     return TeamMember(
       uid: json['uid'] as String? ?? '',
@@ -121,6 +132,7 @@ class TeamMember {
       joinedAt: json['joinedAt'] as String? ?? DateTime.now().toIso8601String(),
       status: isPending ? 'pending' : (statusStr ?? 'active'),
       requestedWorkspaceId: workspaceId,
+      requestedRole: reqRole,
     );
   }
 
@@ -132,6 +144,7 @@ class TeamMember {
     String? joinedAt,
     String? status,
     String? requestedWorkspaceId,
+    String? requestedRole,
   }) {
     return TeamMember(
       uid: uid ?? this.uid,
@@ -141,6 +154,7 @@ class TeamMember {
       joinedAt: joinedAt ?? this.joinedAt,
       status: status ?? this.status,
       requestedWorkspaceId: requestedWorkspaceId ?? this.requestedWorkspaceId,
+      requestedRole: requestedRole ?? this.requestedRole,
     );
   }
 }
