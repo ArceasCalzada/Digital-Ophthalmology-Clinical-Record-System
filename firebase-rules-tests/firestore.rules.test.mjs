@@ -555,6 +555,24 @@ describe('Teams multi-tenancy and permission levels', () => {
     const db = as('ownerA');
     await assertSucceeds(db.doc('teams/teamA/members/newMember').set({ uid: 'newMember', email: 'new@docrs.app', displayName: 'New', role: 'viewer', joinedAt: '2026-10-01T12:00:00.000' }));
     await assertSucceeds(db.doc('teams/teamA/members/editorA').update({ role: 'assistant' }));
+    await assertSucceeds(db.doc('teams/teamA').update({ isArchived: true }));
+    await assertSucceeds(db.doc('teams/teamA').update({ isArchived: false }));
+  });
+
+  test('Administrator can update team attributes and toggle archive flags', async () => {
+    await seed(async (db) => {
+      await db.doc('teams/teamA/members/adminA').set({ uid: 'adminA', email: 'adminA@docrs.app', displayName: 'Admin A', role: 'admin', joinedAt: '2026-10-01T10:00:00.000' });
+    });
+    const db = as('adminA');
+    await assertSucceeds(db.doc('teams/teamA').update({ isArchived: true }));
+    await assertSucceeds(db.doc('teams/teamA').update({ isArchived: false }));
+  });
+
+  test('Editor and viewer cannot archive team or toggle isArchived', async () => {
+    const editorDb = as('editorA');
+    await assertFails(editorDb.doc('teams/teamA').update({ isArchived: true }));
+    const viewerDb = as('viewerA');
+    await assertFails(viewerDb.doc('teams/teamA').update({ isArchived: true }));
   });
 
   test('Editor cannot manage team members', async () => {

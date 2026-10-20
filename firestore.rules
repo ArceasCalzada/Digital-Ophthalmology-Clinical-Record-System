@@ -132,8 +132,22 @@ service cloud.firestore {
         isStaff() ||
         (teamId != null && teamId != '' && teamOwnerId(teamId) == request.auth.uid) ||
         (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
-        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'leader']) ||
-        (resource != null && resource.data.get('ownerId', '') == request.auth.uid)
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'leader', 'admin']) ||
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
+        (resource != null && (resource.data.get('ownerId', '') == request.auth.uid || resource.data.get('adminId', '') == request.auth.uid))
+      );
+    }
+    function isTeamAdmin(teamId) {
+      return request.auth != null && (
+        isTeamOwner(teamId) ||
+        roleLower() in ['admin', 'owner', 'leader'] ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && (
+          memberRole(teamId).lower() in ['owner', 'leader', 'admin'] ||
+          get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']
+        )) ||
+        (exists(userPath()) && get(userPath()).data.get('teamRole', '').lower() in ['owner', 'admin', 'leader']) ||
+        (resource != null && (resource.data.get('ownerId', '') == request.auth.uid || resource.data.get('adminId', '') == request.auth.uid))
       );
     }
     function canViewPatients(teamId) {
@@ -206,11 +220,12 @@ service cloud.firestore {
       return v == null || (v is string && v.size() <= max);
     }
     function optInt(d, k, lo, hi) {
-      let v = d.get(k, lo);
-      return v is int && v >= lo && v <= hi;
+      let v = d.get(k, null);
+      return v == null || (v is int && v >= lo && v <= hi);
     }
     function optBool(d, k) {
-      return d.get(k, false) is bool;
+      let v = d.get(k, null);
+      return v == null || v is bool;
     }
     function strList(l, maxItems, maxChars) {
       return l is list && l.size() <= maxItems && l.join(',').size() <= maxChars;
@@ -222,11 +237,25 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- teams --
     function validTeam(d, id) {
-      return d.keys().hasOnly(['id', 'name', 'location', 'ownerId', 'inviteCode', 'createdAt', 'patientCount', 'encounterCount', 'prescriptionCount', 'isArchived'])
-        && d.keys().hasAll(['id', 'name', 'ownerId', 'inviteCode'])
-        && d.id == id
-        && s(d, 'name', 100) && sn(d, 'location', 200) && s(d, 'ownerId', 128) && s(d, 'inviteCode', 32)
-        && s(d, 'createdAt', 64)
+      return d.keys().hasOnly([
+          'id', 'name', 'location', 'clinicLocation', 'address',
+          'ownerId', 'inviteCode', 'createdAt', 'updatedAt', 'archivedAt',
+          'patientCount', 'encounterCount', 'prescriptionCount', 'isArchived',
+          'description', 'adminId'
+        ])
+        && d.keys().hasAll(['name', 'ownerId', 'inviteCode'])
+        && d.get('id', id) == id
+        && s(d, 'name', 100)
+        && sn(d, 'location', 200)
+        && sn(d, 'clinicLocation', 200)
+        && sn(d, 'address', 200)
+        && s(d, 'ownerId', 128)
+        && s(d, 'inviteCode', 32)
+        && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
+        && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
+        && (sn(d, 'archivedAt', 64) || d.get('archivedAt', null) is timestamp)
+        && sn(d, 'description', 500)
+        && sn(d, 'adminId', 128)
         && optInt(d, 'patientCount', 0, 100000)
         && optInt(d, 'encounterCount', 0, 100000)
         && optInt(d, 'prescriptionCount', 0, 100000)
@@ -237,7 +266,7 @@ service cloud.firestore {
       allow get: if isTeamMember(teamId) || (request.auth != null && resource.data.get('ownerId', '') == request.auth.uid);
       allow list: if request.auth != null && request.query.limit <= 100;
       allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid && validTeam(request.resource.data, teamId);
-      allow update: if isTeamOwner(teamId) && validTeam(request.resource.data, teamId);
+      allow update: if (isTeamOwner(teamId) || isTeamAdmin(teamId)) && validTeam(request.resource.data, teamId);
       allow delete: if isTeamOwner(teamId);
 
       function validMember(d, uid) {
@@ -254,7 +283,7 @@ service cloud.firestore {
           && sn(d, 'requestedWorkspaceId', 128)
           && sn(d, 'workspaceId', 128)
           && sn(d, 'teamId', 128)
-          && d.role.lower() in ['owner', 'editor', 'assistant', 'viewer', 'pending'];
+          && d.role.lower() in ['owner', 'editor', 'assistant', 'viewer', 'pending', 'admin', 'leader'];
       }
 
       match /members/{uid} {

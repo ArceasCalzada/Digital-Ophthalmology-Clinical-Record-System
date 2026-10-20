@@ -163,6 +163,42 @@ void main() {
       expect(service.teams.any((t) => t.id == teamToArchive.id), isTrue);
       expect(service.archivedTeams.any((t) => t.id == teamToArchive.id), isFalse);
     });
+
+    test('canManageTeam correctly validates owner and administrator status', () async {
+      final service = TeamService.instance;
+      await service.load('owner-1', userEmail: 'doc@docrs.app', displayName: 'Dr. Jane');
+
+      final ownedTeam = Team(
+        id: 'team-owned',
+        name: 'Owned Clinic',
+        ownerId: 'owner-1',
+        inviteCode: 'OWN-123',
+        createdAt: '2026-10-01T10:00:00.000',
+      );
+      final unownedTeam = Team(
+        id: 'team-other',
+        name: 'Other Clinic',
+        ownerId: 'other-user',
+        inviteCode: 'OTH-456',
+        createdAt: '2026-10-01T10:00:00.000',
+      );
+
+      // Current user is owner of ownedTeam
+      expect(service.canManageTeam(ownedTeam), isTrue);
+
+      // When activeRole is owner, user can manage workspace
+      expect(service.canManageTeam(unownedTeam), isTrue);
+    });
+
+    test('archiveTeam throws StateError and keeps team active when team does not exist', () async {
+      final service = TeamService.instance;
+      await service.load('owner-1', userEmail: 'doc@docrs.app', displayName: 'Dr. Jane');
+      final team = await service.createTeam('Real Clinic');
+
+      expect(() => service.archiveTeam('non-existent-id'), throwsA(isA<StateError>()));
+      expect(service.teams.any((t) => t.id == team.id), isTrue);
+      expect(service.archivedTeams.isEmpty, isTrue);
+    });
   });
 
   group('TeamsView Edit & Archive Widget Tests', () {

@@ -777,6 +777,7 @@ class TeamService extends ChangeNotifier {
     }
 
     _teams[idx] = updated;
+    _registeredTeamsInMemory[existing.inviteCode] = updated;
     notifyListeners();
   }
 
@@ -796,6 +797,7 @@ class TeamService extends ChangeNotifier {
     }
 
     _teams[idx] = updated;
+    _registeredTeamsInMemory[existing.inviteCode] = updated;
     notifyListeners();
   }
 

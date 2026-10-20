@@ -555,8 +555,21 @@ class _TeamsListCard extends StatelessWidget {
                 }
               } catch (e) {
                 if (context.mounted) {
+                  final friendlyMsg = _friendlyTeamErrorMessage(e);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to update team: $e')),
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Failed to update team: $friendlyMsg')),
+                        ],
+                      ),
+                      backgroundColor: Colors.red.shade800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      duration: const Duration(seconds: 4),
+                    ),
                   );
                 }
               }
@@ -616,8 +629,21 @@ class _TeamsListCard extends StatelessWidget {
                 }
               } catch (e) {
                 if (context.mounted) {
+                  final friendlyMsg = _friendlyTeamErrorMessage(e);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to archive team: $e')),
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Failed to archive team: $friendlyMsg')),
+                        ],
+                      ),
+                      backgroundColor: Colors.red.shade800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      duration: const Duration(seconds: 4),
+                    ),
                   );
                 }
               }
@@ -870,8 +896,21 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                 }
               } catch (e) {
                 if (context.mounted) {
+                  final friendlyMsg = _friendlyTeamErrorMessage(e);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to restore team: $e')),
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(child: Text('Failed to restore team: $friendlyMsg')),
+                        ],
+                      ),
+                      backgroundColor: Colors.red.shade800,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      duration: const Duration(seconds: 4),
+                    ),
                   );
                 }
               }
@@ -1642,3 +1681,13 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
     }
   }
 }
+
+/// Formats team mutation error messages with helpful, user-friendly details.
+String _friendlyTeamErrorMessage(dynamic e) {
+  final str = e.toString();
+  if (str.contains('permission-denied') || str.contains('Missing or insufficient permissions')) {
+    return '$str (Insufficient permissions: only workspace owners and administrators are authorized to modify or archive team documents).';
+  }
+  return str;
+}
+
