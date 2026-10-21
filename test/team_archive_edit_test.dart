@@ -199,6 +199,59 @@ void main() {
       expect(service.teams.any((t) => t.id == team.id), isTrue);
       expect(service.archivedTeams.isEmpty, isTrue);
     });
+
+    test('Team owner admin.docrs@gmail.com can successfully archive and manage across all 4 owned teams', () async {
+      final service = TeamService.instance;
+      await service.load('master-admin-uid', userEmail: 'admin.docrs@gmail.com', displayName: 'System Administrator');
+
+      final team1 = service.teams.first;
+      await service.updateTeam(team1.id, name: 'Metro Ophthalmology Center');
+      final team2 = await service.createTeam('Davao Vision Clinic');
+      final team3 = await service.createTeam('Cebu Eye Specialists');
+      final team4 = await service.createTeam('Manila Cornea Care');
+
+      expect(service.teams.length, 4);
+
+      // Verify canManageTeam succeeds for all 4 owned teams
+      expect(service.canManageTeam(team1), isTrue);
+      expect(service.canManageTeam(team2), isTrue);
+      expect(service.canManageTeam(team3), isTrue);
+      expect(service.canManageTeam(team4), isTrue);
+
+      // Archive team1 (team4 is currently active)
+      await service.archiveTeam(team1.id);
+      expect(service.archivedTeams.any((t) => t.id == team1.id), isTrue);
+      expect(service.teams.any((t) => t.id == team1.id), isFalse);
+
+      // Archive team2
+      await service.archiveTeam(team2.id);
+      expect(service.archivedTeams.any((t) => t.id == team2.id), isTrue);
+      expect(service.teams.any((t) => t.id == team2.id), isFalse);
+
+      // Archive team3
+      await service.archiveTeam(team3.id);
+      expect(service.archivedTeams.any((t) => t.id == team3.id), isTrue);
+      expect(service.teams.any((t) => t.id == team3.id), isFalse);
+
+      // To archive team4, restore team1 first and switch active to team1
+      await service.restoreTeam(team1.id);
+      expect(service.teams.any((t) => t.id == team1.id), isTrue);
+      await service.switchTo(team1.id);
+      expect(service.activeTeam?.id, team1.id);
+
+      // Now archive team4
+      await service.archiveTeam(team4.id);
+      expect(service.archivedTeams.any((t) => t.id == team4.id), isTrue);
+      expect(service.teams.any((t) => t.id == team4.id), isFalse);
+
+      // Restore all teams back to active
+      await service.restoreTeam(team2.id);
+      await service.restoreTeam(team3.id);
+      await service.restoreTeam(team4.id);
+
+      expect(service.teams.length, 4);
+      expect(service.archivedTeams.isEmpty, isTrue);
+    });
   });
 
   group('TeamsView Edit & Archive Widget Tests', () {

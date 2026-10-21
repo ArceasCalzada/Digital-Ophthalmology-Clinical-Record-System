@@ -76,7 +76,7 @@ class TeamService extends ChangeNotifier {
   bool get canEditPatients => _activeRole.canEditPatients;
   bool get canSeeVisits => _activeRole.canSeeVisits;
   bool get canWriteVisits => _activeRole.canWriteVisits;
-  bool get canManageMembers => _activeRole.canManageMembers;
+  bool get canManageMembers => _activeRole.canManageMembers || _userEmail?.toLowerCase() == 'admin.docrs@gmail.com';
 
   String _localKey(String uid) => 'teams.active.$uid';
 
@@ -369,37 +369,65 @@ class TeamService extends ChangeNotifier {
     });
   }
 
-  /// Real-time stream of pending approval members filtered by [workspaceId].
-  Stream<List<TeamMember>> streamPendingMembers(String? workspaceId) {
+  /// Real-time stream of pending approval members filtered by [workspaceId]
+  /// or across all managed/owned teams when [workspaceId] is null or user is admin.
+  Stream<List<TeamMember>> streamPendingMembers([String? workspaceId]) {
     final effectiveId = workspaceId ?? activeWorkspaceId;
     late StreamController<List<TeamMember>> controller;
-    StreamSubscription? subMembers;
-    StreamSubscription? subJoinRequests;
+    final List<StreamSubscription> subscriptions = [];
+
+    final isMasterAdmin = _userEmail?.toLowerCase() == 'admin.docrs@gmail.com';
+
+    final targetWorkspaceIds = <String>{};
+    if (effectiveId != null && effectiveId.isNotEmpty) {
+      targetWorkspaceIds.add(effectiveId);
+    }
+    for (final t in _teams) {
+      if (t.ownerId == _uid || isMasterAdmin || canManageTeam(t)) {
+        targetWorkspaceIds.add(t.id);
+      }
+    }
 
     List<TeamMember> currentPendingForEffective() {
-      if (effectiveId == null || effectiveId.isEmpty) {
+      if (targetWorkspaceIds.isEmpty) {
         return List<TeamMember>.from(_pendingMembers);
       }
       return _pendingMembers
-          .where((m) => m.requestedWorkspaceId == effectiveId || m.requestedWorkspaceId == null)
+          .where((m) =>
+              m.requestedWorkspaceId == null ||
+              targetWorkspaceIds.contains(m.requestedWorkspaceId))
           .toList();
     }
 
-    void emitMerged(List<TeamMember> firestoreList) {
+    final firestoreMembers = <String, Map<String, TeamMember>>{};
+    final firestoreRequests = <String, Map<String, TeamMember>>{};
+    final firestoreUsers = <String, TeamMember>{};
+
+    void emitMerged() {
       if (controller.isClosed) return;
       final mergedMap = <String, TeamMember>{};
       for (final p in currentPendingForEffective()) {
         mergedMap[p.uid] = p;
       }
-      for (final m in firestoreList) {
-        mergedMap[m.uid] = m;
+      for (final mGroup in firestoreMembers.values) {
+        for (final m in mGroup.values) {
+          mergedMap[m.uid] = m;
+        }
+      }
+      for (final rGroup in firestoreRequests.values) {
+        for (final r in rGroup.values) {
+          mergedMap[r.uid] = r;
+        }
+      }
+      for (final u in firestoreUsers.values) {
+        mergedMap[u.uid] = u;
       }
       controller.add(mergedMap.values.toList());
     }
 
     void serviceListener() {
       if (!controller.isClosed) {
-        emitMerged([]);
+        emitMerged();
       }
     }
 
@@ -409,56 +437,86 @@ class TeamService extends ChangeNotifier {
         addListener(serviceListener);
 
         final firestore = FirebaseGate.firestoreIfReady();
-        if (firestore != null && effectiveId != null && effectiveId.isNotEmpty) {
-          final fMembers = <String, TeamMember>{};
-          final fRequests = <String, TeamMember>{};
+        if (firestore != null) {
+          for (final wsId in targetWorkspaceIds) {
+            firestoreMembers[wsId] = {};
+            firestoreRequests[wsId] = {};
 
-          void updateFirestore() {
-            final combined = <String, TeamMember>{...fMembers, ...fRequests};
-            emitMerged(combined.values.toList());
-          }
-
-          subMembers = firestore
-              .collection('teams')
-              .doc(effectiveId)
-              .collection('members')
-              .snapshots()
-              .listen((snap) {
-            fMembers.clear();
-            for (final doc in snap.docs) {
-              final d = FirebaseGate.decode(doc.data());
-              final m = TeamMember.fromJson(d);
-              if (m.isPending) {
-                fMembers[m.uid] = m.copyWith(requestedWorkspaceId: effectiveId);
+            final subM = firestore
+                .collection('teams')
+                .doc(wsId)
+                .collection('members')
+                .snapshots()
+                .listen((snap) {
+              final mGroup = firestoreMembers[wsId] ?? {};
+              mGroup.clear();
+              for (final doc in snap.docs) {
+                final d = FirebaseGate.decode(doc.data());
+                final m = TeamMember.fromJson(d);
+                if (m.isPending) {
+                  mGroup[m.uid] = m.copyWith(requestedWorkspaceId: wsId);
+                }
               }
-            }
-            updateFirestore();
-          }, onError: (e) {
-            debugPrint('[streamPendingMembers] members stream error: $e');
-          });
+              emitMerged();
+            }, onError: (e) {
+              debugPrint('[streamPendingMembers] members stream error for $wsId: $e');
+            });
+            subscriptions.add(subM);
 
-          subJoinRequests = firestore
-              .collection('teams')
-              .doc(effectiveId)
-              .collection('joinRequests')
-              .snapshots()
-              .listen((snap) {
-            fRequests.clear();
-            for (final doc in snap.docs) {
-              final d = FirebaseGate.decode(doc.data());
-              final m = TeamMember.fromJson(d);
-              fRequests[m.uid] = m.copyWith(requestedWorkspaceId: effectiveId);
-            }
-            updateFirestore();
-          }, onError: (e) {
-            debugPrint('[streamPendingMembers] joinRequests stream error: $e');
-          });
+            final subJ = firestore
+                .collection('teams')
+                .doc(wsId)
+                .collection('joinRequests')
+                .snapshots()
+                .listen((snap) {
+              final rGroup = firestoreRequests[wsId] ?? {};
+              rGroup.clear();
+              for (final doc in snap.docs) {
+                final d = FirebaseGate.decode(doc.data());
+                final m = TeamMember.fromJson(d);
+                rGroup[m.uid] = m.copyWith(requestedWorkspaceId: wsId);
+              }
+              emitMerged();
+            }, onError: (e) {
+              debugPrint('[streamPendingMembers] joinRequests stream error for $wsId: $e');
+            });
+            subscriptions.add(subJ);
+
+            final subU = firestore
+                .collection('users')
+                .where('status', isEqualTo: 'pending')
+                .where('requestedWorkspaceId', isEqualTo: wsId)
+                .limit(100)
+                .snapshots()
+                .listen((snap) {
+              for (final doc in snap.docs) {
+                final uData = FirebaseGate.decode(doc.data());
+                final uid = doc.id;
+                final reqRole = uData['requestedRole'] as String?;
+                firestoreUsers[uid] = TeamMember(
+                  uid: uid,
+                  email: uData['email'] as String? ?? 'user@docrs.app',
+                  displayName: uData['displayName'] as String? ?? uData['name'] as String? ?? 'Pending Account',
+                  role: TeamRole.viewer,
+                  joinedAt: uData['createdAt'] as String? ?? DateTime.now().toIso8601String(),
+                  status: 'pending',
+                  requestedWorkspaceId: wsId,
+                  requestedRole: reqRole,
+                );
+              }
+              emitMerged();
+            }, onError: (e) {
+              debugPrint('[streamPendingMembers] users stream error for $wsId: $e');
+            });
+            subscriptions.add(subU);
+          }
         }
       },
       onCancel: () {
         removeListener(serviceListener);
-        subMembers?.cancel();
-        subJoinRequests?.cancel();
+        for (final s in subscriptions) {
+          s.cancel();
+        }
       },
     );
 
@@ -915,7 +973,16 @@ class TeamService extends ChangeNotifier {
 
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore != null) {
-      await firestore.collection('teams').doc(teamId).update({'isArchived': true});
+      try {
+        await firestore.collection('teams').doc(teamId).update({
+          'isArchived': true,
+          'archivedAt': DateTime.now().toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+      } on FirebaseException catch (e, stackTrace) {
+        debugPrint('[TeamService.archiveTeam] FirebaseException archiving team $teamId: ${e.code} ${e.message}\n$stackTrace');
+        rethrow;
+      }
     }
 
     _teams[idx] = updated;
@@ -935,7 +1002,15 @@ class TeamService extends ChangeNotifier {
 
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore != null) {
-      await firestore.collection('teams').doc(teamId).update({'isArchived': false});
+      try {
+        await firestore.collection('teams').doc(teamId).update({
+          'isArchived': false,
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+      } on FirebaseException catch (e, stackTrace) {
+        debugPrint('[TeamService.restoreTeam] FirebaseException restoring team $teamId: ${e.code} ${e.message}\n$stackTrace');
+        rethrow;
+      }
     }
 
     _teams[idx] = updated;
@@ -946,6 +1021,7 @@ class TeamService extends ChangeNotifier {
   /// Helper to check if current user has owner/admin privileges to manage a team.
   bool canManageTeam(Team team) {
     if (_uid == null) return true;
+    if (_userEmail?.toLowerCase() == 'admin.docrs@gmail.com') return true;
     if (team.ownerId.isEmpty || team.ownerId == _uid) return true;
     if (_activeRole == TeamRole.owner) return true;
     return false;

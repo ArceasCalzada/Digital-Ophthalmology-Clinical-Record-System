@@ -576,6 +576,60 @@ void main() {
       expect(find.textContaining('Pending Approvals (1)'), findsOneWidget);
     });
 
+    test('admin.docrs@gmail.com streams pending approvals across all owned teams and approves assistant', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('admin-uid', userEmail: 'admin.docrs@gmail.com', displayName: 'Admin Owner');
+
+      final team1 = service.teams.first;
+      final team2 = await service.createTeam('Second Clinic Branch');
+
+      // Pending assistant on team1
+      final assistant1 = TeamMember(
+        uid: 'asst-1',
+        email: 'assistant1@clinic.ph',
+        displayName: 'Assistant 1',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-21T10:00:00.000',
+        status: 'pending',
+        requestedRole: 'assistant',
+        requestedWorkspaceId: team1.id,
+      );
+
+      // Pending assistant on team2
+      final assistant2 = TeamMember(
+        uid: 'asst-2',
+        email: 'assistant2@clinic.ph',
+        displayName: 'Assistant 2',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-21T10:00:00.000',
+        status: 'pending',
+        requestedRole: 'assistant',
+        requestedWorkspaceId: team2.id,
+      );
+
+      service.addPendingMemberForTesting(assistant1);
+      service.addPendingMemberForTesting(assistant2);
+
+      // Stream pending members as admin
+      final stream = service.streamPendingMembers();
+      final currentList = await stream.first;
+
+      // Admin receives pending members from all owned teams
+      expect(currentList.any((m) => m.uid == 'asst-1'), isTrue);
+      expect(currentList.any((m) => m.uid == 'asst-2'), isTrue);
+
+      // Approve assistant2 into team2
+      await service.approvePendingMember(
+        'asst-2',
+        TeamRole.assistant,
+        targetWorkspaceId: team2.id,
+      );
+
+      // Verify assistant2 is no longer pending
+      expect(service.pendingMembers.any((m) => m.uid == 'asst-2'), isFalse);
+    });
+
     test('Switching active team reconnects CalendarEventRepository to target workspace teamId', () async {
       SharedPreferences.setMockInitialValues({});
       final service = TeamService.instance;
