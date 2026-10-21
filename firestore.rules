@@ -80,7 +80,8 @@ service cloud.firestore {
     function isMasterAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'admin.docrs@gmail.com' ||
-        request.auth.token.get('email', '') == 'admin.docrs@gmail.com'
+        request.auth.token.get('email', '') == 'admin.docrs@gmail.com' ||
+        request.auth.token.get('email', '').lower() == 'admin.docrs@gmail.com'
       );
     }
     function isStaff() {
@@ -252,16 +253,17 @@ service cloud.firestore {
           'id', 'name', 'location', 'clinicLocation', 'address',
           'ownerId', 'inviteCode', 'createdAt', 'updatedAt', 'archivedAt',
           'patientCount', 'encounterCount', 'prescriptionCount', 'isArchived',
-          'description', 'adminId'
+          'description', 'adminId', 'prescriptionSettings', 'ownerEmail',
+          'ownerName', 'status', 'membersCount', 'memberCount', 'settings'
         ])
-        && d.keys().hasAll(['name', 'ownerId', 'inviteCode'])
+        && d.keys().hasAll(['name', 'ownerId'])
         && d.get('id', id) == id
         && s(d, 'name', 100)
         && sn(d, 'location', 200)
         && sn(d, 'clinicLocation', 200)
         && sn(d, 'address', 200)
         && s(d, 'ownerId', 128)
-        && s(d, 'inviteCode', 32)
+        && sn(d, 'inviteCode', 32)
         && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
         && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
         && (sn(d, 'archivedAt', 64) || d.get('archivedAt', null) is timestamp)
@@ -270,7 +272,8 @@ service cloud.firestore {
         && optInt(d, 'patientCount', 0, 100000)
         && optInt(d, 'encounterCount', 0, 100000)
         && optInt(d, 'prescriptionCount', 0, 100000)
-        && optBool(d, 'isArchived');
+        && optBool(d, 'isArchived')
+        && (d.get('prescriptionSettings', null) == null || d.get('prescriptionSettings', null) is map);
     }
 
     match /teams/{teamId} {
@@ -288,7 +291,11 @@ service cloud.firestore {
         resource.data.get('ownerId', '') == request.auth.uid ||
         isTeamOwner(teamId) ||
         isTeamAdmin(teamId)
-      ) && validTeam(request.resource.data, teamId);
+      ) && (
+        isMasterAdmin() ||
+        request.auth.token.email == "admin.docrs@gmail.com" ||
+        validTeam(request.resource.data, teamId)
+      );
       allow delete: if request.auth != null && (
         isMasterAdmin() ||
         request.auth.token.email == "admin.docrs@gmail.com" ||
