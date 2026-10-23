@@ -88,148 +88,153 @@ class _SessionLockOverlayState extends State<SessionLockOverlay> {
         Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Container(
-              key: const Key('session_lock_overlay_card'),
-              constraints: const BoxConstraints(maxWidth: 420),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-                border: Border.all(color: AppTheme.borderColor),
-              ),
-              padding: const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Shield Icon Emblem
-                  Center(
-                    child: Container(
-                      width: 64,
-                      height: 64,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                key: const Key('session_lock_overlay_card'),
+                constraints: const BoxConstraints(maxWidth: 420),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Shield Icon Emblem
+                    Center(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2), width: 2),
+                        ),
+                        child: Icon(
+                          Icons.lock_clock_rounded,
+                          size: 32,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Title & Subtitle
+                    Text(
+                      'Workstation Locked',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Session paused due to inactivity to protect patient confidentiality.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // User Info Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2), width: 2),
+                        color: ThemeController.instance.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
-                      child: Icon(
-                        Icons.lock_clock_rounded,
-                        size: 32,
-                        color: AppTheme.primaryBlue,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Title & Subtitle
-                  Text(
-                    'Workstation Locked',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Session paused due to inactivity to protect patient confidentiality.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // User Info Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppTheme.primaryBlue,
-                          child: Text(
-                            displayName.isNotEmpty ? displayName[0].toUpperCase() : 'D',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppTheme.primaryBlue,
+                            child: Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : 'D',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                displayName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  color: AppTheme.textPrimary,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                email,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.textSecondary,
+                                Text(
+                                  email,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Password Field
-                  Text(
-                    'Enter Password to Resume',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    key: const Key('session_lock_password_field'),
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    onSubmitted: (_) => _handleUnlock(),
-                    decoration: InputDecoration(
-                      hintText: 'Enter account password...',
-                      prefixIcon: Icon(Icons.key_rounded, size: 20, color: AppTheme.primaryBlue),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                          size: 20,
-                          color: AppTheme.textSecondary,
-                        ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ],
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+
+                    // Password Field
+                    Text(
+                      'Enter Password to Resume',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: TextField(
+                        key: const Key('session_lock_password_field'),
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        onSubmitted: (_) => _handleUnlock(),
+                        decoration: InputDecoration(
+                          hintText: 'Enter account password...',
+                          prefixIcon: Icon(Icons.key_rounded, size: 20, color: AppTheme.primaryBlue),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 20,
+                              color: AppTheme.textSecondary,
+                            ),
+                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                      ),
+                    ),
 
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 10),
@@ -297,7 +302,8 @@ class _SessionLockOverlayState extends State<SessionLockOverlay> {
             ),
           ),
         ),
-      ],
+      ),
+    ],
     );
   }
 }

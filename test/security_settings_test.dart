@@ -248,6 +248,48 @@ void main() {
       await tester.pump();
       expect(signedOut, isTrue);
     });
+
+    testWidgets('SessionLockOverlay renders cleanly without Material ancestor / Scaffold and allows password unlock', (WidgetTester tester) async {
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+      var unlocked = false;
+
+      // Mount SessionLockOverlay directly inside a non-Scaffold Stack as in main.dart
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Stack(
+            children: [
+              SessionLockOverlay(
+                onUnlock: (pass) async {
+                  if (pass == 'Doctor@123') unlocked = true;
+                  return pass == 'Doctor@123';
+                },
+                onLogout: () {},
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Verify no framework error widgets or exceptions occurred
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ErrorWidget), findsNothing);
+
+      // Verify Workstation Locked dialog elements
+      expect(find.text('Workstation Locked'), findsOneWidget);
+      final passField = find.byType(TextField);
+      expect(passField, findsOneWidget);
+
+      // Type password and unlock
+      await tester.enterText(passField, 'Doctor@123');
+      await tester.tap(find.text('Unlock Workstation'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(unlocked, isTrue);
+    });
   });
 
   group('SettingsView Security Tab Widget Tests', () {
