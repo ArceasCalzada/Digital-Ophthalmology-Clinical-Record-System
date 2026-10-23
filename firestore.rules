@@ -311,7 +311,7 @@ service cloud.firestore {
             'createdAt', 'updatedAt', 'inviteCode', 'requestedRole'
           ])
           && d.keys().hasAll(['uid', 'role'])
-          && d.uid == uid
+          && d.get('uid', uid) == uid
           && sn(d, 'email', 200) && sn(d, 'displayName', 200)
           && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
           && (sn(d, 'requestedAt', 64) || d.get('requestedAt', null) is timestamp)
@@ -325,7 +325,7 @@ service cloud.firestore {
           && sn(d, 'teamId', 128)
           && sn(d, 'inviteCode', 32)
           && sn(d, 'requestedRole', 32)
-          && d.role.lower() in ['owner', 'editor', 'assistant', 'viewer', 'pending', 'admin', 'leader'];
+          && d.get('role', '').lower() in ['owner', 'editor', 'assistant', 'viewer', 'pending', 'admin', 'leader'];
       }
 
       function validJoinRequest(d, uid) {

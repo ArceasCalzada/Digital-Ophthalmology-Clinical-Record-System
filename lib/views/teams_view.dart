@@ -1542,6 +1542,22 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                               ),
                             ),
                           ),
+                        if (member.requestedWorkspaceId == null || member.requestedWorkspaceId!.isEmpty)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF7C3AED).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'New Registration',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF7C3AED),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     SizedBox(height: 2),

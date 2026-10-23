@@ -630,6 +630,51 @@ void main() {
       expect(service.pendingMembers.any((m) => m.uid == 'asst-2'), isFalse);
     });
 
+    test('Newly registered unassigned user without invite code appears in pending approvals and can be assigned to workspace', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('admin-uid', userEmail: 'admin.docrs@gmail.com', displayName: 'Admin Owner');
+
+      final eyeCenter = await service.createTeam('Eye Center');
+      await service.createTeam('Lasik Clinic');
+
+      // Newly registered user with no workspace assigned (unassigned registration)
+      final newRegisteredUser = TeamMember(
+        uid: 'user-newly-registered-123',
+        email: 'calzada.arceas@gmail.com',
+        displayName: 'Arceas Calzada',
+        role: TeamRole.viewer,
+        joinedAt: '2026-10-23T15:10:00.000',
+        status: 'pending',
+        requestedRole: 'assistant',
+        requestedWorkspaceId: null, // Unassigned
+      );
+
+      service.addPendingMemberForTesting(newRegisteredUser);
+
+      // Verify unassigned user is included in pendingMembers and streamPendingMembers
+      expect(service.pendingMembers.any((m) => m.email == 'calzada.arceas@gmail.com'), isTrue);
+
+      final streamList = await service.streamPendingMembers(eyeCenter.id).first;
+      expect(streamList.any((m) => m.email == 'calzada.arceas@gmail.com'), isTrue);
+      final pendingItem = streamList.firstWhere((m) => m.email == 'calzada.arceas@gmail.com');
+      expect(pendingItem.requestedRole, 'assistant');
+      expect(pendingItem.requestedWorkspaceId, isNull);
+
+      // Admin reviews unassigned account, assigns to Eye Center workspace with assistant role
+      await service.approvePendingMember(
+        'user-newly-registered-123',
+        TeamRole.assistant,
+        targetWorkspaceId: eyeCenter.id,
+      );
+
+      // Verify removed from pending
+      expect(service.pendingMembers.any((m) => m.email == 'calzada.arceas@gmail.com'), isFalse);
+
+      // Verify added as active member
+      expect(service.members.any((m) => m.email == 'calzada.arceas@gmail.com' && m.role == TeamRole.assistant), isTrue);
+    });
+
     test('Switching active team reconnects CalendarEventRepository to target workspace teamId', () async {
       SharedPreferences.setMockInitialValues({});
       final service = TeamService.instance;
