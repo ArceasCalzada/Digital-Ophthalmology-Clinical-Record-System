@@ -281,6 +281,49 @@ class _PatientsScreenState extends State<PatientsScreen> {
   Widget _buildNewActionsDropdownButton({double? width}) {
     final double dropdownWidth = width ?? 260.0;
 
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      return InkWell(
+        onTap: _openNewPatientModal,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: width,
+          height: 54,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Register Patient',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () {
         showNewRecordActionModal(
@@ -840,6 +883,32 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   Widget _buildPatientCardNewActionsButton(Patient patient) {
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      return InkWell(
+        onTap: () => widget.onSelectPatient(patient),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.folder_shared_outlined, color: AppTheme.primaryBlue, size: 14),
+              SizedBox(width: 4),
+              Text(
+                'View Profile',
+                style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () {
         showClinicalActionModal(

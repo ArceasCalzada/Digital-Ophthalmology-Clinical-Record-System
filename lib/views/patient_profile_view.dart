@@ -13,6 +13,7 @@ import '../services/prescription_pdf_service.dart';
 import '../services/team_service.dart';
 import '../widgets/rx_pad_widget.dart';
 import '../widgets/success_modal.dart';
+import 'new_patient_modal.dart';
 
 class PatientProfileView extends StatefulWidget {
   final String patientId;
@@ -37,8 +38,10 @@ class _PatientProfileViewState extends State<PatientProfileView> {
   void initState() {
     super.initState();
     // Visits and prescriptions are not part of the patient directory; stream them
-    // for the patient being viewed.
-    PatientRepository.loadPatientDetails(widget.patientId);
+    // for the patient being viewed only if permitted.
+    if (TeamService.instance.canSeeVisits && !TeamService.instance.isAssistant) {
+      PatientRepository.loadPatientDetails(widget.patientId);
+    }
     PatientRepository.changeNotifier.addListener(_onRepositoryChanged);
     TeamService.instance.addListener(_onRepositoryChanged);
   }
@@ -46,7 +49,9 @@ class _PatientProfileViewState extends State<PatientProfileView> {
   @override
   void didUpdateWidget(covariant PatientProfileView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.patientId != widget.patientId) {
+    if (oldWidget.patientId != widget.patientId &&
+        TeamService.instance.canSeeVisits &&
+        !TeamService.instance.isAssistant) {
       PatientRepository.loadPatientDetails(widget.patientId);
     }
   }
@@ -77,7 +82,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
 
   void _startNewExamination() async {
     if (_patientNullable == null) return;
-    if (!TeamService.instance.canWriteVisits) {
+    if (!TeamService.instance.canWriteVisits || TeamService.instance.isAssistant) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${TeamService.instance.activeRole.label} role cannot create or edit clinical visits.')),
       );
@@ -96,6 +101,19 @@ class _PatientProfileViewState extends State<PatientProfileView> {
       ),
     );
     setState(() {});
+  }
+
+  void _editPatientProfile() {
+    if (_patientNullable == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => NewPatientModal(
+        initialPatient: _patient,
+        onPatientCreated: (updated) {
+          setState(() {});
+        },
+      ),
+    );
   }
 
   void _openDrawingModal(BuildContext context, Encounter encounter) {
@@ -218,31 +236,81 @@ class _PatientProfileViewState extends State<PatientProfileView> {
       );
     }
 
-    return DefaultTabController(
-      length: 3,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 768;
+    final canWriteVisits = TeamService.instance.canWriteVisits && !TeamService.instance.isAssistant;
+    final canSeeVisits = TeamService.instance.canSeeVisits && !TeamService.instance.isAssistant;
+    final canEditPatients = TeamService.instance.canEditPatients;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(isMobile ? 12 : 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Navigation & Patient Header Card
-                Card(
-                  color: AppTheme.cardBg,
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: AppTheme.borderColor),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 14 : 20),
-                    child: isMobile
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+    final headerActionButtons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (canWriteVisits && _patient.encounters.length >= 2) ...[
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HistoricalComparisonView(patient: _patient),
+                ),
+              );
+            },
+            icon: Icon(Icons.compare, size: 14),
+            label: Text('Compare', style: TextStyle(fontSize: 12)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryBlue,
+              side: BorderSide(color: AppTheme.borderColor),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+          SizedBox(width: 10),
+        ],
+        if (canWriteVisits)
+          ElevatedButton.icon(
+            onPressed: _startNewExamination,
+            icon: Icon(Icons.draw, size: 14),
+            label: Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            ),
+          )
+        else if (canEditPatients)
+          ElevatedButton.icon(
+            onPressed: _editPatientProfile,
+            icon: Icon(Icons.edit_note_rounded, size: 16),
+            label: Text('Edit Profile', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            ),
+          ),
+      ],
+    );
+
+    final contentWidget = LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 768;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 12 : 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Navigation & Patient Header Card
+              Card(
+                color: AppTheme.cardBg,
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: AppTheme.borderColor),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(isMobile ? 14 : 20),
+                  child: isMobile
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Row(
                               children: [
                                 if (widget.onBack != null) ...[
@@ -295,40 +363,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                               ],
                             ),
                             if (isMobile) SizedBox(height: 14),
-                            Row(
-                              mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.end,
-                              children: [
-                                if (_patient.encounters.length >= 2)
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => HistoricalComparisonView(patient: _patient),
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(Icons.compare, size: 14),
-                                    label: Text('Compare', style: TextStyle(fontSize: 12)),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppTheme.primaryBlue,
-                                      side: BorderSide(color: AppTheme.borderColor),
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    ),
-                                  ),
-                                if (_patient.encounters.length >= 2) SizedBox(width: 10),
-                                ElevatedButton.icon(
-                                  onPressed: _startNewExamination,
-                                  icon: Icon(Icons.draw, size: 14),
-                                  label: Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 20, vertical: isMobile ? 10 : 14),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            headerActionButtons,
                           ],
                         )
                       : Row(
@@ -389,94 +424,98 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                               ),
                             ),
                             SizedBox(width: 16),
-                            Row(
-                              children: [
-                                if (_patient.encounters.length >= 2) ...[
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => HistoricalComparisonView(patient: _patient),
-                                        ),
-                                      );
-                                    },
-                                    icon: Icon(Icons.compare, size: 14),
-                                    label: Text('Compare', style: TextStyle(fontSize: 12)),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppTheme.primaryBlue,
-                                      side: BorderSide(color: AppTheme.borderColor),
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                ],
-                                ElevatedButton.icon(
-                                  onPressed: _startNewExamination,
-                                  icon: Icon(Icons.draw, size: 14),
-                                  label: Text('+ New Examination', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryBlue,
-                                    foregroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                  ),
-                                ),
-                              ],
+                            headerActionButtons,
+                          ],
+                        ),
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Profile Content: Tabs if clinical visits permitted, otherwise single clean Overview card
+              if (canSeeVisits)
+                Card(
+                  color: AppTheme.cardBg,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: AppTheme.borderColor),
+                  ),
+                  child: Column(
+                    children: [
+                      TabBar(
+                        tabs: [
+                          Tab(text: 'Overview'),
+                          Tab(text: 'Examination History'),
+                          Tab(text: 'Prescriptions'),
+                        ],
+                        indicatorColor: AppTheme.primaryBlue,
+                        labelColor: AppTheme.primaryBlue,
+                        unselectedLabelColor: AppTheme.textSecondary,
+                      ),
+                      Divider(height: 1, color: AppTheme.borderColor),
+                      SizedBox(
+                        height: 580,
+                        child: TabBarView(
+                          children: [
+                            _buildOverviewTab(),
+                            _buildExamHistoryTab(),
+                            _buildPrescriptionsTab(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Card(
+                  color: AppTheme.cardBg,
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: AppTheme.borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.folder_shared_outlined, color: AppTheme.primaryBlue, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Patient Demographics & Medical Profile',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
                           ],
                         ),
+                      ),
+                      Divider(height: 1, color: AppTheme.borderColor),
+                      SizedBox(
+                        height: 580,
+                        child: _buildOverviewTab(),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
 
-            // Profile Tabs: Overview | Examination History | Prescriptions
-            Card(
-              color: AppTheme.cardBg,
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppTheme.borderColor),
-              ),
-              child: Column(
-                children: [
-                  TabBar(
-                    tabs: [
-                      Tab(text: 'Overview'),
-                      Tab(text: 'Examination History'),
-                      Tab(text: 'Prescriptions'),
-                    ],
-                    indicatorColor: AppTheme.primaryBlue,
-                    labelColor: AppTheme.primaryBlue,
-                    unselectedLabelColor: AppTheme.textSecondary,
-                  ),
-                  Divider(height: 1, color: AppTheme.borderColor),
-                  SizedBox(
-                    height: 580,
-                    child: TabBarView(
-                      children: [
-                        // Tab 1: Overview
-                        _buildOverviewTab(),
-
-                        // Tab 2: Examination History
-                        _buildExamHistoryTab(),
-
-                        // Tab 3: Prescriptions
-                        _buildPrescriptionsTab(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    if (canSeeVisits) {
+      return DefaultTabController(
+        length: 3,
+        child: contentWidget,
       );
-    },
-  ),
-);
+    }
+    return contentWidget;
   }
 
   Widget _buildOverviewTab() {
+    final canSeeVisits = TeamService.instance.canSeeVisits && !TeamService.instance.isAssistant;
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(20),
       child: Column(
@@ -547,23 +586,25 @@ class _PatientProfileViewState extends State<PatientProfileView> {
             SizedBox(height: 8),
             Text(_patient.notes, style: TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4)),
           ],
-          SizedBox(height: 24),
-          Divider(color: AppTheme.borderColor),
-          SizedBox(height: 16),
-          Text('Latest Recorded Diagnosis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-          SizedBox(height: 8),
-          _patient.previousDiagnoses.isEmpty
-              ? Text('No prior diagnosis recorded.', style: TextStyle(color: AppTheme.textSecondary))
-              : Wrap(
-                  spacing: 8,
-                  children: _patient.previousDiagnoses.map((d) {
-                    return Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(color: Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
-                      child: Text(d, style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
-                    );
-                  }).toList(),
-                ),
+          if (canSeeVisits) ...[
+            SizedBox(height: 24),
+            Divider(color: AppTheme.borderColor),
+            SizedBox(height: 16),
+            Text('Latest Recorded Diagnosis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+            SizedBox(height: 8),
+            _patient.previousDiagnoses.isEmpty
+                ? Text('No prior diagnosis recorded.', style: TextStyle(color: AppTheme.textSecondary))
+                : Wrap(
+                    spacing: 8,
+                    children: _patient.previousDiagnoses.map((d) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(color: Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
+                        child: Text(d, style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 13)),
+                      );
+                    }).toList(),
+                  ),
+          ],
         ],
       ),
     );

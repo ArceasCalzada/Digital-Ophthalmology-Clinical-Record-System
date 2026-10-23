@@ -76,6 +76,12 @@ class _MainLayoutState extends State<MainLayout> {
     if (_activeTeamId != newTeamId) {
       _activeTeamId = newTeamId;
       _handleTeamWorkspaceSwitch();
+    } else if (!_isIndexPermitted(_selectedIndex)) {
+      setState(() {
+        _selectedIndex = 0;
+        _selectedPatient = null;
+        _isExamMode = false;
+      });
     }
   }
 
@@ -88,12 +94,87 @@ class _MainLayoutState extends State<MainLayout> {
     setState(() {});
   }
 
+  bool _isIndexPermitted(int index) {
+    final isAssistant = TeamService.instance.isAssistant;
+    if (isAssistant) {
+      if (index == 3 || index == 4 || index == 7) {
+        return false;
+      }
+    }
+    if (index == 3 || index == 4) {
+      return TeamService.instance.canSeeVisits;
+    }
+    if (index == 7) {
+      return TeamService.instance.canManageMembers;
+    }
+    return true;
+  }
+
+  void _showAccessDeniedNotice([int? targetIndex]) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Color(0xFFD97706).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 24),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Access Restricted',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Your account is assigned the Assistant role, which is restricted to patient registration and directory management.\n\nClinical examinations, prescription generation, and team settings are reserved for attending physicians and clinic owners.',
+          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _selectedIndex = 0);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Return to Dashboard'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _setSelectedIndex(int index, {bool isDrawer = false}) {
+    if (!_isIndexPermitted(index)) {
+      _showAccessDeniedNotice(index);
+      return;
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (isDrawer && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
   void _handleTeamWorkspaceSwitch() {
     if (!mounted) return;
     setState(() {
       _selectedPatient = null;
       _isExamMode = false;
-      if (_selectedIndex == 2 || _selectedIndex == 3 || _selectedIndex == 4) {
+      if (!_isIndexPermitted(_selectedIndex) || _selectedIndex == 2 || _selectedIndex == 3 || _selectedIndex == 4) {
         _selectedIndex = 0; // Dashboard of the new active workspace
       }
       _mobileTabIndex = 0;
@@ -123,6 +204,10 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Future<void> _startExamForPatient(Patient? patient, {bool isMobileScreen = false}) async {
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      _showAccessDeniedNotice(3);
+      return;
+    }
     if (isMobileScreen) {
       _showMobileExamNotice();
       return;
@@ -138,6 +223,10 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   void _openPrescriptionForPatient(Patient patient, {bool isMobileScreen = false}) {
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      _showAccessDeniedNotice(4);
+      return;
+    }
     if (isMobileScreen) {
       _showMobileExamNotice(title: 'Prescription Generator Disabled on Mobile');
       return;
@@ -274,6 +363,61 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildDesktopBody() {
+    if (!_isIndexPermitted(_selectedIndex)) {
+      return Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: 480),
+          margin: EdgeInsets.all(24),
+          padding: EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.borderColor),
+            boxShadow: [
+              BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFFD97706).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.lock_outline_rounded, color: Color(0xFFD97706), size: 36),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Module Restricted for Assistants',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Clinical examination logs, prescriptions, and team management are accessible only by physicians and clinic administrators according to the role permissions matrix.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => setState(() => _selectedIndex = 0),
+                icon: Icon(Icons.dashboard_outlined, size: 18),
+                label: Text('Return to Dashboard'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_isExamMode && _selectedPatient != null && _selectedIndex == 3) {
       return EyeExamView(
         patient: _selectedPatient,
@@ -874,8 +1018,10 @@ class _MainLayoutState extends State<MainLayout> {
                     child: Divider(height: 1, color: AppTheme.borderColor),
                   ),
                 _buildNavItem(2, Icons.folder_shared_outlined, Icons.folder_shared, 'Records', isDrawer: isDrawer, collapsed: collapsed),
-                _buildNavItem(3, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer, collapsed: collapsed),
-                _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer, collapsed: collapsed),
+                if (!TeamService.instance.isAssistant && TeamService.instance.canSeeVisits) ...[
+                  _buildNavItem(3, Icons.assignment_outlined, Icons.assignment, 'Examinations', isDrawer: isDrawer, collapsed: collapsed),
+                  _buildNavItem(4, Icons.local_pharmacy_outlined, Icons.local_pharmacy, 'Prescriptions', isDrawer: isDrawer, collapsed: collapsed),
+                ],
                 if (_selectedPatient != null && _isPatientValidForActiveTeam(_selectedPatient) && !collapsed)
                   Container(
                     margin: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -988,16 +1134,13 @@ class _MainLayoutState extends State<MainLayout> {
         AccountMenuTrigger(
           collapsed: collapsed,
           onOpenProfile: () {
-            setState(() => _selectedIndex = 6);
-            if (isDrawer) Navigator.pop(context);
+            _setSelectedIndex(6, isDrawer: isDrawer);
           },
           onOpenTeams: () {
-            setState(() => _selectedIndex = 7);
-            if (isDrawer) Navigator.pop(context);
+            _setSelectedIndex(7, isDrawer: isDrawer);
           },
           onOpenSettings: () {
-            setState(() => _selectedIndex = 5);
-            if (isDrawer) Navigator.pop(context);
+            _setSelectedIndex(5, isDrawer: isDrawer);
           },
           onLogout: () async {
             final sync = OfflineSyncService();
@@ -1031,10 +1174,7 @@ class _MainLayoutState extends State<MainLayout> {
             message: title,
             child: InkWell(
               borderRadius: BorderRadius.circular(10),
-              onTap: () {
-                setState(() => _selectedIndex = index);
-                if (isDrawer) Navigator.pop(context);
-              },
+              onTap: () => _setSelectedIndex(index, isDrawer: isDrawer),
               child: Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -1076,12 +1216,7 @@ class _MainLayoutState extends State<MainLayout> {
               fontSize: 14,
             ),
           ),
-          onTap: () {
-            setState(() {
-              _selectedIndex = index;
-            });
-            if (isDrawer) Navigator.pop(context);
-          },
+          onTap: () => _setSelectedIndex(index, isDrawer: isDrawer),
         ),
       ),
     );

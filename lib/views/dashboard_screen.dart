@@ -331,6 +331,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // TOP "+ NEW" ACTION BUTTON & FLUSH DROPDOWN MENU (CONNECTED SEAMLESSLY)
   // =========================================================================
   Widget _buildNewActionsDropdownButton({double? width}) {
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      return InkWell(
+        onTap: _openNewPatientModal,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 54,
+          width: width,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Register Patient',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () {
         showNewRecordActionModal(
@@ -382,15 +425,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Doctor Greeting Header
+          // 1. Doctor / Assistant Greeting Header
           ListenableBuilder(
-            listenable: ProfileStore.instance,
+            listenable: Listenable.merge([ProfileStore.instance, TeamService.instance]),
             builder: (context, _) {
+              final isAssistant = TeamService.instance.isAssistant;
               final rawName = ProfileStore.instance.doctorName.text.trim();
-              final name = rawName.isNotEmpty ? rawName : 'Dr. Sigrid Robillos, MD';
+              final defaultName = isAssistant ? 'Clinical Assistant' : 'Dr. Sigrid Robillos, MD';
+              final name = rawName.isNotEmpty ? rawName : defaultName;
               return PageHeader(
                 title: '$_greeting, $name',
-                subtitle: 'Manage patient records, review examination history, and create digital prescriptions.',
+                subtitle: isAssistant
+                    ? 'Manage patient records, registrations, and demographic directories.'
+                    : 'Manage patient records, review examination history, and create digital prescriptions.',
               );
             },
           ),
@@ -862,12 +909,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPatientCardNewActionsButton(Patient patient) {
+    if (TeamService.instance.isAssistant || !TeamService.instance.canWriteVisits) {
+      return InkWell(
+        onTap: () {
+          if (widget.onSelectPatient != null) {
+            widget.onSelectPatient!(patient);
+          }
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.folder_shared_outlined, color: AppTheme.primaryBlue, size: 14),
+              SizedBox(width: 4),
+              Text(
+                'View Profile',
+                style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () {
         showClinicalActionModal(
           context: context,
           title: 'Action for ${patient.fullName}',
-          subtitle: 'MRN: ${patient.mrn} â€¢ ${patient.age} yrs, ${patient.gender}',
+          subtitle: 'MRN: ${patient.mrn} • ${patient.age} yrs, ${patient.gender}',
           actions: [
             ClinicalActionItem(
               id: 'exam',

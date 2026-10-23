@@ -17,8 +17,13 @@ import '../theme/app_theme.dart';
 
 class NewPatientModal extends StatefulWidget {
   final Function(Patient) onPatientCreated;
+  final Patient? initialPatient;
 
-  const NewPatientModal({super.key, required this.onPatientCreated});
+  const NewPatientModal({
+    super.key,
+    required this.onPatientCreated,
+    this.initialPatient,
+  });
 
   @override
   State<NewPatientModal> createState() => _NewPatientModalState();
@@ -39,6 +44,28 @@ class _NewPatientModalState extends State<NewPatientModal> {
   final _notesController = TextEditingController();
   final _genderShake = GlobalKey<ShakeWidgetState>();
   String? _gender; // not assumed: the user must choose
+
+  bool get _isEditing => widget.initialPatient != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.initialPatient;
+    if (p != null) {
+      _firstNameController.text = p.firstName;
+      _middleNameController.text = p.middleName;
+      _lastNameController.text = p.lastName;
+      _dobController.text = p.dateOfBirth;
+      _gender = p.gender;
+      _phoneController.text = p.phone;
+      _addressController.text = p.address;
+      _occupationController.text = p.occupation;
+      _phicController.text = p.phicNumber;
+      _medHistoryController.text = p.medicalHistory.join(', ');
+      _allergiesController.text = p.allergies.join(', ');
+      _notesController.text = p.notes;
+    }
+  }
 
   @override
   void dispose() {
@@ -82,38 +109,63 @@ class _NewPatientModalState extends State<NewPatientModal> {
           .where((s) => s.isNotEmpty)
           .toList();
 
-      final newPatient = Patient(
-        id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
-        mrn: _newPatientId(),
-        firstName: _firstNameController.text.trim(),
-        middleName: _middleNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        // Stored in one format whether it was picked or typed.
-        dateOfBirth: formatClinicalDate(
-          () {
-            final dob = parseDateOfBirth(_dobController.text)!; // validated above
-            return '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
-          }(),
-        ),
-        gender: _gender!, // validated as chosen before we get here
-        phone: _phoneController.text.trim().isEmpty ? '+63 900 000 0000' : _phoneController.text.trim(),
-        address: _addressController.text.trim().isEmpty ? 'Metro Manila, Philippines' : _addressController.text.trim(),
-        occupation: _occupationController.text.trim(),
-        phicNumber: _phicController.text.trim(),
-        medicalHistory: medHistory.isEmpty ? ['No Prior Medical Conditions'] : medHistory,
-        allergies: allergies.isEmpty ? ['No Known Drug Allergies (NKDA)'] : allergies,
-        notes: _notesController.text.trim(),
-        previousDiagnoses: [],
-        previousPrescriptions: [],
-        prescriptions: [],
-        encounters: [],
-        teamId: TeamService.instance.activeTeam?.id ?? '',
-        lastVisitDate: DateTime.now().toString().substring(0, 10),
-        totalVisits: 1,
-      );
+      Patient savedPatient;
+      if (_isEditing) {
+        final existing = widget.initialPatient!;
+        savedPatient = existing.copyWith(
+          firstName: _firstNameController.text.trim(),
+          middleName: _middleNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          fullName: '${_firstNameController.text.trim()} ${_middleNameController.text.trim().isNotEmpty ? '${_middleNameController.text.trim()} ' : ''}${_lastNameController.text.trim()}'.trim(),
+          dateOfBirth: formatClinicalDate(
+            () {
+              final dob = parseDateOfBirth(_dobController.text)!;
+              return '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
+            }(),
+          ),
+          gender: _gender!,
+          phone: _phoneController.text.trim().isEmpty ? '+63 900 000 0000' : _phoneController.text.trim(),
+          address: _addressController.text.trim().isEmpty ? 'Metro Manila, Philippines' : _addressController.text.trim(),
+          occupation: _occupationController.text.trim(),
+          phicNumber: _phicController.text.trim(),
+          medicalHistory: medHistory.isEmpty ? ['No Prior Medical Conditions'] : medHistory,
+          allergies: allergies.isEmpty ? ['No Known Drug Allergies (NKDA)'] : allergies,
+          notes: _notesController.text.trim(),
+        );
+      } else {
+        savedPatient = Patient(
+          id: 'pat-${DateTime.now().millisecondsSinceEpoch}',
+          mrn: _newPatientId(),
+          firstName: _firstNameController.text.trim(),
+          middleName: _middleNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          // Stored in one format whether it was picked or typed.
+          dateOfBirth: formatClinicalDate(
+            () {
+              final dob = parseDateOfBirth(_dobController.text)!; // validated above
+              return '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
+            }(),
+          ),
+          gender: _gender!, // validated as chosen before we get here
+          phone: _phoneController.text.trim().isEmpty ? '+63 900 000 0000' : _phoneController.text.trim(),
+          address: _addressController.text.trim().isEmpty ? 'Metro Manila, Philippines' : _addressController.text.trim(),
+          occupation: _occupationController.text.trim(),
+          phicNumber: _phicController.text.trim(),
+          medicalHistory: medHistory.isEmpty ? ['No Prior Medical Conditions'] : medHistory,
+          allergies: allergies.isEmpty ? ['No Known Drug Allergies (NKDA)'] : allergies,
+          notes: _notesController.text.trim(),
+          previousDiagnoses: [],
+          previousPrescriptions: [],
+          prescriptions: [],
+          encounters: [],
+          teamId: TeamService.instance.activeTeam?.id ?? '',
+          lastVisitDate: DateTime.now().toString().substring(0, 10),
+          totalVisits: 1,
+        );
+      }
 
       try {
-        PatientRepository.addPatient(newPatient);
+        PatientRepository.addPatient(savedPatient);
       } on PatientLimitReachedException {
         showPaywallDialog(context, reason: PlanLimit.patients);
         return;
@@ -122,11 +174,13 @@ class _NewPatientModalState extends State<NewPatientModal> {
         return;
       }
       Navigator.pop(context);
-      widget.onPatientCreated(newPatient);
+      widget.onPatientCreated(savedPatient);
       showActionSuccessModal(
         context: context,
-        title: 'Patient Registered Successfully',
-        message: 'Patient "${newPatient.fullName}" (MRN: ${newPatient.mrn}) has been registered and added to the clinic database.',
+        title: _isEditing ? 'Patient Profile Updated' : 'Patient Registered Successfully',
+        message: _isEditing
+            ? 'Patient "${savedPatient.fullName}" (MRN: ${savedPatient.mrn}) record has been updated.'
+            : 'Patient "${savedPatient.fullName}" (MRN: ${savedPatient.mrn}) has been registered and added to the clinic database.',
       );
     }
   }
@@ -166,9 +220,12 @@ class _NewPatientModalState extends State<NewPatientModal> {
         children: [
           Row(
             children: [
-              Icon(Icons.person_add_alt_1, color: AppTheme.primaryBlue),
+              Icon(_isEditing ? Icons.edit_note_rounded : Icons.person_add_alt_1, color: AppTheme.primaryBlue),
               SizedBox(width: 8),
-              Text('Register New Patient', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              Text(
+                _isEditing ? 'Edit Patient Profile' : 'Register New Patient',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
             ],
           ),
           IconButton(
@@ -396,8 +453,8 @@ class _NewPatientModalState extends State<NewPatientModal> {
         ),
         ElevatedButton.icon(
           onPressed: _submit,
-          icon: Icon(Icons.check, size: 18),
-          label: Text('Register Patient'),
+          icon: Icon(_isEditing ? Icons.check_rounded : Icons.check, size: 18),
+          label: Text(_isEditing ? 'Save Changes' : 'Register Patient'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryBlue,
             foregroundColor: Colors.white,
@@ -496,23 +553,25 @@ void showPatientCreatedSuccessModal({
             SizedBox(height: 20),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      onStartExam();
-                    },
-                    icon: Icon(Icons.edit_note_rounded, size: 18),
-                    label: Text('Start Exam', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryBlue,
-                      side: BorderSide(color: AppTheme.primaryBlue, width: 1.5),
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                if (TeamService.instance.canWriteVisits && !TeamService.instance.isAssistant) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onStartExam();
+                      },
+                      icon: Icon(Icons.edit_note_rounded, size: 18),
+                      label: Text('Start Exam', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryBlue,
+                        side: BorderSide(color: AppTheme.primaryBlue, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: 12),
+                  SizedBox(width: 12),
+                ],
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {

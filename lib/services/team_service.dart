@@ -71,12 +71,23 @@ class TeamService extends ChangeNotifier {
   List<TeamMember> get members => List.unmodifiable(_members);
   List<TeamMember> get pendingMembers => List.unmodifiable(_pendingMembers);
 
+  /// Whether the current active context is an Assistant role.
+  bool get isAssistant =>
+      _activeRole == TeamRole.assistant ||
+      AuthService.instance.role == UserRole.staff;
+
   /// Helper permission getters based on active role
   bool get canViewPatients => _activeRole.canViewPatients;
   bool get canEditPatients => _activeRole.canEditPatients;
-  bool get canSeeVisits => _activeRole.canSeeVisits;
-  bool get canWriteVisits => _activeRole.canWriteVisits;
-  bool get canManageMembers => _activeRole.canManageMembers || _userEmail?.toLowerCase() == 'admin.docrs@gmail.com';
+  bool get canSeeVisits => !isAssistant && _activeRole.canSeeVisits;
+  bool get canWriteVisits => !isAssistant && _activeRole.canWriteVisits;
+  bool get canManageMembers => !isAssistant && (_activeRole.canManageMembers || _userEmail?.toLowerCase() == 'admin.docrs@gmail.com');
+
+  @visibleForTesting
+  void setActiveRoleForTesting(TeamRole role) {
+    _activeRole = role;
+    notifyListeners();
+  }
 
   String _localKey(String uid) => 'teams.active.$uid';
 

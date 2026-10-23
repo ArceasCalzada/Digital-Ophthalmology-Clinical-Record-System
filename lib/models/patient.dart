@@ -6,6 +6,7 @@ import '../config/app_limits.dart';
 import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
 import '../services/storage_optimization_service.dart';
+import '../services/team_service.dart';
 import 'encounter.dart';
 import 'prescription.dart';
 
@@ -368,9 +369,18 @@ class Patient {
     String? middleName,
     String? lastName,
     String? fullName,
+    String? dateOfBirth,
+    String? gender,
+    String? phone,
+    String? address,
     String? occupation,
     String? phicNumber,
+    String? referringDoctor,
+    String? notes,
+    List<String>? medicalHistory,
+    List<String>? allergies,
     List<String>? previousDiagnoses,
+    List<String>? previousPrescriptions,
     List<Prescription>? prescriptions,
     List<Encounter>? encounters,
     String? teamId,
@@ -385,18 +395,18 @@ class Patient {
         middleName: middleName ?? (fullName != null ? null : this.middleName),
         lastName: lastName ?? (fullName != null ? null : this.lastName),
         fullName: fullName ?? (firstName != null || middleName != null || lastName != null ? null : this.fullName),
-        dateOfBirth: dateOfBirth,
-        gender: gender,
-        phone: phone,
-        address: address,
+        dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+        gender: gender ?? this.gender,
+        phone: phone ?? this.phone,
+        address: address ?? this.address,
         occupation: occupation ?? this.occupation,
         phicNumber: phicNumber ?? this.phicNumber,
-        referringDoctor: referringDoctor,
-        notes: notes,
-        medicalHistory: medicalHistory,
-        allergies: allergies,
+        referringDoctor: referringDoctor ?? this.referringDoctor,
+        notes: notes ?? this.notes,
+        medicalHistory: medicalHistory ?? this.medicalHistory,
+        allergies: allergies ?? this.allergies,
         previousDiagnoses: previousDiagnoses ?? this.previousDiagnoses,
-        previousPrescriptions: previousPrescriptions,
+        previousPrescriptions: previousPrescriptions ?? this.previousPrescriptions,
         prescriptions: prescriptions ?? this.prescriptions,
         encounters: encounters ?? this.encounters,
         teamId: teamId ?? this.teamId,
@@ -738,6 +748,7 @@ class PatientRepository {
   /// Loads (and keeps live) the visits and prescriptions of one patient.
   /// Only one patient's details are streamed at a time.
   static void loadPatientDetails(String patientId) {
+    if (!TeamService.instance.canSeeVisits) return;
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null || _detailPatientId == patientId) return;
     _cancelDetails();

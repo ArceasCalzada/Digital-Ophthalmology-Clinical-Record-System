@@ -5,6 +5,7 @@ import '../models/clinic.dart';
 import '../services/auth_service.dart';
 import '../services/clinic_store.dart';
 import '../services/profile_store.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 
 /// The account card at the bottom of the sidebar: the user's name and their team.
@@ -35,6 +36,7 @@ class AccountMenuTrigger extends StatelessWidget {
         AuthService.instance,
         ProfileStore.instance,
         ClinicStore.instance,
+        TeamService.instance,
       ]),
       builder: (context, _) {
         final email = AuthService.instance.email;
@@ -299,11 +301,12 @@ class _AccountPanel extends StatelessWidget {
               label: 'Profile',
               onTap: onProfile,
             ),
-            _MenuRow(
-              icon: Icons.groups_outlined,
-              label: 'Teams',
-              onTap: onTeams,
-            ),
+            if (TeamService.instance.canManageMembers && !TeamService.instance.isAssistant)
+              _MenuRow(
+                icon: Icons.groups_outlined,
+                label: 'Teams',
+                onTap: onTeams,
+              ),
             _MenuRow(
               icon: Icons.settings_outlined,
               label: 'Settings',
