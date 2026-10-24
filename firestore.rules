@@ -92,10 +92,24 @@ service cloud.firestore {
       );
     }
     function isPhysician() {
-      return request.auth != null && (
+      return request.auth != null && !isAssistant() && (
         isMasterAdmin() ||
         roleLower() in ['admin', 'physician', 'owner', 'editor', 'doctor'] ||
         request.auth.token.get('role', '').lower() in ['admin', 'physician', 'owner', 'editor', 'doctor']
+      );
+    }
+    function isAssistant() {
+      return request.auth != null && (
+        roleLower() in ['assistant'] ||
+        request.auth.token.get('role', '').lower() in ['assistant'] ||
+        (exists(userPath()) && get(userPath()).data.get('role', '').lower() in ['assistant'])
+      );
+    }
+    function isTeamAssistant(teamId) {
+      return request.auth != null && (
+        isAssistant() ||
+        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() == 'assistant') ||
+        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() == 'assistant')
       );
     }
 
@@ -138,9 +152,8 @@ service cloud.firestore {
             : (teamOwnerId(teamId) == request.auth.uid ? 'owner' : 'viewer'));
     }
     function isTeamOwner(teamId) {
-      return request.auth != null && (
+      return request.auth != null && !isTeamAssistant(teamId) && (
         isMasterAdmin() ||
-        isStaff() ||
         (teamId != null && teamId != '' && teamOwnerId(teamId) == request.auth.uid) ||
         (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
         (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'leader', 'admin']) ||
@@ -149,7 +162,7 @@ service cloud.firestore {
       );
     }
     function isTeamAdmin(teamId) {
-      return request.auth != null && (
+      return request.auth != null && !isTeamAssistant(teamId) && (
         isMasterAdmin() ||
         isTeamOwner(teamId) ||
         roleLower() in ['admin', 'owner', 'leader'] ||
@@ -287,10 +300,10 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         isMasterAdmin() ||
         request.auth.token.email == "admin.docrs@gmail.com" ||
-        resource.data.ownerId == request.auth.uid ||
-        resource.data.get('ownerId', '') == request.auth.uid ||
-        isTeamOwner(teamId) ||
-        isTeamAdmin(teamId)
+        ((resource.data.ownerId == request.auth.uid ||
+          resource.data.get('ownerId', '') == request.auth.uid ||
+          isTeamOwner(teamId) ||
+          isTeamAdmin(teamId)) && !isTeamAssistant(teamId))
       ) && (
         isMasterAdmin() ||
         request.auth.token.email == "admin.docrs@gmail.com" ||
@@ -299,9 +312,9 @@ service cloud.firestore {
       allow delete: if request.auth != null && (
         isMasterAdmin() ||
         request.auth.token.email == "admin.docrs@gmail.com" ||
-        resource.data.ownerId == request.auth.uid ||
-        resource.data.get('ownerId', '') == request.auth.uid ||
-        isTeamOwner(teamId)
+        ((resource.data.ownerId == request.auth.uid ||
+          resource.data.get('ownerId', '') == request.auth.uid ||
+          isTeamOwner(teamId)) && !isTeamAssistant(teamId))
       );
 
       function validMember(d, uid) {
@@ -370,6 +383,12 @@ service cloud.firestore {
         allow list: if isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId);
         allow create, update: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId)) && validJoinRequest(request.resource.data, uid);
         allow delete: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId));
+      }
+
+      match /settings/{docId} {
+        allow get, list: if isTeamMember(teamId);
+        allow create, update: if (isTeamOwner(teamId) || isTeamAdmin(teamId)) && !isTeamAssistant(teamId);
+        allow delete: if isTeamOwner(teamId) && !isTeamAssistant(teamId);
       }
     }
 
@@ -548,6 +567,13 @@ service cloud.firestore {
       match /preferences/{docId} {
         allow read, write: if request.auth != null && (request.auth.uid == uid || isStaff());
       }
+    }
+
+    // ----------------------------------------------------------- settings --
+    match /settings/{docId} {
+      allow get, list: if request.auth != null;
+      allow create, update: if (isPhysician() || isMasterAdmin()) && !isAssistant();
+      allow delete: if (isPhysician() || isMasterAdmin()) && !isAssistant();
     }
 
     // ------------------------------------------------------ calendar & alerts --

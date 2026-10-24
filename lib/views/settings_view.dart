@@ -69,6 +69,10 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void initState() {
     super.initState();
+    if (TeamService.instance.isAssistant) {
+      _activeSection = 'security';
+    }
+    TeamService.instance.addListener(_onTeamChanged);
     ThemeController.instance.addListener(_onThemeChanged);
     _profile.addListener(_onProfileChanged);
     _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
@@ -80,6 +84,19 @@ class _SettingsViewState extends State<SettingsView> {
     final currentUid = AuthService.instance.user?.uid;
     if (currentUid != null) {
       SecuritySettingsStore.instance.loadFromFirestore(currentUid);
+    }
+  }
+
+  void _onTeamChanged() {
+    if (mounted) {
+      final isAssistant = TeamService.instance.isAssistant;
+      if (isAssistant && (_activeSection == 'prescription_settings' || _activeSection == 'backup_data')) {
+        setState(() {
+          _activeSection = 'security';
+        });
+      } else {
+        setState(() {});
+      }
     }
   }
 
@@ -99,6 +116,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   void dispose() {
+    TeamService.instance.removeListener(_onTeamChanged);
     ThemeController.instance.removeListener(_onThemeChanged);
     _profile.removeListener(_onProfileChanged);
     SecuritySettingsStore.instance.removeListener(_onSecuritySettingsChanged);
@@ -296,6 +314,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   // Mobile Top Selector Tab Bar
   Widget _buildMobileNavSelector() {
+    final isAssistant = TeamService.instance.isAssistant;
     return Card(
       color: AppTheme.cardBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppTheme.borderColor)),
@@ -304,9 +323,11 @@ class _SettingsViewState extends State<SettingsView> {
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            _buildMobileNavItem('prescription_settings', 'Prescription', Icons.description_outlined),
+            if (!isAssistant)
+              _buildMobileNavItem('prescription_settings', 'Prescription', Icons.description_outlined),
             _buildMobileNavItem('security', 'Security', Icons.security_outlined),
-            _buildMobileNavItem('backup_data', 'Backup & Data', Icons.backup_outlined),
+            if (!isAssistant)
+              _buildMobileNavItem('backup_data', 'Backup & Data', Icons.backup_outlined),
             _buildMobileNavItem('system_preferences', 'Preferences', Icons.tune_outlined),
           ],
         ),
@@ -332,6 +353,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   // Left Settings Navigation Menu
   Widget _buildLeftNavigation() {
+    final isAssistant = TeamService.instance.isAssistant;
     return Card(
       color: AppTheme.cardBg,
       elevation: 0,
@@ -344,23 +366,22 @@ class _SettingsViewState extends State<SettingsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildNavCategoryHeader('General'),
-            _buildNavItem('prescription_settings', 'Prescription Settings', Icons.description_outlined, Icons.description_rounded),
-            
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              child: Divider(height: 1, color: AppTheme.borderColor),
-            ),
-            
-            _buildNavCategoryHeader('Data & Security'),
+            if (!isAssistant) ...[
+              _buildNavCategoryHeader('General'),
+              _buildNavItem('prescription_settings', 'Prescription Settings', Icons.description_outlined, Icons.description_rounded),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                child: Divider(height: 1, color: AppTheme.borderColor),
+              ),
+            ],
+            _buildNavCategoryHeader(isAssistant ? 'Account & Security' : 'Data & Security'),
             _buildNavItem('security', 'Security', Icons.security_outlined, Icons.security_rounded),
-            _buildNavItem('backup_data', 'Backup & Data', Icons.backup_outlined, Icons.backup_rounded),
-            
+            if (!isAssistant)
+              _buildNavItem('backup_data', 'Backup & Data', Icons.backup_outlined, Icons.backup_rounded),
             Padding(
               padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Divider(height: 1, color: AppTheme.borderColor),
             ),
-            
             _buildNavCategoryHeader('Preferences'),
             _buildNavItem('system_preferences', 'System Preferences', Icons.tune_outlined, Icons.tune_rounded),
           ],
@@ -413,6 +434,10 @@ class _SettingsViewState extends State<SettingsView> {
 
   // Right Content Router
   Widget _buildActiveContentSection() {
+    final isAssistant = TeamService.instance.isAssistant;
+    if (isAssistant && (_activeSection == 'prescription_settings' || _activeSection == 'backup_data')) {
+      return _buildSecuritySection();
+    }
     switch (_activeSection) {
       case 'prescription_settings':
         return _buildPrescriptionSettingsSection();
@@ -423,7 +448,7 @@ class _SettingsViewState extends State<SettingsView> {
       case 'system_preferences':
         return _buildSystemPreferencesSection();
       default:
-        return _buildPrescriptionSettingsSection();
+        return isAssistant ? _buildSecuritySection() : _buildPrescriptionSettingsSection();
     }
   }
 
@@ -431,6 +456,12 @@ class _SettingsViewState extends State<SettingsView> {
   // SECTION 3: PRESCRIPTION SETTINGS
   // ==========================================
   Widget _buildPrescriptionSettingsSection() {
+    if (TeamService.instance.isAssistant) {
+      return _buildRestrictedSectionNotice(
+        title: 'Prescription Settings Restricted',
+        message: 'Prescription layouts, doctor information, and digital signatures are restricted to attending physicians.',
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1217,6 +1248,12 @@ class _SettingsViewState extends State<SettingsView> {
   // SECTION 5, 6, & 7: BACKUP & DATA
   // ==========================================
   Widget _buildBackupDataSection() {
+    if (TeamService.instance.isAssistant) {
+      return _buildRestrictedSectionNotice(
+        title: 'Backup & Data Restricted',
+        message: 'Clinic data backups and database functions are restricted to clinic administrators.',
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1668,35 +1705,37 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         SizedBox(height: 20),
 
-        // Examination Preferences Card
-        _buildCardContainer(
-          title: 'Examination Preferences',
-          child: Column(
-            children: [
-              _buildDropdownField(
-                'Default Examination Layout',
-                _defaultExamLayout,
-                ['Standard 2-Column', 'Expanded Single Canvas', 'Clinical Tabbed'],
-                (val) => setState(() => _defaultExamLayout = val!),
-              ),
-              SizedBox(height: 16),
-              _buildDropdownField(
-                'Default Eye Drawing Template',
-                _defaultDrawingTemplate,
-                ['Fundus / Retina Map', 'Anterior Segment / Cornea', 'External Eye & Lids'],
-                (val) => setState(() => _defaultDrawingTemplate = val!),
-              ),
-              SizedBox(height: 16),
-              _buildDropdownField(
-                'Default View When Opening a Patient',
-                _defaultPatientView,
-                ['Patient EHR Profile', 'New Eye Exam Workstation', 'Past Encounters Timeline'],
-                (val) => setState(() => _defaultPatientView = val!),
-              ),
-            ],
+        // Examination Preferences Card (for physicians)
+        if (!TeamService.instance.isAssistant) ...[
+          _buildCardContainer(
+            title: 'Examination Preferences',
+            child: Column(
+              children: [
+                _buildDropdownField(
+                  'Default Examination Layout',
+                  _defaultExamLayout,
+                  ['Standard 2-Column', 'Expanded Single Canvas', 'Clinical Tabbed'],
+                  (val) => setState(() => _defaultExamLayout = val!),
+                ),
+                SizedBox(height: 16),
+                _buildDropdownField(
+                  'Default Eye Drawing Template',
+                  _defaultDrawingTemplate,
+                  ['Fundus / Retina Map', 'Anterior Segment / Cornea', 'External Eye & Lids'],
+                  (val) => setState(() => _defaultDrawingTemplate = val!),
+                ),
+                SizedBox(height: 16),
+                _buildDropdownField(
+                  'Default View When Opening a Patient',
+                  _defaultPatientView,
+                  ['Patient EHR Profile', 'New Eye Exam Workstation', 'Past Encounters Timeline'],
+                  (val) => setState(() => _defaultPatientView = val!),
+                ),
+              ],
+            ),
           ),
-        ),
-        SizedBox(height: 24),
+          SizedBox(height: 24),
+        ],
 
         _buildActionButtons(
           saveLabel: 'Save Preferences',
@@ -1737,6 +1776,49 @@ class _SettingsViewState extends State<SettingsView> {
   // ==========================================
   // SHARED REUSABLE UTILITIES
   // ==========================================
+  Widget _buildRestrictedSectionNotice({required String title, required String message}) {
+    return Card(
+      color: AppTheme.cardBg,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFFD97706).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 36),
+              ),
+              SizedBox(height: 16),
+              Text(
+                title,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+              SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 420),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title, String subtitle) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

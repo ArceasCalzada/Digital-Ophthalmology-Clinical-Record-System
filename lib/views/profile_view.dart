@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/clinic_store.dart';
 import '../services/profile_store.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/account_menu.dart';
 import '../widgets/success_modal.dart';
@@ -31,6 +32,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _save(String message) {
+    if (TeamService.instance.isAssistant) return;
     _store.save();
     setState(() {});
     _showSaveFeedback(message);
@@ -38,6 +40,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final isAssistant = TeamService.instance.isAssistant;
     return SingleChildScrollView(
       padding: EdgeInsets.all(24),
       child: Column(
@@ -45,20 +48,50 @@ class _ProfileViewState extends State<ProfileView> {
         children: [
           Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
           SizedBox(height: 4),
-          Text('Your account, doctor profile and clinic information.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+          Text(
+            isAssistant
+                ? 'Your personal account and assigned clinic role.'
+                : 'Your account, doctor profile and clinic information.',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          ),
           SizedBox(height: 20),
           _buildAccountCard(),
           SizedBox(height: 20),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _tabChip(_ProfileTab.doctor, 'Doctor Profile', Icons.person_outline),
-              _tabChip(_ProfileTab.clinic, 'Clinic Information', Icons.local_hospital_outlined),
-            ],
-          ),
-          SizedBox(height: 20),
-          if (_tab == _ProfileTab.doctor) _buildDoctorProfile() else _buildClinicInfo(),
+          if (isAssistant) ...[
+            _card(
+              title: 'Clinical Configurations Restricted',
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFD97706).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 24),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Doctor credentials, professional licenses, digital signatures, and clinic information are managed exclusively by attending physicians and clinic owners.',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _tabChip(_ProfileTab.doctor, 'Doctor Profile', Icons.person_outline),
+                _tabChip(_ProfileTab.clinic, 'Clinic Information', Icons.local_hospital_outlined),
+              ],
+            ),
+            SizedBox(height: 20),
+            if (_tab == _ProfileTab.doctor) _buildDoctorProfile() else _buildClinicInfo(),
+          ],
         ],
       ),
     );

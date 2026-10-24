@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/clinic_branch.dart';
 import 'auth_service.dart';
 import 'firebase_gate.dart';
+import 'team_service.dart';
 
 /// The signed-in doctor's profile and the clinic details printed on prescriptions.
 ///
@@ -154,6 +155,7 @@ class ProfileStore extends ChangeNotifier {
     required String hours,
     String? teamId,
   }) async {
+    if (TeamService.instance.isAssistant) return;
     final newBranch = ClinicBranch(
       id: 'branch-${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
@@ -170,6 +172,7 @@ class ProfileStore extends ChangeNotifier {
   }
 
   Future<void> archiveBranch(String branchId, {String? teamId}) async {
+    if (TeamService.instance.isAssistant) return;
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
       _branches[index].isArchived = true;
@@ -180,6 +183,7 @@ class ProfileStore extends ChangeNotifier {
   }
 
   Future<void> restoreBranch(String branchId, {String? teamId}) async {
+    if (TeamService.instance.isAssistant) return;
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
       _branches[index].isArchived = false;
@@ -190,6 +194,7 @@ class ProfileStore extends ChangeNotifier {
   }
 
   Future<void> updateBranch(ClinicBranch updated, {String? teamId}) async {
+    if (TeamService.instance.isAssistant) return;
     final index = _branches.indexWhere((b) => b.id == updated.id);
     if (index != -1) {
       _branches[index] = updated;
@@ -368,6 +373,9 @@ class ProfileStore extends ChangeNotifier {
 
   /// Saves settings both locally and to Firestore backend.
   Future<void> saveToFirestore({String? teamId}) async {
+    if (TeamService.instance.isAssistant) {
+      return; // Assistants cannot execute write operations on prescription layouts, doctor profiles, or clinic branch configurations
+    }
     await saveToPreferences();
     notifyListeners();
 
