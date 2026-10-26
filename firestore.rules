@@ -321,11 +321,14 @@ service cloud.firestore {
         return d.keys().hasOnly([
             'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
             'isApproved', 'targetWorkspaceId', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
-            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole'
+            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole',
+            'firstName', 'lastName', 'middleName', 'suffix'
           ])
           && d.keys().hasAll(['uid', 'role'])
           && d.get('uid', uid) == uid
           && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && sn(d, 'firstName', 100) && sn(d, 'lastName', 100)
+          && sn(d, 'middleName', 100) && sn(d, 'suffix', 50)
           && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
           && (sn(d, 'requestedAt', 64) || d.get('requestedAt', null) is timestamp)
           && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
@@ -345,10 +348,13 @@ service cloud.firestore {
         return d.keys().hasOnly([
             'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
             'isApproved', 'targetWorkspaceId', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
-            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole'
+            'createdAt', 'updatedAt', 'inviteCode', 'requestedRole',
+            'firstName', 'lastName', 'middleName', 'suffix'
           ])
           && d.get('uid', uid) == uid
           && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && sn(d, 'firstName', 100) && sn(d, 'lastName', 100)
+          && sn(d, 'middleName', 100) && sn(d, 'suffix', 50)
           && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
           && (sn(d, 'requestedAt', 64) || d.get('requestedAt', null) is timestamp)
           && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)

@@ -42,11 +42,24 @@ class DevAuthBackend implements AuthBackend {
     String email,
     String password,
     String fullName, {
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     String requestedRole = 'assistant',
     String? inviteCode,
     String? workspaceId,
   }) async {
-    _current = AuthUser('dev-user', email, displayName: fullName, isEmailVerified: true);
+    _current = AuthUser(
+      'dev-user',
+      email,
+      displayName: fullName,
+      firstName: firstName,
+      lastName: lastName,
+      middleName: middleName,
+      suffix: suffix,
+      isEmailVerified: true,
+    );
     _changes.add(_current);
     return _current!;
   }

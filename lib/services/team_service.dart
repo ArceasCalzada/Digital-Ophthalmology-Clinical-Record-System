@@ -382,10 +382,18 @@ class TeamService extends ChangeNotifier {
             _teams.any((t) => t.id == targetWs && (t.ownerId == _uid || canManageTeam(t)));
         if (isRelevant) {
           final reqRole = uData['requestedRole'] as String?;
+          final fName = uData['firstName'] as String?;
+          final lName = uData['lastName'] as String?;
+          final mName = uData['middleName'] as String?;
+          final sfx = uData['suffix'] as String?;
           pendingUsersMap[uid] = TeamMember(
             uid: uid,
             email: uData['email'] as String? ?? 'user@docrs.app',
             displayName: uData['displayName'] as String? ?? uData['name'] as String? ?? 'Pending Account',
+            firstName: fName,
+            lastName: lName,
+            middleName: mName,
+            suffix: sfx,
             role: TeamRole.viewer,
             joinedAt: uData['createdAt'] as String? ?? DateTime.now().toIso8601String(),
             status: 'pending',
@@ -534,10 +542,18 @@ class TeamService extends ChangeNotifier {
                   isMasterAdmin;
               if (isRelevant) {
                 final reqRole = uData['requestedRole'] as String?;
+                final fName = uData['firstName'] as String?;
+                final lName = uData['lastName'] as String?;
+                final mName = uData['middleName'] as String?;
+                final sfx = uData['suffix'] as String?;
                 firestoreUsers[uid] = TeamMember(
                   uid: uid,
                   email: uData['email'] as String? ?? 'user@docrs.app',
                   displayName: uData['displayName'] as String? ?? uData['name'] as String? ?? 'Pending Account',
+                  firstName: fName,
+                  lastName: lName,
+                  middleName: mName,
+                  suffix: sfx,
                   role: TeamRole.viewer,
                   joinedAt: uData['createdAt'] as String? ?? DateTime.now().toIso8601String(),
                   status: 'pending',
@@ -696,10 +712,20 @@ class TeamService extends ChangeNotifier {
     }
 
     final now = DateTime.now().toIso8601String();
+    final authUser = AuthService.instance.user;
+    final fName = authUser?.firstName;
+    final lName = authUser?.lastName;
+    final mName = authUser?.middleName;
+    final sfx = authUser?.suffix;
+
     final member = TeamMember(
       uid: uid,
       email: email,
       displayName: displayName,
+      firstName: fName,
+      lastName: lName,
+      middleName: mName,
+      suffix: sfx,
       role: TeamRole.viewer,
       joinedAt: now,
       status: 'pending',
@@ -711,6 +737,10 @@ class TeamService extends ChangeNotifier {
       'uid': uid,
       'email': member.email,
       'displayName': member.displayName,
+      if (fName != null && fName.isNotEmpty) 'firstName': fName,
+      if (lName != null && lName.isNotEmpty) 'lastName': lName,
+      if (mName != null && mName.isNotEmpty) 'middleName': mName,
+      if (sfx != null && sfx.isNotEmpty) 'suffix': sfx,
       'role': 'viewer',
       'requestedRole': requestedRole,
       'status': 'pending',
@@ -730,6 +760,10 @@ class TeamService extends ChangeNotifier {
       'uid': uid,
       'email': member.email,
       'displayName': member.displayName,
+      if (fName != null && fName.isNotEmpty) 'firstName': fName,
+      if (lName != null && lName.isNotEmpty) 'lastName': lName,
+      if (mName != null && mName.isNotEmpty) 'middleName': mName,
+      if (sfx != null && sfx.isNotEmpty) 'suffix': sfx,
       'status': 'pending',
       'isApproved': false,
       'requestedRole': requestedRole,

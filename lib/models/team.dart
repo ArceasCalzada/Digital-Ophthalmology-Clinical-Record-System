@@ -70,6 +70,10 @@ class TeamMember {
   final String uid;
   final String email;
   final String displayName;
+  final String? firstName;
+  final String? lastName;
+  final String? middleName;
+  final String? suffix;
   final TeamRole role;
   final String joinedAt;
   final String status; // 'active' or 'pending'
@@ -83,6 +87,10 @@ class TeamMember {
     required this.uid,
     required this.email,
     required this.displayName,
+    this.firstName,
+    this.lastName,
+    this.middleName,
+    this.suffix,
     required this.role,
     required this.joinedAt,
     this.status = 'active',
@@ -95,6 +103,10 @@ class TeamMember {
         'uid': uid,
         'email': email,
         'displayName': displayName,
+        if (firstName != null && firstName!.isNotEmpty) 'firstName': firstName,
+        if (lastName != null && lastName!.isNotEmpty) 'lastName': lastName,
+        if (middleName != null && middleName!.isNotEmpty) 'middleName': middleName,
+        if (suffix != null && suffix!.isNotEmpty) 'suffix': suffix,
         'role': role.name,
         'joinedAt': joinedAt,
         'status': status,
@@ -124,10 +136,34 @@ class TeamMember {
     final reqRole = json['requestedRole'] as String? ??
         (isPending && roleRaw != 'viewer' && roleRaw != 'pending' ? roleRaw : null);
 
+    final fName = json['firstName'] as String?;
+    final lName = json['lastName'] as String?;
+    final mName = json['middleName'] as String?;
+    final sfx = json['suffix'] as String?;
+
+    String dName = json['displayName'] as String? ?? '';
+    if (dName.isEmpty || dName == 'Team Member') {
+      final parts = [
+        if (fName != null && fName.trim().isNotEmpty) fName.trim(),
+        if (mName != null && mName.trim().isNotEmpty) mName.trim(),
+        if (lName != null && lName.trim().isNotEmpty) lName.trim(),
+        if (sfx != null && sfx.trim().isNotEmpty) sfx.trim(),
+      ];
+      if (parts.isNotEmpty) {
+        dName = parts.join(' ');
+      } else {
+        dName = 'Team Member';
+      }
+    }
+
     return TeamMember(
       uid: json['uid'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      displayName: json['displayName'] as String? ?? 'Team Member',
+      displayName: dName,
+      firstName: fName,
+      lastName: lName,
+      middleName: mName,
+      suffix: sfx,
       role: TeamRole.parse(roleRaw),
       joinedAt: json['joinedAt'] as String? ?? DateTime.now().toIso8601String(),
       status: isPending ? 'pending' : (statusStr ?? 'active'),
@@ -140,6 +176,10 @@ class TeamMember {
     String? uid,
     String? email,
     String? displayName,
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     TeamRole? role,
     String? joinedAt,
     String? status,
@@ -150,6 +190,10 @@ class TeamMember {
       uid: uid ?? this.uid,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      middleName: middleName ?? this.middleName,
+      suffix: suffix ?? this.suffix,
       role: role ?? this.role,
       joinedAt: joinedAt ?? this.joinedAt,
       status: status ?? this.status,

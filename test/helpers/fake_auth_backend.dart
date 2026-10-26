@@ -45,6 +45,10 @@ class FakeAuthBackend implements AuthBackend {
     String email,
     String password,
     String fullName, {
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     String requestedRole = 'assistant',
     String? inviteCode,
     String? workspaceId,
@@ -57,6 +61,10 @@ class FakeAuthBackend implements AuthBackend {
       'uid-$email',
       email,
       displayName: fullName,
+      firstName: firstName,
+      lastName: lastName,
+      middleName: middleName,
+      suffix: suffix,
       isEmailVerified: !shouldRequireEmailVerification,
     );
     _changes.add(_current);

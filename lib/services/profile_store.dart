@@ -28,6 +28,10 @@ class ProfileStore extends ChangeNotifier {
   final specialization = TextEditingController(text: 'Cornea & Anterior Segment Specialist');
   final license = TextEditingController(text: 'PRC Lic. No. 091823');
   final ptrNo = TextEditingController(text: 'PTR No. 7821940');
+  String? firstName;
+  String? lastName;
+  String? middleName;
+  String? suffix;
 
   // Clinic information.
   final clinicName = TextEditingController(text: 'Metro Eye Center & Refractive Surgery');
@@ -447,6 +451,11 @@ class ProfileStore extends ChangeNotifier {
     if (user.email != null && user.email!.isNotEmpty) {
       doctorEmail.text = user.email!;
     }
+    firstName = user.firstName ?? firstName;
+    lastName = user.lastName ?? lastName;
+    middleName = user.middleName ?? middleName;
+    suffix = user.suffix ?? suffix;
+
     final name = (fullName != null && fullName.trim().isNotEmpty)
         ? fullName.trim()
         : (user.displayName != null && user.displayName!.trim().isNotEmpty
@@ -464,6 +473,10 @@ class ProfileStore extends ChangeNotifier {
   void reset() {
     doctorName.text = 'Dr. Sigrid Robillos, MD';
     doctorEmail.text = 'dr.robillos@metroeye.com';
+    firstName = null;
+    lastName = null;
+    middleName = null;
+    suffix = null;
     _resetBranches();
     notifyListeners();
   }

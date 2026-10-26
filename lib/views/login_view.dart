@@ -20,7 +20,10 @@ class _LoginViewState extends State<LoginView> {
   final _signInEmailController = TextEditingController();
   final _signInPasswordController = TextEditingController();
 
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _middleNameController = TextEditingController();
+  final _suffixController = TextEditingController();
   final _signUpEmailController = TextEditingController();
   final _signUpPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -47,7 +50,10 @@ class _LoginViewState extends State<LoginView> {
   void dispose() {
     _signInEmailController.dispose();
     _signInPasswordController.dispose();
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _middleNameController.dispose();
+    _suffixController.dispose();
     _signUpEmailController.dispose();
     _signUpPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -115,6 +121,24 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final middleName = _middleNameController.text.trim();
+    final suffix = _suffixController.text.trim();
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      setState(() => _errorMessage = 'First and Last names are required.');
+      return;
+    }
+
+    final nameParts = <String>[
+      firstName,
+      if (middleName.isNotEmpty) middleName,
+      lastName,
+      if (suffix.isNotEmpty) suffix,
+    ];
+    final computedFullName = nameParts.join(' ').trim();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -125,7 +149,11 @@ class _LoginViewState extends State<LoginView> {
       await AuthService.instance.signUp(
         _signUpEmailController.text,
         _signUpPasswordController.text,
-        _fullNameController.text,
+        computedFullName,
+        firstName: firstName,
+        lastName: lastName,
+        middleName: middleName.isNotEmpty ? middleName : null,
+        suffix: suffix.isNotEmpty ? suffix : null,
         requestedRole: 'assistant',
         inviteCode: inviteCode.isNotEmpty ? inviteCode : null,
       );
@@ -139,6 +167,10 @@ class _LoginViewState extends State<LoginView> {
       _signUpPasswordController.clear();
       _confirmPasswordController.clear();
       _signUpInviteCodeController.clear();
+      _firstNameController.clear();
+      _lastNameController.clear();
+      _middleNameController.clear();
+      _suffixController.clear();
       if (mounted && AuthService.instance.isSignedIn) {
         setState(() => _isSuccessTransitioning = true);
         await Future.delayed(const Duration(milliseconds: 300));
@@ -725,36 +757,196 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Full Name',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-          ),
-          SizedBox(height: 8),
-          RequiredTextFormField(
-            controller: _fullNameController,
-            enabled: !_isLoading,
-            style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Dr. Jane Doe',
-              prefixIcon: Icon(
-                Icons.person_outline,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
+          // Structured Name Fields
+          // Row 1: First Name (Required) & Middle Name (Optional)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'First Name',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    RequiredTextFormField(
+                      key: const Key('signup-first-name-field'),
+                      controller: _firstNameController,
+                      enabled: !_isLoading,
+                      style: TextStyle(
+                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Jane',
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                          size: 20,
+                        ),
+                        filled: _isLoading,
+                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Enter your first name';
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
               ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
-            validator: (val) {
-              if (val == null || val.trim().isEmpty) return 'Enter your full name';
-              return null;
-            },
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Middle Name (Optional)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      key: const Key('signup-middle-name-field'),
+                      controller: _middleNameController,
+                      enabled: !_isLoading,
+                      style: TextStyle(
+                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Marie',
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                          size: 20,
+                        ),
+                        filled: _isLoading,
+                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
+
+          // Row 2: Last Name (Required) & Suffix (Optional)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Last Name',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    RequiredTextFormField(
+                      key: const Key('signup-last-name-field'),
+                      controller: _lastNameController,
+                      enabled: !_isLoading,
+                      style: TextStyle(
+                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Doe',
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                          size: 20,
+                        ),
+                        filled: _isLoading,
+                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Enter your last name';
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Suffix (Optional)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      key: const Key('signup-suffix-field'),
+                      controller: _suffixController,
+                      enabled: !_isLoading,
+                      style: TextStyle(
+                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Jr., Sr., III',
+                        prefixIcon: Icon(
+                          Icons.badge_outlined,
+                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                          size: 20,
+                        ),
+                        filled: _isLoading,
+                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
 
           Text(
             'Clinic Email',
@@ -762,6 +954,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           RequiredTextFormField(
+            key: const Key('signup-email-field'),
             controller: _signUpEmailController,
             enabled: !_isLoading,
             keyboardType: TextInputType.emailAddress,
@@ -797,6 +990,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           RequiredTextFormField(
+            key: const Key('signup-password-field'),
             controller: _signUpPasswordController,
             enabled: !_isLoading,
             obscureText: _obscureSignUpPassword,
@@ -841,6 +1035,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           RequiredTextFormField(
+            key: const Key('signup-confirm-password-field'),
             controller: _confirmPasswordController,
             enabled: !_isLoading,
             obscureText: _obscureConfirmPassword,
@@ -885,6 +1080,7 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           TextFormField(
+            key: const Key('signup-invite-code-field'),
             controller: _signUpInviteCodeController,
             enabled: !_isLoading,
             textCapitalization: TextCapitalization.characters,
@@ -914,6 +1110,7 @@ class _LoginViewState extends State<LoginView> {
           SizedBox(
             height: 48,
             child: ElevatedButton(
+              key: const Key('register-submit-button'),
               onPressed: _isLoading ? null : _handleSignUp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,

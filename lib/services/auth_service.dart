@@ -35,12 +35,20 @@ class AuthUser {
   final String uid;
   final String? email;
   final String? displayName;
+  final String? firstName;
+  final String? lastName;
+  final String? middleName;
+  final String? suffix;
   final bool isEmailVerified;
   final Map<String, dynamic> customClaims;
   const AuthUser(
     this.uid,
     this.email, {
     this.displayName,
+    this.firstName,
+    this.lastName,
+    this.middleName,
+    this.suffix,
     this.isEmailVerified = true,
     this.customClaims = const {},
   });
@@ -64,6 +72,10 @@ abstract class AuthBackend {
     String email,
     String password,
     String fullName, {
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     String requestedRole = 'assistant',
     String? inviteCode,
     String? workspaceId,
@@ -146,6 +158,10 @@ class FirebaseAuthBackend implements AuthBackend {
     String email,
     String password,
     String fullName, {
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     String requestedRole = 'assistant',
     String? inviteCode,
     String? workspaceId,
@@ -189,6 +205,11 @@ class FirebaseAuthBackend implements AuthBackend {
           'uid': user.uid,
           'email': email.trim(),
           'displayName': fullName.trim(),
+          'fullName': fullName.trim(),
+          if (firstName != null && firstName.trim().isNotEmpty) 'firstName': firstName.trim(),
+          if (lastName != null && lastName.trim().isNotEmpty) 'lastName': lastName.trim(),
+          if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
+          if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
           'status': 'pending',
           'isApproved': false,
           'requestedRole': requestedRole,
@@ -209,6 +230,10 @@ class FirebaseAuthBackend implements AuthBackend {
             'uid': user.uid,
             'email': email.trim(),
             'displayName': fullName.trim(),
+            if (firstName != null && firstName.trim().isNotEmpty) 'firstName': firstName.trim(),
+            if (lastName != null && lastName.trim().isNotEmpty) 'lastName': lastName.trim(),
+            if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
+            if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
             'role': 'viewer',
             'requestedRole': requestedRole,
             'status': 'pending',
@@ -236,6 +261,10 @@ class FirebaseAuthBackend implements AuthBackend {
         user.uid,
         user.email,
         displayName: fullName.trim(),
+        firstName: firstName?.trim(),
+        lastName: lastName?.trim(),
+        middleName: middleName?.trim(),
+        suffix: suffix?.trim(),
         isEmailVerified: user.emailVerified,
       );
     } on FirebaseAuthException catch (e) {
@@ -911,6 +940,10 @@ class AuthService extends ChangeNotifier {
     String email,
     String password,
     String fullName, {
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
     String requestedRole = 'assistant',
     String? inviteCode,
     String? workspaceId,
@@ -920,8 +953,36 @@ class AuthService extends ChangeNotifier {
       throw const AuthFailure('The cloud service is not available. Check your connection and restart the app.');
     }
     final trimmedEmail = email.trim();
-    final trimmedName = fullName.trim();
-    if (trimmedName.isEmpty || trimmedEmail.isEmpty || password.isEmpty) {
+    String effectiveFullName = fullName.trim();
+    String? effFirst = firstName?.trim();
+    String? effLast = lastName?.trim();
+    String? effMiddle = middleName?.trim();
+    String? effSuffix = suffix?.trim();
+
+    if ((effFirst != null && effFirst.isNotEmpty) || (effLast != null && effLast.isNotEmpty)) {
+      final parts = <String>[
+        if (effFirst != null && effFirst.isNotEmpty) effFirst,
+        if (effMiddle != null && effMiddle.isNotEmpty) effMiddle,
+        if (effLast != null && effLast.isNotEmpty) effLast,
+        if (effSuffix != null && effSuffix.isNotEmpty) effSuffix,
+      ];
+      if (parts.isNotEmpty) {
+        effectiveFullName = parts.join(' ');
+      }
+    } else if (effectiveFullName.isNotEmpty) {
+      final tokens = effectiveFullName.split(RegExp(r'\s+'));
+      if (tokens.isNotEmpty) {
+        effFirst ??= tokens.first;
+        if (tokens.length > 1) {
+          effLast ??= tokens.last;
+          if (tokens.length > 2) {
+            effMiddle ??= tokens.sublist(1, tokens.length - 1).join(' ');
+          }
+        }
+      }
+    }
+
+    if (effectiveFullName.isEmpty || trimmedEmail.isEmpty || password.isEmpty) {
       throw const AuthFailure('Please complete all required fields.');
     }
     if (password.length < 6) {
@@ -930,7 +991,11 @@ class AuthService extends ChangeNotifier {
     final newUser = await backend.signUp(
       trimmedEmail,
       password,
-      trimmedName,
+      effectiveFullName,
+      firstName: effFirst,
+      lastName: effLast,
+      middleName: effMiddle,
+      suffix: effSuffix,
       requestedRole: requestedRole,
       inviteCode: inviteCode,
       workspaceId: workspaceId,

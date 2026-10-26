@@ -68,11 +68,13 @@ void main() {
     await tester.pump();
 
     expect(find.text('Register Account'), findsOneWidget);
-    final textFields = find.byType(EditableText);
-    await tester.enterText(textFields.at(0), 'Dr. Sarah Connor');
-    await tester.enterText(textFields.at(1), 'sarah@clinic.test');
-    await tester.enterText(textFields.at(2), 'password123');
-    await tester.enterText(textFields.at(3), 'password123');
+    await tester.enterText(find.byKey(const Key('signup-first-name-field')), 'Sarah');
+    await tester.enterText(find.byKey(const Key('signup-middle-name-field')), 'J.');
+    await tester.enterText(find.byKey(const Key('signup-last-name-field')), 'Connor');
+    await tester.enterText(find.byKey(const Key('signup-suffix-field')), 'MD');
+    await tester.enterText(find.byKey(const Key('signup-email-field')), 'sarah@clinic.test');
+    await tester.enterText(find.byKey(const Key('signup-password-field')), 'password123');
+    await tester.enterText(find.byKey(const Key('signup-confirm-password-field')), 'password123');
 
     final registerButton = find.text('Register Account');
     await tester.ensureVisible(registerButton);
