@@ -186,4 +186,37 @@ class FakeAuthBackend implements AuthBackend {
     final email = uid.replaceFirst('uid-', '');
     return accounts[email]?.role;
   }
+
+  @override
+  Future<void> assignRole(String uid, UserRole role) async {
+    final email = uid.replaceFirst('uid-', '');
+    if (accounts.containsKey(email)) {
+      accounts[email] = (password: accounts[email]!.password, role: role);
+    }
+  }
+
+  @override
+  Future<void> updateProfileNames({
+    required String uid,
+    required String displayName,
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
+  }) async {
+    final current = _current;
+    if (current != null && (current.uid == uid || current.uid == 'uid-$uid')) {
+      _current = AuthUser(
+        current.uid,
+        current.email,
+        displayName: displayName,
+        firstName: firstName,
+        lastName: lastName,
+        middleName: middleName,
+        suffix: suffix,
+        isEmailVerified: current.isEmailVerified,
+      );
+      _changes.add(_current);
+    }
+  }
 }

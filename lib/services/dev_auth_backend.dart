@@ -124,4 +124,32 @@ class DevAuthBackend implements AuthBackend {
 
   @override
   Future<UserRole?> fetchRole(String uid) async => UserRole.admin;
+
+  @override
+  Future<void> assignRole(String uid, UserRole role) async {}
+
+  @override
+  Future<void> updateProfileNames({
+    required String uid,
+    required String displayName,
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
+  }) async {
+    final current = _current;
+    if (current != null) {
+      _current = AuthUser(
+        current.uid,
+        current.email,
+        displayName: displayName,
+        firstName: firstName,
+        lastName: lastName,
+        middleName: middleName,
+        suffix: suffix,
+        isEmailVerified: true,
+      );
+      _changes.add(_current);
+    }
+  }
 }

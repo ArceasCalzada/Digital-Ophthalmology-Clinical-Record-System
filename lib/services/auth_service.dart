@@ -5,8 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'email_otp_service.dart';
+import 'firebase_gate.dart';
 import 'profile_store.dart';
 import 'sms_otp_service.dart';
+import 'team_service.dart';
+import '../models/team.dart';
 
 /// Roles stored in `users/{uid}.role`. Admins can also delete patient records.
 enum UserRole { admin, physician, staff }
@@ -116,6 +119,19 @@ abstract class AuthBackend {
 
   /// Reads `users/{uid}.role`. Null means the account is not authorised for DOCRS.
   Future<UserRole?> fetchRole(String uid);
+
+  /// Assigns or updates the role for [uid] in the identity provider or user collection.
+  Future<void> assignRole(String uid, UserRole role);
+
+  /// Updates profile name components for [uid].
+  Future<void> updateProfileNames({
+    required String uid,
+    required String displayName,
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
+  });
 }
 
 class FirebaseAuthBackend implements AuthBackend {
@@ -669,6 +685,50 @@ class FirebaseAuthBackend implements AuthBackend {
       return null;
     }
   }
+
+  @override
+  Future<void> assignRole(String uid, UserRole role) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('users').doc(uid).set({
+        'role': role.name,
+        'status': 'active',
+        'isApproved': true,
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[FirebaseAuthBackend.assignRole] Notice: $e');
+    }
+  }
+
+  @override
+  Future<void> updateProfileNames({
+    required String uid,
+    required String displayName,
+    String? firstName,
+    String? lastName,
+    String? middleName,
+    String? suffix,
+  }) async {
+    try {
+      final u = _auth.currentUser;
+      if (u != null && u.uid == uid) {
+        await u.updateDisplayName(displayName);
+      }
+      final firestore = FirebaseFirestore.instance;
+      await firestore.collection('users').doc(uid).set({
+        'displayName': displayName,
+        'fullName': displayName,
+        if (firstName != null && firstName.trim().isNotEmpty) 'firstName': firstName.trim(),
+        if (lastName != null && lastName.trim().isNotEmpty) 'lastName': lastName.trim(),
+        if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
+        if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[FirebaseAuthBackend.updateProfileNames] Notice: $e');
+    }
+  }
 }
 
 /// Signed-in state for the whole app.
@@ -701,6 +761,9 @@ class AuthService extends ChangeNotifier {
   bool _is2faPending = false;
   AuthUser? _pending2faUser;
   String? _enrolled2faPhone;
+  bool _hasSubmittedJoinRequest = false;
+  String? _pendingWorkspaceName;
+  String? _pendingInviteCode;
 
   bool get isAvailable => _backend != null;
   AuthUser? get user => _user;
@@ -709,6 +772,15 @@ class AuthService extends ChangeNotifier {
   bool get isEmailVerified => _otpVerifiedLocally || (_user?.isEmailVerified ?? true);
   bool get isPendingEmailVerification => _user != null && !isEmailVerified;
   bool get isPendingRole => _user != null && isEmailVerified && _role == null;
+  bool get hasSubmittedJoinRequest => _hasSubmittedJoinRequest;
+  String? get pendingWorkspaceName => _pendingWorkspaceName;
+  String? get pendingInviteCode => _pendingInviteCode;
+  bool get needsOnboarding =>
+      _user != null &&
+      isEmailVerified &&
+      !_is2faPending &&
+      _role == null &&
+      !_hasSubmittedJoinRequest;
   bool get is2faPending => _is2faPending;
   String get masked2faPhone => _enrolled2faPhone != null
       ? SmsOtpService.maskPhoneNumber(_enrolled2faPhone!)
@@ -769,6 +841,29 @@ class AuthService extends ChangeNotifier {
       ProfileStore.instance.syncWithUser(user);
       if (user.isEmailVerified) {
         _role = await _backend!.fetchRole(user.uid);
+        if (_role == null) {
+          final firestore = FirebaseGate.firestoreIfReady();
+          if (firestore != null) {
+            try {
+              final doc = await firestore.collection('users').doc(user.uid).get();
+              if (doc.exists && doc.data() != null) {
+                final data = doc.data()!;
+                final wsId = data['requestedWorkspaceId'] as String?;
+                final code = data['inviteCode'] as String?;
+                if (wsId != null && wsId.isNotEmpty) {
+                  _hasSubmittedJoinRequest = true;
+                  _pendingInviteCode = code;
+                  try {
+                    final tDoc = await firestore.collection('teams').doc(wsId).get();
+                    if (tDoc.exists && tDoc.data() != null) {
+                      _pendingWorkspaceName = tDoc.data()!['name'] as String?;
+                    }
+                  } catch (_) {}
+                }
+              }
+            } catch (_) {}
+          }
+        }
       } else {
         _role = null;
       }
@@ -982,12 +1077,19 @@ class AuthService extends ChangeNotifier {
       }
     }
 
+    if (effectiveFullName.isEmpty && trimmedEmail.isNotEmpty) {
+      effectiveFullName = trimmedEmail.split('@').first;
+    }
+
     if (effectiveFullName.isEmpty || trimmedEmail.isEmpty || password.isEmpty) {
       throw const AuthFailure('Please complete all required fields.');
     }
     if (password.length < 6) {
       throw const AuthFailure('Password is too weak. Please use at least 6 characters.');
     }
+    _hasSubmittedJoinRequest = false;
+    _pendingWorkspaceName = null;
+    _pendingInviteCode = null;
     final newUser = await backend.signUp(
       trimmedEmail,
       password,
@@ -1001,6 +1103,215 @@ class AuthService extends ChangeNotifier {
       workspaceId: workspaceId,
     );
     await _onUserChanged(newUser);
+  }
+
+  /// Completes onboarding for an independent doctor opening a new clinic practice.
+  /// Provisions workspace ownership instantly and assigns physician role with 0 approval delays.
+  Future<void> completeDoctorOnboarding({
+    required String firstName,
+    required String lastName,
+    String? middleName,
+    String? suffix,
+    required String clinicName,
+    required String specialization,
+    String clinicAddress = '',
+    String license = '',
+    String ptrNo = '',
+  }) async {
+    final curUser = _user;
+    if (curUser == null) {
+      throw const AuthFailure('No active authenticated session.');
+    }
+
+    final nameParts = <String>[
+      firstName.trim(),
+      if (middleName != null && middleName.trim().isNotEmpty) middleName.trim(),
+      lastName.trim(),
+      if (suffix != null && suffix.trim().isNotEmpty) suffix.trim(),
+    ];
+    final fullName = nameParts.join(' ');
+    final formattedDoctorName = 'Dr. $fullName';
+
+    // 1. Update backend profile names
+    await _backend?.updateProfileNames(
+      uid: curUser.uid,
+      displayName: formattedDoctorName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      middleName: middleName?.trim(),
+      suffix: suffix?.trim(),
+    );
+
+    // 2. Assign physician role in backend
+    await _backend?.assignRole(curUser.uid, UserRole.physician);
+    _role = UserRole.physician;
+
+    // 3. Update local AuthUser
+    _user = AuthUser(
+      curUser.uid,
+      curUser.email,
+      displayName: formattedDoctorName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      middleName: middleName?.trim(),
+      suffix: suffix?.trim(),
+      isEmailVerified: curUser.isEmailVerified,
+    );
+
+    // 4. Update ProfileStore
+    ProfileStore.instance.doctorName.text = formattedDoctorName;
+    ProfileStore.instance.firstName = firstName.trim();
+    ProfileStore.instance.lastName = lastName.trim();
+    ProfileStore.instance.middleName = middleName?.trim();
+    ProfileStore.instance.suffix = suffix?.trim();
+    ProfileStore.instance.clinicName.text = clinicName.trim();
+    if (specialization.trim().isNotEmpty) {
+      ProfileStore.instance.specialization.text = specialization.trim();
+    }
+    if (clinicAddress.trim().isNotEmpty) {
+      ProfileStore.instance.clinicAddress.text = clinicAddress.trim();
+    }
+    if (license.trim().isNotEmpty) {
+      ProfileStore.instance.license.text = license.trim();
+    }
+    if (ptrNo.trim().isNotEmpty) {
+      ProfileStore.instance.ptrNo.text = ptrNo.trim();
+    }
+    await ProfileStore.instance.saveToPreferences();
+
+    // 5. Create Team Workspace with User as Owner
+    final team = await TeamService.instance.createTeam(
+      clinicName.trim(),
+      location: clinicAddress.trim(),
+    );
+
+    // 6. Persist to Firestore if available
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      try {
+        await firestore.collection('users').doc(curUser.uid).set({
+          'role': 'physician',
+          'status': 'active',
+          'isApproved': true,
+          'displayName': formattedDoctorName,
+          'fullName': formattedDoctorName,
+          'firstName': firstName.trim(),
+          'lastName': lastName.trim(),
+          if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
+          if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
+          'clinicName': clinicName.trim(),
+          'specialization': specialization.trim(),
+          if (clinicAddress.trim().isNotEmpty) 'clinicAddress': clinicAddress.trim(),
+          if (license.trim().isNotEmpty) 'license': license.trim(),
+          if (ptrNo.trim().isNotEmpty) 'ptrNo': ptrNo.trim(),
+          'workspaceId': team.id,
+          'onboardingCompleted': true,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('[AuthService.completeDoctorOnboarding] Notice saving user details: $e');
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Completes onboarding for staff / assistants joining an existing clinic.
+  Future<Team> completeJoinClinicOnboarding({
+    required String firstName,
+    required String lastName,
+    String? middleName,
+    String? suffix,
+    required String inviteCode,
+  }) async {
+    final curUser = _user;
+    if (curUser == null) {
+      throw const AuthFailure('No active authenticated session.');
+    }
+
+    final nameParts = <String>[
+      firstName.trim(),
+      if (middleName != null && middleName.trim().isNotEmpty) middleName.trim(),
+      lastName.trim(),
+      if (suffix != null && suffix.trim().isNotEmpty) suffix.trim(),
+    ];
+    final formattedName = nameParts.join(' ');
+
+    // 1. Update backend profile names
+    await _backend?.updateProfileNames(
+      uid: curUser.uid,
+      displayName: formattedName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      middleName: middleName?.trim(),
+      suffix: suffix?.trim(),
+    );
+
+    // 2. Update local AuthUser
+    _user = AuthUser(
+      curUser.uid,
+      curUser.email,
+      displayName: formattedName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      middleName: middleName?.trim(),
+      suffix: suffix?.trim(),
+      isEmailVerified: curUser.isEmailVerified,
+    );
+
+    // 3. Update ProfileStore
+    ProfileStore.instance.doctorName.text = formattedName;
+    ProfileStore.instance.firstName = firstName.trim();
+    ProfileStore.instance.lastName = lastName.trim();
+    ProfileStore.instance.middleName = middleName?.trim();
+    ProfileStore.instance.suffix = suffix?.trim();
+    await ProfileStore.instance.saveToPreferences();
+
+    // 4. Join team via TeamService
+    final cleanCode = inviteCode.trim().toUpperCase();
+    final team = await TeamService.instance.joinWithCode(
+      cleanCode,
+      requestedRole: 'assistant',
+    );
+
+    _hasSubmittedJoinRequest = true;
+    _pendingWorkspaceName = team.name;
+    _pendingInviteCode = cleanCode;
+
+    // 5. Update Firestore user doc if ready
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      try {
+        await firestore.collection('users').doc(curUser.uid).set({
+          'displayName': formattedName,
+          'fullName': formattedName,
+          'firstName': firstName.trim(),
+          'lastName': lastName.trim(),
+          if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
+          if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
+          'status': 'pending',
+          'isApproved': false,
+          'requestedRole': 'assistant',
+          'requestedWorkspaceId': team.id,
+          'inviteCode': cleanCode,
+          'onboardingCompleted': true,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('[AuthService.completeJoinClinicOnboarding] Notice saving user details: $e');
+      }
+    }
+
+    notifyListeners();
+    return team;
+  }
+
+  /// Resets a pending join request so the user can re-enter onboarding or change invite code.
+  void resetJoinRequest() {
+    _hasSubmittedJoinRequest = false;
+    _pendingWorkspaceName = null;
+    _pendingInviteCode = null;
+    notifyListeners();
   }
 
   /// Sends a password reset email.
@@ -1081,6 +1392,9 @@ class AuthService extends ChangeNotifier {
     _is2faPending = false;
     _pending2faUser = null;
     _enrolled2faPhone = null;
+    _hasSubmittedJoinRequest = false;
+    _pendingWorkspaceName = null;
+    _pendingInviteCode = null;
     notifyListeners();
     try {
       await backend?.signOut();
@@ -1100,6 +1414,9 @@ class AuthService extends ChangeNotifier {
     _is2faPending = false;
     _pending2faUser = null;
     _enrolled2faPhone = null;
+    _hasSubmittedJoinRequest = false;
+    _pendingWorkspaceName = null;
+    _pendingInviteCode = null;
     _resolving = false;
     _inFlight = null;
     _inFlightUid = null;

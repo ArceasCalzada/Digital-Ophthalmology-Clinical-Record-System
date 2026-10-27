@@ -20,6 +20,7 @@ import 'services/workspace_store.dart';
 import 'theme/app_theme.dart';
 import 'views/login_view.dart';
 import 'views/main_layout.dart';
+import 'views/onboarding_wizard_view.dart';
 import 'widgets/inactivity_guard.dart';
 import 'widgets/session_lock_overlay.dart';
 
@@ -203,9 +204,13 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
                           ],
                         ),
                       )
-                    : LoginView(
-                        onLoginSuccess: () {},
-                      )),
+                    : (auth.needsOnboarding || auth.hasSubmittedJoinRequest
+                        ? OnboardingWizardView(
+                            onLogout: _handleLogout,
+                          )
+                        : LoginView(
+                            onLoginSuccess: () {},
+                          ))),
           );
         },
       ),

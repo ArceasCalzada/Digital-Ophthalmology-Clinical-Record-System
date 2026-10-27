@@ -68,10 +68,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Register Account'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('signup-first-name-field')), 'Sarah');
-    await tester.enterText(find.byKey(const Key('signup-middle-name-field')), 'J.');
-    await tester.enterText(find.byKey(const Key('signup-last-name-field')), 'Connor');
-    await tester.enterText(find.byKey(const Key('signup-suffix-field')), 'MD');
     await tester.enterText(find.byKey(const Key('signup-email-field')), 'sarah@clinic.test');
     await tester.enterText(find.byKey(const Key('signup-password-field')), 'password123');
     await tester.enterText(find.byKey(const Key('signup-confirm-password-field')), 'password123');
@@ -82,7 +78,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Waiting for Administrator Approval'), findsOneWidget);
+    expect(find.text('Welcome to Your Clinical Setup'), findsOneWidget);
   });
 
   testWidgets('Opens Reset Password dialog and submits email request', (WidgetTester tester) async {

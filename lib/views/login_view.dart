@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/required_text_form_field.dart';
+import 'onboarding_wizard_view.dart';
 
 class LoginView extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -121,77 +122,34 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final middleName = _middleNameController.text.trim();
-    final suffix = _suffixController.text.trim();
-
-    if (firstName.isEmpty || lastName.isEmpty) {
-      setState(() => _errorMessage = 'First and Last names are required.');
-      return;
-    }
-
-    final nameParts = <String>[
-      firstName,
-      if (middleName.isNotEmpty) middleName,
-      lastName,
-      if (suffix.isNotEmpty) suffix,
-    ];
-    final computedFullName = nameParts.join(' ').trim();
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final inviteCode = _signUpInviteCodeController.text.trim();
       await AuthService.instance.signUp(
-        _signUpEmailController.text,
+        _signUpEmailController.text.trim(),
         _signUpPasswordController.text,
-        computedFullName,
-        firstName: firstName,
-        lastName: lastName,
-        middleName: middleName.isNotEmpty ? middleName : null,
-        suffix: suffix.isNotEmpty ? suffix : null,
-        requestedRole: 'assistant',
-        inviteCode: inviteCode.isNotEmpty ? inviteCode : null,
+        '',
       );
-      if (inviteCode.isNotEmpty) {
-        try {
-          await TeamService.instance.joinWithCode(inviteCode, requestedRole: 'assistant');
-        } catch (e) {
-          debugPrint('[LoginView._handleSignUp] Notice joining with code during signup: $e');
-        }
-      }
       _signUpPasswordController.clear();
       _confirmPasswordController.clear();
-      _signUpInviteCodeController.clear();
-      _firstNameController.clear();
-      _lastNameController.clear();
-      _middleNameController.clear();
-      _suffixController.clear();
-      if (mounted && AuthService.instance.isSignedIn) {
-        setState(() => _isSuccessTransitioning = true);
-        await Future.delayed(const Duration(milliseconds: 300));
-        if (mounted) {
-          widget.onLoginSuccess();
+      if (mounted) {
+        if (AuthService.instance.needsOnboarding || AuthService.instance.hasSubmittedJoinRequest) {
+          setState(() {});
+        } else if (AuthService.instance.isSignedIn) {
+          setState(() => _isSuccessTransitioning = true);
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (mounted) {
+            widget.onLoginSuccess();
+          }
         }
       }
     } on AuthFailure catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSuccessTransitioning = false;
-          _errorMessage = e.message;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isSuccessTransitioning = false;
-          _errorMessage = 'Registration failed. Please try again.';
-        });
-      }
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Registration failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -319,6 +277,13 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final auth = AuthService.instance;
+
+    if (auth.needsOnboarding || auth.hasSubmittedJoinRequest) {
+      return OnboardingWizardView(
+        onCompleted: widget.onLoginSuccess,
+        onLogout: () => auth.signOut(),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFC),
@@ -757,197 +722,6 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Structured Name Fields
-          // Row 1: First Name (Required) & Middle Name (Optional)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'First Name',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    RequiredTextFormField(
-                      key: const Key('signup-first-name-field'),
-                      controller: _firstNameController,
-                      enabled: !_isLoading,
-                      style: TextStyle(
-                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Jane',
-                        prefixIcon: Icon(
-                          Icons.person_outline,
-                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                          size: 20,
-                        ),
-                        filled: _isLoading,
-                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Enter your first name';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Middle Name (Optional)',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      key: const Key('signup-middle-name-field'),
-                      controller: _middleNameController,
-                      enabled: !_isLoading,
-                      style: TextStyle(
-                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Marie',
-                        prefixIcon: Icon(
-                          Icons.person_outline,
-                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                          size: 20,
-                        ),
-                        filled: _isLoading,
-                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Row 2: Last Name (Required) & Suffix (Optional)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Last Name',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    RequiredTextFormField(
-                      key: const Key('signup-last-name-field'),
-                      controller: _lastNameController,
-                      enabled: !_isLoading,
-                      style: TextStyle(
-                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Doe',
-                        prefixIcon: Icon(
-                          Icons.person_outline,
-                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                          size: 20,
-                        ),
-                        filled: _isLoading,
-                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Enter your last name';
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 18,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Suffix (Optional)',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      key: const Key('signup-suffix-field'),
-                      controller: _suffixController,
-                      enabled: !_isLoading,
-                      style: TextStyle(
-                        color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Jr., Sr., III',
-                        prefixIcon: Icon(
-                          Icons.badge_outlined,
-                          color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                          size: 20,
-                        ),
-                        filled: _isLoading,
-                        fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
           Text(
             'Clinic Email',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
@@ -1071,35 +845,6 @@ class _LoginViewState extends State<LoginView> {
               if (val != _signUpPasswordController.text) return 'Passwords do not match';
               return null;
             },
-          ),
-          SizedBox(height: 14),
-
-          Text(
-            'Clinic Invite Code (Optional)',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-          ),
-          SizedBox(height: 8),
-          TextFormField(
-            key: const Key('signup-invite-code-field'),
-            controller: _signUpInviteCodeController,
-            enabled: !_isLoading,
-            textCapitalization: TextCapitalization.characters,
-            style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              hintText: 'DOC-XXXX (If joining a clinic)',
-              prefixIcon: Icon(
-                Icons.group_add_outlined,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
           ),
           if (_errorMessage != null) ...[
             SizedBox(height: 12),
