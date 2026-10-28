@@ -17,7 +17,10 @@ class TeamsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([TeamService.instance, ProfileStore.instance]),
+      listenable: Listenable.merge([
+        TeamService.instance,
+        ProfileStore.instance,
+      ]),
       builder: (context, _) {
         final teamService = TeamService.instance;
         final activeTeam = teamService.activeTeam;
@@ -38,7 +41,10 @@ class TeamsView extends StatelessWidget {
                 SizedBox(height: 20),
               ],
               if (activeTeam != null) ...[
-                _ActiveTeamMembersCard(teamService: teamService, team: activeTeam),
+                _ActiveTeamMembersCard(
+                  teamService: teamService,
+                  team: activeTeam,
+                ),
                 SizedBox(height: 20),
               ],
               _ArchivedTeamsCard(teamService: teamService),
@@ -137,12 +143,7 @@ class _TeamsListCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (teamService.loading)
-            Column(
-              children: const [
-                SkeletonTeamCard(),
-                SkeletonTeamCard(),
-              ],
-            )
+            Column(children: const [SkeletonTeamCard(), SkeletonTeamCard()])
           else if (teamService.teams.isEmpty)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -153,156 +154,211 @@ class _TeamsListCard extends StatelessWidget {
             )
           else
             for (final team in teamService.teams)
-            Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: team.id == active?.id
-                      ? AppTheme.primaryBlue.withValues(alpha: 0.06)
-                      : AppTheme.lightBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
+              Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
                     color: team.id == active?.id
-                        ? AppTheme.primaryBlue.withValues(alpha: 0.4)
-                        : AppTheme.borderColor,
+                        ? AppTheme.primaryBlue.withValues(alpha: 0.06)
+                        : AppTheme.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: team.id == active?.id
+                          ? AppTheme.primaryBlue.withValues(alpha: 0.4)
+                          : AppTheme.borderColor,
+                    ),
                   ),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 480;
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth > 480;
 
-                    final teamInfo = Row(
-                      children: [
-                        Icon(Icons.groups_rounded, size: 22, color: AppTheme.primaryBlue),
-                        SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                team.name,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 4),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  if (team.location.isNotEmpty)
-                                    Text(
-                                      team.location,
-                                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                                    ),
-                                  Text(
-                                    'Invite Code: ${team.inviteCode}',
-                                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      final teamInfo = Row(
+                        children: [
+                          Icon(
+                            Icons.groups_rounded,
+                            size: 22,
+                            color: AppTheme.primaryBlue,
+                          ),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  team.name,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
                                   ),
-                                  if (team.id == active?.id)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Color(0xFF059669).withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'Active Workspace',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (team.location.isNotEmpty)
+                                      Text(
+                                        team.location,
                                         style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF059669),
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
                                         ),
                                       ),
+                                    Text(
+                                      'Invite Code: ${team.inviteCode}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.textSecondary,
+                                      ),
                                     ),
-                                ],
+                                    if (team.id == active?.id)
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF059669)
+                                              .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Active Workspace',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF059669),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final actionButtons = Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (team.id != active?.id)
+                            ElevatedButton(
+                              onPressed: () => teamService.switchTo(team.id),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryBlue,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-
-                    final actionButtons = Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (team.id != active?.id)
-                          ElevatedButton(
-                            onPressed: () => teamService.switchTo(team.id),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              child: Text(
+                                'Switch',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            child: Text('Switch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                        OutlinedButton.icon(
-                          icon: Icon(Icons.edit_outlined, size: 14, color: AppTheme.primaryBlue),
-                          label: Text('Edit', style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.w600)),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            side: BorderSide(color: AppTheme.primaryBlue.withValues(alpha: 0.4)),
-                          ),
-                          onPressed: () => _showEditTeamDialog(context, team),
-                        ),
-                        OutlinedButton.icon(
-                          icon: Icon(
-                            Icons.archive_outlined,
-                            size: 14,
-                            color: team.id == active?.id ? AppTheme.textSecondary.withValues(alpha: 0.6) : Colors.red,
-                          ),
-                          label: Text(
-                            'Archive',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: team.id == active?.id ? AppTheme.textSecondary.withValues(alpha: 0.6) : Colors.red,
+                          OutlinedButton.icon(
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: AppTheme.primaryBlue,
                             ),
+                            label: Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: AppTheme.primaryBlue,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              side: BorderSide(
+                                color: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
+                            ),
+                            onPressed: () => _showEditTeamDialog(context, team),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            side: BorderSide(
+                          OutlinedButton.icon(
+                            icon: Icon(
+                              Icons.archive_outlined,
+                              size: 14,
                               color: team.id == active?.id
-                                  ? AppTheme.borderColor
-                                  : Colors.red.withValues(alpha: 0.4),
+                                  ? AppTheme.textSecondary.withValues(
+                                      alpha: 0.6,
+                                    )
+                                  : Colors.red,
                             ),
+                            label: Text(
+                              'Archive',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: team.id == active?.id
+                                    ? AppTheme.textSecondary.withValues(
+                                        alpha: 0.6,
+                                      )
+                                    : Colors.red,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              side: BorderSide(
+                                color: team.id == active?.id
+                                    ? AppTheme.borderColor
+                                    : Colors.red.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            onPressed: () =>
+                                _handleArchiveClick(context, team, active?.id),
                           ),
-                          onPressed: () => _handleArchiveClick(context, team, active?.id),
-                        ),
-                      ],
-                    );
+                        ],
+                      );
 
-                    if (isWide) {
-                      return Row(
-                        children: [
-                          Expanded(child: teamInfo),
-                          SizedBox(width: 14),
-                          actionButtons,
-                        ],
-                      );
-                    } else {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          teamInfo,
-                          SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: actionButtons,
-                          ),
-                        ],
-                      );
-                    }
-                  },
+                      if (isWide) {
+                        return Row(
+                          children: [
+                            Expanded(child: teamInfo),
+                            SizedBox(width: 14),
+                            actionButtons,
+                          ],
+                        );
+                      } else {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            teamInfo,
+                            SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: actionButtons,
+                            ),
+                          ],
+                        );
+                      }
+                    },
+                  ),
                 ),
               ),
-            ),
           SizedBox(height: 10),
           Wrap(
             spacing: 12,
@@ -404,7 +460,8 @@ class _TeamsListCard extends StatelessWidget {
                   showActionSuccessModal(
                     context: context,
                     title: 'Team Created Successfully',
-                    message: 'Team "$name" at "$location" has been created. You are now the Team Owner.',
+                    message:
+                        'Team "$name" at "$location" has been created. You are now the Team Owner.',
                     icon: Icons.groups_rounded,
                   );
                 }
@@ -461,12 +518,16 @@ class _TeamsListCard extends StatelessWidget {
               if (code.isEmpty) return;
               Navigator.pop(ctx);
               try {
-                final team = await TeamService.instance.joinWithCode(code, requestedRole: 'assistant');
+                final team = await TeamService.instance.joinWithCode(
+                  code,
+                  requestedRole: 'assistant',
+                );
                 if (context.mounted) {
                   showActionSuccessModal(
                     context: context,
                     title: 'Join Request Submitted',
-                    message: 'Your request to join "${team.name}" has been submitted for administrator approval.',
+                    message:
+                        'Your request to join "${team.name}" has been submitted for administrator approval.',
                     icon: Icons.hourglass_top_rounded,
                   );
                 }
@@ -544,7 +605,11 @@ class _TeamsListCard extends StatelessWidget {
               final newLocation = locationController.text.trim();
               Navigator.pop(ctx);
               try {
-                await teamService.updateTeam(team.id, name: newName, location: newLocation);
+                await teamService.updateTeam(
+                  team.id,
+                  name: newName,
+                  location: newLocation,
+                );
                 if (context.mounted) {
                   showActionSuccessModal(
                     context: context,
@@ -560,14 +625,21 @@ class _TeamsListCard extends StatelessWidget {
                     SnackBar(
                       content: Row(
                         children: [
-                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 10),
-                          Expanded(child: Text('Failed to update team: $friendlyMsg')),
+                          Expanded(
+                            child: Text('Failed to update team: $friendlyMsg'),
+                          ),
                         ],
                       ),
                       backgroundColor: Colors.red.shade800,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       duration: const Duration(seconds: 4),
                     ),
                   );
@@ -623,7 +695,8 @@ class _TeamsListCard extends StatelessWidget {
                   showActionSuccessModal(
                     context: context,
                     title: 'Team Archived',
-                    message: 'Team "${team.name}" has been moved to Archived Teams.',
+                    message:
+                        'Team "${team.name}" has been moved to Archived Teams.',
                     icon: Icons.archive_rounded,
                   );
                 }
@@ -634,21 +707,34 @@ class _TeamsListCard extends StatelessWidget {
                     SnackBar(
                       content: Row(
                         children: [
-                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 10),
-                          Expanded(child: Text('Failed to archive team: $friendlyMsg')),
+                          Expanded(
+                            child: Text('Failed to archive team: $friendlyMsg'),
+                          ),
                         ],
                       ),
                       backgroundColor: Colors.red.shade800,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       duration: const Duration(seconds: 4),
                     ),
                   );
                 }
               }
             },
-            child: Text('Archive', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Archive',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -692,7 +778,11 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.inventory_2_outlined, size: 20, color: AppTheme.textSecondary),
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 20,
+                        color: AppTheme.textSecondary,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Archived Teams (${archived.length})',
@@ -715,7 +805,9 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                         ),
                       ),
                       Icon(
-                        _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                        _expanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
                         color: AppTheme.primaryBlue,
                       ),
                     ],
@@ -741,12 +833,19 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: AppTheme.textSecondary, size: 20),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: AppTheme.textSecondary,
+                        size: 20,
+                      ),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'No archived teams. Inactive clinic workspaces you archive will appear here.',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -757,7 +856,10 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                   Padding(
                     padding: EdgeInsets.only(bottom: 10),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.lightBg,
                         borderRadius: BorderRadius.circular(12),
@@ -769,14 +871,19 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
 
                           final teamInfo = Row(
                             children: [
-                              Icon(Icons.archive_outlined, size: 22, color: AppTheme.textSecondary),
+                              Icon(
+                                Icons.archive_outlined,
+                                size: 22,
+                                color: AppTheme.textSecondary,
+                              ),
                               SizedBox(width: 14),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       spacing: 8,
                                       children: [
                                         Text(
@@ -789,10 +896,17 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: Colors.grey.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           child: Text(
                                             'Archived',
@@ -812,11 +926,17 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                                         if (team.location.isNotEmpty)
                                           Text(
                                             team.location,
-                                            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.textSecondary,
+                                            ),
                                           ),
                                         Text(
                                           'Invite Code: ${team.inviteCode}',
-                                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textSecondary,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -827,11 +947,24 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                           );
 
                           final restoreButton = ElevatedButton.icon(
-                            icon: Icon(Icons.unarchive_rounded, size: 16, color: Colors.white),
-                            label: Text('Restore', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            icon: Icon(
+                              Icons.unarchive_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              'Restore',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryBlue,
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                             ),
                             onPressed: () => _confirmRestoreTeam(context, team),
                           );
@@ -890,7 +1023,8 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                   showActionSuccessModal(
                     context: context,
                     title: 'Team Restored Successfully',
-                    message: 'Team "${team.name}" has been restored to your active teams.',
+                    message:
+                        'Team "${team.name}" has been restored to your active teams.',
                     icon: Icons.unarchive_rounded,
                   );
                 }
@@ -901,14 +1035,21 @@ class _ArchivedTeamsCardState extends State<_ArchivedTeamsCard> {
                     SnackBar(
                       content: Row(
                         children: [
-                          Icon(Icons.error_outline_rounded, color: Colors.white),
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 10),
-                          Expanded(child: Text('Failed to restore team: $friendlyMsg')),
+                          Expanded(
+                            child: Text('Failed to restore team: $friendlyMsg'),
+                          ),
                         ],
                       ),
                       backgroundColor: Colors.red.shade800,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       duration: const Duration(seconds: 4),
                     ),
                   );
@@ -940,17 +1081,28 @@ class _ActiveTeamMembersCard extends StatelessWidget {
         children: [
           IconButton(
             tooltip: 'Copy Invite Code',
-            icon: Icon(Icons.content_copy_rounded, size: 18, color: AppTheme.primaryBlue),
+            icon: Icon(
+              Icons.content_copy_rounded,
+              size: 18,
+              color: AppTheme.primaryBlue,
+            ),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: team.inviteCode));
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Copied invite code "${team.inviteCode}" to clipboard!')),
+                SnackBar(
+                  content: Text(
+                    'Copied invite code "${team.inviteCode}" to clipboard!',
+                  ),
+                ),
               );
             },
           ),
           if (isOwner)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert_rounded, color: AppTheme.textSecondary),
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: AppTheme.textSecondary,
+              ),
               onSelected: (val) {
                 if (val == 'regenerate') {
                   _confirmRegenerateCode(context);
@@ -973,7 +1125,11 @@ class _ActiveTeamMembersCard extends StatelessWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_forever_rounded, size: 18, color: Colors.red),
+                      Icon(
+                        Icons.delete_forever_rounded,
+                        size: 18,
+                        color: Colors.red,
+                      ),
                       SizedBox(width: 8),
                       Text('Delete Team', style: TextStyle(color: Colors.red)),
                     ],
@@ -984,7 +1140,10 @@ class _ActiveTeamMembersCard extends StatelessWidget {
           else
             TextButton.icon(
               icon: Icon(Icons.logout_rounded, size: 16, color: Colors.red),
-              label: Text('Leave Team', style: TextStyle(color: Colors.red, fontSize: 13)),
+              label: Text(
+                'Leave Team',
+                style: TextStyle(color: Colors.red, fontSize: 13),
+              ),
               onPressed: () => _confirmLeaveTeam(context),
             ),
         ],
@@ -1001,12 +1160,19 @@ class _ActiveTeamMembersCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 20, color: AppTheme.primaryBlue),
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: AppTheme.primaryBlue,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Invite Code: ${team.inviteCode} — Share this code with staff or assistants so they can join ${team.name}.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -1031,75 +1197,87 @@ class _ActiveTeamMembersCard extends StatelessWidget {
             )
           else
             for (final member in teamService.members)
-            Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: member.role.color.withValues(alpha: 0.15),
-                    child: Text(
-                      ProfileStore.initialsOf(member.displayName),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: member.role.color,
+              Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: member.role.color.withValues(
+                        alpha: 0.15,
+                      ),
+                      child: Text(
+                        ProfileStore.initialsOf(member.displayName),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: member.role.color,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          member.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            member.displayName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
-                        ),
-                        Text(
-                          member.email,
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                        ),
-                      ],
+                          Text(
+                            member.email,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  _RolePill(member.role),
-                  if (isOwner && member.role != TeamRole.owner) ...[
-                    SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.settings_outlined, size: 18, color: AppTheme.textSecondary),
-                      onSelected: (val) {
-                        if (val == 'role') {
-                          _showEditRoleDialog(context, member);
-                        } else if (val == 'transfer') {
-                          _confirmTransferOwnership(context, member);
-                        } else if (val == 'remove') {
-                          _confirmRemoveMember(context, member);
-                        }
-                      },
-                      itemBuilder: (ctx) => [
-                        PopupMenuItem(
-                          value: 'role',
-                          child: Text('Change Role'),
+                    _RolePill(member.role),
+                    if (isOwner && member.role != TeamRole.owner) ...[
+                      SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.settings_outlined,
+                          size: 18,
+                          color: AppTheme.textSecondary,
                         ),
-                        PopupMenuItem(
-                          value: 'transfer',
-                          child: Text('Transfer Ownership'),
-                        ),
-                        PopupMenuItem(
-                          value: 'remove',
-                          child: Text('Remove from Team', style: TextStyle(color: Colors.red)),
-                        ),
-                      ],
-                    ),
+                        onSelected: (val) {
+                          if (val == 'role') {
+                            _showEditRoleDialog(context, member);
+                          } else if (val == 'transfer') {
+                            _confirmTransferOwnership(context, member);
+                          } else if (val == 'remove') {
+                            _confirmRemoveMember(context, member);
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          PopupMenuItem(
+                            value: 'role',
+                            child: Text('Change Role'),
+                          ),
+                          PopupMenuItem(
+                            value: 'transfer',
+                            child: Text('Transfer Ownership'),
+                          ),
+                          PopupMenuItem(
+                            value: 'remove',
+                            child: Text(
+                              'Remove from Team',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
         ],
       ),
     );
@@ -1120,10 +1298,20 @@ class _ActiveTeamMembersCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final r in [TeamRole.editor, TeamRole.assistant, TeamRole.viewer])
+                for (final r in [
+                  TeamRole.editor,
+                  TeamRole.assistant,
+                  TeamRole.viewer,
+                ])
                   RadioListTile<TeamRole>(
-                    title: Text(r.label, style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(_roleDescription(r), style: TextStyle(fontSize: 12)),
+                    title: Text(
+                      r.label,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      _roleDescription(r),
+                      style: TextStyle(fontSize: 12),
+                    ),
                     value: r,
                   ),
               ],
@@ -1143,7 +1331,8 @@ class _ActiveTeamMembersCard extends StatelessWidget {
                     showActionSuccessModal(
                       context: context,
                       title: 'Role Updated Successfully',
-                      message: '${member.displayName}\'s role has been changed to ${selected.label}.',
+                      message:
+                          '${member.displayName}\'s role has been changed to ${selected.label}.',
                       icon: Icons.admin_panel_settings_rounded,
                     );
                   }
@@ -1181,9 +1370,14 @@ class _ActiveTeamMembersCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Remove ${member.displayName}?'),
-        content: Text('This will immediately revoke their access to this team\'s patient records.'),
+        content: Text(
+          'This will immediately revoke their access to this team\'s patient records.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -1193,7 +1387,8 @@ class _ActiveTeamMembersCard extends StatelessWidget {
                 showActionSuccessModal(
                   context: context,
                   title: 'Member Removed',
-                  message: '${member.displayName} has been removed from the team.',
+                  message:
+                      '${member.displayName} has been removed from the team.',
                   icon: Icons.person_remove_rounded,
                 );
               }
@@ -1214,7 +1409,10 @@ class _ActiveTeamMembersCard extends StatelessWidget {
           'You will become an Editor, and ${member.displayName} will become the Team Owner.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -1223,7 +1421,8 @@ class _ActiveTeamMembersCard extends StatelessWidget {
                 showActionSuccessModal(
                   context: context,
                   title: 'Ownership Transferred',
-                  message: '${member.displayName} is now the owner of this team.',
+                  message:
+                      '${member.displayName} is now the owner of this team.',
                   icon: Icons.verified_user_rounded,
                 );
               }
@@ -1242,7 +1441,10 @@ class _ActiveTeamMembersCard extends StatelessWidget {
         title: Text('Leave Team?'),
         content: Text('You will lose access to this team\'s patient records.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -1269,9 +1471,14 @@ class _ActiveTeamMembersCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Regenerate Invite Code?'),
-        content: Text('The old invite code will no longer work for new members.'),
+        content: Text(
+          'The old invite code will no longer work for new members.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -1297,9 +1504,14 @@ class _ActiveTeamMembersCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Delete Team?'),
-        content: Text('Are you sure you want to delete this team? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete this team? This action cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -1338,46 +1550,194 @@ class _PermissionsMatrixCard extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             columns: [
-              DataColumn(label: Text('Role Level', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('View Patients', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Edit Patients', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('See Visits & Rx', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Write Visits & Rx', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Manage Members', style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                label: Text(
+                  'Role Level',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'View Patients',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Edit Patients',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'See Visits & Rx',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Write Visits & Rx',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  'Manage Members',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
             rows: [
-              DataRow(cells: [
-                DataCell(Text('Owner', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryBlue))),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-              ]),
-              DataRow(cells: [
-                DataCell(Text('Editor', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF059669)))),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-              ]),
-              DataRow(cells: [
-                DataCell(Text('Assistant', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD97706)))),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-              ]),
-              DataRow(cells: [
-                DataCell(Text('Viewer', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary))),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-                DataCell(Icon(Icons.check_circle, color: Color(0xFF059669), size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-                DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
-              ]),
+              DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      'Owner',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                ],
+              ),
+              DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      'Editor',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                ],
+              ),
+              DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      'Assistant',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFD97706),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                ],
+              ),
+              DataRow(
+                cells: [
+                  DataCell(
+                    Text(
+                      'Viewer',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                  DataCell(
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF059669),
+                      size: 18,
+                    ),
+                  ),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                  DataCell(Icon(Icons.cancel, color: Colors.grey, size: 18)),
+                ],
+              ),
             ],
           ),
         ),
@@ -1420,10 +1780,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               SizedBox(height: 16),
               if (widget.teamService.loading)
                 Column(
-                  children: const [
-                    SkeletonMemberTile(),
-                    SkeletonMemberTile(),
-                  ],
+                  children: const [SkeletonMemberTile(), SkeletonMemberTile()],
                 )
               else if (pending.isEmpty)
                 Container(
@@ -1436,12 +1793,19 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 22),
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        color: Color(0xFF059669),
+                        size: 22,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'No pending approval requests. Newly registered users will appear here for administrator review.',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -1450,7 +1814,8 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               else
                 for (final member in pending) ...[
                   _buildPendingRow(context, member),
-                  if (member != pending.last) Divider(height: 24, color: AppTheme.borderColor),
+                  if (member != pending.last)
+                    Divider(height: 24, color: AppTheme.borderColor),
                 ],
             ],
           ),
@@ -1460,10 +1825,15 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
   }
 
   Widget _buildPendingRow(BuildContext context, TeamMember member) {
-    final memberRequestedRole = member.requestedRole != null ? TeamRole.parse(member.requestedRole) : null;
-    final defaultRole = memberRequestedRole ?? (member.role == TeamRole.viewer ? TeamRole.assistant : member.role);
+    final memberRequestedRole = member.requestedRole != null
+        ? TeamRole.parse(member.requestedRole)
+        : null;
+    final defaultRole =
+        memberRequestedRole ??
+        (member.role == TeamRole.viewer ? TeamRole.assistant : member.role);
     final selectedRole = _selectedRoles[member.uid] ?? defaultRole;
-    final targetWsId = _selectedWorkspaces[member.uid] ??
+    final targetWsId =
+        _selectedWorkspaces[member.uid] ??
         member.requestedWorkspaceId ??
         widget.teamService.activeWorkspaceId;
     final dateStr = _formatDate(member.joinedAt);
@@ -1512,7 +1882,10 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Color(0xFFD97706).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
@@ -1528,7 +1901,10 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                         ),
                         if (member.requestedRole != null)
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Color(0xFF2563EB).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
@@ -1542,9 +1918,13 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                               ),
                             ),
                           ),
-                        if (member.requestedWorkspaceId == null || member.requestedWorkspaceId!.isEmpty)
+                        if (member.requestedWorkspaceId == null ||
+                            member.requestedWorkspaceId!.isEmpty)
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Color(0xFF7C3AED).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
@@ -1563,12 +1943,18 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                     SizedBox(height: 2),
                     Text(
                       member.email,
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     if (dateStr.isNotEmpty)
                       Text(
                         'Requested: $dateStr',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.textSecondary.withValues(alpha: 0.8),
+                        ),
                       ),
                   ],
                 ),
@@ -1580,27 +1966,40 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               ? Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: widget.teamService.teams.any((t) => t.id == targetWsId)
+                      dropdownColor: AppTheme.cardBg,
+                      value:
+                          widget.teamService.teams.any(
+                            (t) => t.id == targetWsId,
+                          )
                           ? targetWsId
                           : widget.teamService.activeWorkspaceId,
                       isDense: true,
-                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                       items: [
                         for (final t in widget.teamService.teams)
                           DropdownMenuItem(
                             value: t.id,
-                            child: Text('Workspace: ${t.name}', overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              'Workspace: ${t.name}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                       onChanged: (newWs) {
                         if (newWs != null) {
-                          setState(() => _selectedWorkspaces[member.uid] = newWs);
+                          setState(
+                            () => _selectedWorkspaces[member.uid] = newWs,
+                          );
                         }
                       },
                     ),
@@ -1611,21 +2010,28 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
           final roleDropdown = Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.cardBg,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.borderColor),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<TeamRole>(
+                dropdownColor: AppTheme.cardBg,
                 value: selectedRole,
                 isDense: true,
-                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
                 items: [
-                  for (final r in [TeamRole.editor, TeamRole.assistant, TeamRole.viewer, TeamRole.owner])
-                    DropdownMenuItem(
-                      value: r,
-                      child: Text('Role: ${r.label}'),
-                    ),
+                  for (final r in [
+                    TeamRole.editor,
+                    TeamRole.assistant,
+                    TeamRole.viewer,
+                    TeamRole.owner,
+                  ])
+                    DropdownMenuItem(value: r, child: Text('Role: ${r.label}')),
                 ],
                 onChanged: (newRole) {
                   if (newRole != null) {
@@ -1645,7 +2051,10 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               roleDropdown,
               OutlinedButton.icon(
                 icon: Icon(Icons.close_rounded, size: 16, color: Colors.red),
-                label: Text('Reject', style: TextStyle(color: Colors.red, fontSize: 13)),
+                label: Text(
+                  'Reject',
+                  style: TextStyle(color: Colors.red, fontSize: 13),
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
@@ -1654,7 +2063,14 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               ),
               ElevatedButton.icon(
                 icon: Icon(Icons.check_rounded, size: 16, color: Colors.white),
-                label: Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                label: Text(
+                  'Approve',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF059669),
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1667,12 +2083,19 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                       targetWorkspaceId: targetWsId,
                     );
                     if (context.mounted) {
-                      final assignedTeam = widget.teamService.teams.where((t) => t.id == targetWsId).firstOrNull ?? widget.teamService.activeTeam;
-                      final teamName = assignedTeam != null ? ' to "${assignedTeam.name}"' : '';
+                      final assignedTeam =
+                          widget.teamService.teams
+                              .where((t) => t.id == targetWsId)
+                              .firstOrNull ??
+                          widget.teamService.activeTeam;
+                      final teamName = assignedTeam != null
+                          ? ' to "${assignedTeam.name}"'
+                          : '';
                       showActionSuccessModal(
                         context: context,
                         title: 'User Approved Successfully',
-                        message: '${member.displayName} (${member.email}) has been approved as ${selectedRole.label} and assigned$teamName.',
+                        message:
+                            '${member.displayName} (${member.email}) has been approved as ${selectedRole.label} and assigned$teamName.',
                         icon: Icons.verified_user_rounded,
                       );
                     }
@@ -1702,10 +2125,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
               children: [
                 memberDetails,
                 SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: actionButtons,
-                ),
+                Align(alignment: Alignment.centerRight, child: actionButtons),
               ],
             );
           }
@@ -1719,9 +2139,14 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Reject Request for ${member.displayName}?'),
-        content: Text('This will decline their request to join the clinic database. They will not be granted system access.'),
+        content: Text(
+          'This will decline their request to join the clinic database. They will not be granted system access.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -1730,7 +2155,11 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                 await widget.teamService.rejectPendingMember(member.uid);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Declined access request for ${member.displayName}.')),
+                    SnackBar(
+                      content: Text(
+                        'Declined access request for ${member.displayName}.',
+                      ),
+                    ),
                   );
                 }
               } catch (e) {
@@ -1741,7 +2170,10 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                 }
               }
             },
-            child: Text('Reject Account', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Reject Account',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -1762,9 +2194,9 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
 /// Formats team mutation error messages with helpful, user-friendly details.
 String _friendlyTeamErrorMessage(dynamic e) {
   final str = e.toString();
-  if (str.contains('permission-denied') || str.contains('Missing or insufficient permissions')) {
+  if (str.contains('permission-denied') ||
+      str.contains('Missing or insufficient permissions')) {
     return '$str (Insufficient permissions: only workspace owners and administrators are authorized to modify or archive team documents).';
   }
   return str;
 }
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
@@ -25,6 +26,8 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  bool get _isDark => ThemeController.instance.isDarkMode;
+
   // Navigation State
   String _activeSection = 'prescription_settings';
 
@@ -90,7 +93,9 @@ class _SettingsViewState extends State<SettingsView> {
   void _onTeamChanged() {
     if (mounted) {
       final isAssistant = TeamService.instance.isAssistant;
-      if (isAssistant && (_activeSection == 'prescription_settings' || _activeSection == 'backup_data')) {
+      if (isAssistant &&
+          (_activeSection == 'prescription_settings' ||
+              _activeSection == 'backup_data')) {
         setState(() {
           _activeSection = 'security';
         });
@@ -151,7 +156,9 @@ class _SettingsViewState extends State<SettingsView> {
         _isBackingUp = false;
         _lastBackupDate = 'August 20, 2026 — 11:15 PM';
       });
-      _showSaveFeedback('Local clinic database backed up successfully (4.8 GB encrypted vault).');
+      _showSaveFeedback(
+        'Local clinic database backed up successfully (4.8 GB encrypted vault).',
+      );
     }
   }
 
@@ -162,9 +169,16 @@ class _SettingsViewState extends State<SettingsView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 28),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFD97706),
+              size: 28,
+            ),
             SizedBox(width: 10),
-            Text('Restore Backup?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              'Restore Backup?',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
           ],
         ),
         content: Column(
@@ -174,13 +188,23 @@ class _SettingsViewState extends State<SettingsView> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFFEF3C7),
+                color: _isDark
+                    ? const Color(0xFF78350F).withValues(alpha: 0.25)
+                    : const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                ),
               ),
               child: Text(
                 'Restoring a previous backup may replace the current system data. Ensure you have backed up any unsaved patient encounters before continuing.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF92400E), height: 1.4),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _isDark
+                      ? const Color(0xFFFDE68A)
+                      : const Color(0xFF92400E),
+                  height: 1.4,
+                ),
               ),
             ),
             SizedBox(height: 16),
@@ -203,7 +227,9 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             onPressed: () {
               Navigator.pop(context);
-              _showSaveFeedback('System successfully restored to backup state (${backup['date']}).');
+              _showSaveFeedback(
+                'System successfully restored to backup state (${backup['date']}).',
+              );
             },
             child: Text('Continue to Restore'),
           ),
@@ -227,7 +253,14 @@ class _SettingsViewState extends State<SettingsView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Prescription Document Preview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  Text(
+                    'Prescription Document Preview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                   IconButton(
                     icon: Icon(Icons.close, color: AppTheme.textSecondary),
                     onPressed: () => Navigator.pop(context),
@@ -257,9 +290,23 @@ class _SettingsViewState extends State<SettingsView> {
   Widget _buildDetailRow(String label, String value) {
     return Row(
       children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+          ),
+        ),
         SizedBox(width: 8),
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: AppTheme.textPrimary,
+          ),
+        ),
       ],
     );
   }
@@ -276,9 +323,19 @@ class _SettingsViewState extends State<SettingsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Page Header
-              Text('System Settings & Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              Text(
+                'System Settings & Preferences',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
               SizedBox(height: 4),
-              Text('Manage your Rx layout, security, preferences, and local backups.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+              Text(
+                'Manage your Rx layout, security, preferences, and local backups.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              ),
               SizedBox(height: 24),
 
               if (isDesktop)
@@ -286,15 +343,10 @@ class _SettingsViewState extends State<SettingsView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Left Navigation Column
-                    SizedBox(
-                      width: 260,
-                      child: _buildLeftNavigation(),
-                    ),
+                    SizedBox(width: 260, child: _buildLeftNavigation()),
                     SizedBox(width: 24),
                     // Right Content Area
-                    Expanded(
-                      child: _buildActiveContentSection(),
-                    ),
+                    Expanded(child: _buildActiveContentSection()),
                   ],
                 )
               else
@@ -317,18 +369,37 @@ class _SettingsViewState extends State<SettingsView> {
     final isAssistant = TeamService.instance.isAssistant;
     return Card(
       color: AppTheme.cardBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppTheme.borderColor)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.borderColor),
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
             if (!isAssistant)
-              _buildMobileNavItem('prescription_settings', 'Prescription', Icons.description_outlined),
-            _buildMobileNavItem('security', 'Security', Icons.security_outlined),
+              _buildMobileNavItem(
+                'prescription_settings',
+                'Prescription',
+                Icons.description_outlined,
+              ),
+            _buildMobileNavItem(
+              'security',
+              'Security',
+              Icons.security_outlined,
+            ),
             if (!isAssistant)
-              _buildMobileNavItem('backup_data', 'Backup & Data', Icons.backup_outlined),
-            _buildMobileNavItem('system_preferences', 'Preferences', Icons.tune_outlined),
+              _buildMobileNavItem(
+                'backup_data',
+                'Backup & Data',
+                Icons.backup_outlined,
+              ),
+            _buildMobileNavItem(
+              'system_preferences',
+              'Preferences',
+              Icons.tune_outlined,
+            ),
           ],
         ),
       ),
@@ -342,8 +413,19 @@ class _SettingsViewState extends State<SettingsView> {
       child: ChoiceChip(
         selected: isSelected,
         showCheckmark: false,
-        avatar: Icon(icon, size: 16, color: isSelected ? Colors.white : AppTheme.primaryBlue),
-        label: Text(title, style: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+        avatar: Icon(
+          icon,
+          size: 16,
+          color: isSelected ? Colors.white : AppTheme.primaryBlue,
+        ),
+        label: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
         selectedColor: AppTheme.primaryBlue,
         backgroundColor: Colors.transparent,
         onSelected: (_) => setState(() => _activeSection = key),
@@ -368,22 +450,44 @@ class _SettingsViewState extends State<SettingsView> {
           children: [
             if (!isAssistant) ...[
               _buildNavCategoryHeader('General'),
-              _buildNavItem('prescription_settings', 'Prescription Settings', Icons.description_outlined, Icons.description_rounded),
+              _buildNavItem(
+                'prescription_settings',
+                'Prescription Settings',
+                Icons.description_outlined,
+                Icons.description_rounded,
+              ),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 child: Divider(height: 1, color: AppTheme.borderColor),
               ),
             ],
-            _buildNavCategoryHeader(isAssistant ? 'Account & Security' : 'Data & Security'),
-            _buildNavItem('security', 'Security', Icons.security_outlined, Icons.security_rounded),
+            _buildNavCategoryHeader(
+              isAssistant ? 'Account & Security' : 'Data & Security',
+            ),
+            _buildNavItem(
+              'security',
+              'Security',
+              Icons.security_outlined,
+              Icons.security_rounded,
+            ),
             if (!isAssistant)
-              _buildNavItem('backup_data', 'Backup & Data', Icons.backup_outlined, Icons.backup_rounded),
+              _buildNavItem(
+                'backup_data',
+                'Backup & Data',
+                Icons.backup_outlined,
+                Icons.backup_rounded,
+              ),
             Padding(
               padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Divider(height: 1, color: AppTheme.borderColor),
             ),
             _buildNavCategoryHeader('Preferences'),
-            _buildNavItem('system_preferences', 'System Preferences', Icons.tune_outlined, Icons.tune_rounded),
+            _buildNavItem(
+              'system_preferences',
+              'System Preferences',
+              Icons.tune_outlined,
+              Icons.tune_rounded,
+            ),
           ],
         ),
       ),
@@ -395,12 +499,22 @@ class _SettingsViewState extends State<SettingsView> {
       padding: EdgeInsets.only(left: 12, top: 8, bottom: 6),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary, letterSpacing: 0.8),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.textSecondary,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(String key, String title, IconData icon, IconData activeIcon) {
+  Widget _buildNavItem(
+    String key,
+    String title,
+    IconData icon,
+    IconData activeIcon,
+  ) {
     final isSelected = _activeSection == key;
 
     return Material(
@@ -435,7 +549,9 @@ class _SettingsViewState extends State<SettingsView> {
   // Right Content Router
   Widget _buildActiveContentSection() {
     final isAssistant = TeamService.instance.isAssistant;
-    if (isAssistant && (_activeSection == 'prescription_settings' || _activeSection == 'backup_data')) {
+    if (isAssistant &&
+        (_activeSection == 'prescription_settings' ||
+            _activeSection == 'backup_data')) {
       return _buildSecuritySection();
     }
     switch (_activeSection) {
@@ -448,7 +564,9 @@ class _SettingsViewState extends State<SettingsView> {
       case 'system_preferences':
         return _buildSystemPreferencesSection();
       default:
-        return isAssistant ? _buildSecuritySection() : _buildPrescriptionSettingsSection();
+        return isAssistant
+            ? _buildSecuritySection()
+            : _buildPrescriptionSettingsSection();
     }
   }
 
@@ -465,7 +583,10 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Prescription Settings', 'Customize the information and layout used for prescriptions.'),
+        _buildSectionHeader(
+          'Prescription Settings',
+          'Customize the information and layout used for prescriptions.',
+        ),
         SizedBox(height: 20),
 
         // 1. Doctor Information Summary / Edit Card
@@ -473,7 +594,10 @@ class _SettingsViewState extends State<SettingsView> {
           title: 'Doctor Information',
           trailing: OutlinedButton.icon(
             key: Key('edit_doctor_info_button'),
-            icon: Icon(_isEditingDoctorInfo ? Icons.check : Icons.edit_outlined, size: 14),
+            icon: Icon(
+              _isEditingDoctorInfo ? Icons.check : Icons.edit_outlined,
+              size: 14,
+            ),
             label: Text(_isEditingDoctorInfo ? 'Done' : 'Edit'),
             onPressed: () {
               setState(() => _isEditingDoctorInfo = !_isEditingDoctorInfo);
@@ -486,12 +610,21 @@ class _SettingsViewState extends State<SettingsView> {
                 Container(
                   padding: EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Color(0xFFF1F5F9),
+                    color: _isDark
+                        ? const Color(0xFF0F172A)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderColor),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: _isDark
+                            ? AppTheme.accentCyan
+                            : AppTheme.primaryBlue,
+                        size: 20,
+                      ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -499,12 +632,19 @@ class _SettingsViewState extends State<SettingsView> {
                           children: [
                             Text(
                               '${_profile.doctorName.text} — ${_profile.doctorTitle.text}',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppTheme.textPrimary,
+                              ),
                             ),
                             SizedBox(height: 2),
                             Text(
                               '${_profile.license.text} • ${_profile.ptrNo.text} • Specialization: ${_profile.specialization.text}',
-                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -597,7 +737,7 @@ class _SettingsViewState extends State<SettingsView> {
                     width: 180,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _isDark ? const Color(0xFF0F172A) : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
@@ -608,46 +748,72 @@ class _SettingsViewState extends State<SettingsView> {
                               children: [
                                 Text(
                                   'Sarah Jenkins',
-                                  style: TextStyle(fontFamily: 'serif', fontStyle: FontStyle.italic, fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                                  style: TextStyle(
+                                    fontFamily: 'serif',
+                                    fontStyle: FontStyle.italic,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: _isDark
+                                        ? AppTheme.accentCyan
+                                        : Colors.blue.shade900,
+                                  ),
                                 ),
-                                Container(width: 100, height: 1, color: Colors.blue.shade900),
+                                Container(
+                                  width: 100,
+                                  height: 1,
+                                  color: _isDark
+                                      ? AppTheme.accentCyan
+                                      : Colors.blue.shade900,
+                                ),
                               ],
                             ),
                           )
                         : Center(
-                            child: Text('No Signature Uploaded', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                            child: Text(
+                              'No Signature Uploaded',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
                           ),
                   ),
                   SizedBox(width: 20),
                   Expanded(
                     child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: Icon(Icons.draw, size: 16),
-                            label: Text('Upload Signature Image'),
-                            onPressed: () {
-                              setState(() => _hasSignature = true);
-                              _showSaveFeedback('Signature uploaded.');
-                            },
-                          ),
-                          if (_hasSignature)
-                            OutlinedButton(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          children: [
+                            ElevatedButton.icon(
+                              icon: Icon(Icons.draw, size: 16),
+                              label: Text('Upload Signature Image'),
                               onPressed: () {
-                                setState(() => _hasSignature = false);
-                                _showSaveFeedback('Signature removed.');
+                                setState(() => _hasSignature = true);
+                                _showSaveFeedback('Signature uploaded.');
                               },
-                              child: Text('Remove Signature'),
                             ),
-                        ],
-                      ),
-                      SizedBox(height: 6),
-                      Text('PNG with transparent background (Max 1MB). Appears on exported PDFs.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                    ],
+                            if (_hasSignature)
+                              OutlinedButton(
+                                onPressed: () {
+                                  setState(() => _hasSignature = false);
+                                  _showSaveFeedback('Signature removed.');
+                                },
+                                child: Text('Remove Signature'),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'PNG with transparent background (Max 1MB). Appears on exported PDFs.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -674,21 +840,33 @@ class _SettingsViewState extends State<SettingsView> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 onPressed: _showAddBranchModal,
               ),
               OutlinedButton.icon(
                 key: const Key('edit_clinic_headers_button'),
-                icon: Icon(_isEditingClinicHeaders ? Icons.check : Icons.edit_outlined, size: 14),
+                icon: Icon(
+                  _isEditingClinicHeaders ? Icons.check : Icons.edit_outlined,
+                  size: 14,
+                ),
                 label: Text(_isEditingClinicHeaders ? 'Done' : 'Edit'),
                 onPressed: () {
                   if (_isEditingClinicHeaders) {
                     _profile.syncControllersToBranches();
-                    _profile.saveToFirestore(teamId: TeamService.instance.activeTeam?.id);
+                    _profile.saveToFirestore(
+                      teamId: TeamService.instance.activeTeam?.id,
+                    );
                   }
-                  setState(() => _isEditingClinicHeaders = !_isEditingClinicHeaders);
+                  setState(
+                    () => _isEditingClinicHeaders = !_isEditingClinicHeaders,
+                  );
                 },
               ),
             ],
@@ -709,39 +887,61 @@ class _SettingsViewState extends State<SettingsView> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: _isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderColor),
                       ),
                       child: Center(
                         child: Text(
                           'No active clinic branches. Click "+ Add Branch" to add one.',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     )
                   else
                     Column(
-                      children: _profile.activeBranches.map((branch) => _buildBranchCard(branch)).toList(),
+                      children: _profile.activeBranches
+                          .map((branch) => _buildBranchCard(branch))
+                          .toList(),
                     ),
                   if (_profile.archivedBranches.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Divider(color: AppTheme.borderColor),
                     const SizedBox(height: 8),
                     Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
                         initiallyExpanded: false,
                         tilePadding: EdgeInsets.zero,
-                        leading: Icon(Icons.archive_outlined, size: 18, color: AppTheme.textSecondary),
+                        leading: Icon(
+                          Icons.archive_outlined,
+                          size: 18,
+                          color: AppTheme.textSecondary,
+                        ),
                         title: Text(
                           'Archived Branches (${_profile.archivedBranches.length})',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                         subtitle: Text(
                           'Retired clinic locations preserved for audit logs and historical records.',
-                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
-                        children: _profile.archivedBranches.map((branch) => _buildArchivedBranchCard(branch)).toList(),
+                        children: _profile.archivedBranches
+                            .map((branch) => _buildArchivedBranchCard(branch))
+                            .toList(),
                       ),
                     ),
                   ],
@@ -749,15 +949,33 @@ class _SettingsViewState extends State<SettingsView> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildClinicBranchEditor('Clinic Branch 1', _profile.clinic1Name, _profile.clinic1Location, _profile.clinic1Days, _profile.clinic1Hours),
+                      _buildClinicBranchEditor(
+                        'Clinic Branch 1',
+                        _profile.clinic1Name,
+                        _profile.clinic1Location,
+                        _profile.clinic1Days,
+                        _profile.clinic1Hours,
+                      ),
                       SizedBox(height: 16),
                       Divider(color: AppTheme.borderColor),
                       SizedBox(height: 12),
-                      _buildClinicBranchEditor('Clinic Branch 2', _profile.clinic2Name, _profile.clinic2Location, _profile.clinic2Days, _profile.clinic2Hours),
+                      _buildClinicBranchEditor(
+                        'Clinic Branch 2',
+                        _profile.clinic2Name,
+                        _profile.clinic2Location,
+                        _profile.clinic2Days,
+                        _profile.clinic2Hours,
+                      ),
                       SizedBox(height: 16),
                       Divider(color: AppTheme.borderColor),
                       SizedBox(height: 12),
-                      _buildClinicBranchEditor('Clinic Branch 3', _profile.clinic3Name, _profile.clinic3Location, _profile.clinic3Days, _profile.clinic3Hours),
+                      _buildClinicBranchEditor(
+                        'Clinic Branch 3',
+                        _profile.clinic3Name,
+                        _profile.clinic3Location,
+                        _profile.clinic3Days,
+                        _profile.clinic3Hours,
+                      ),
                     ],
                   ),
                 ],
@@ -835,7 +1053,8 @@ class _SettingsViewState extends State<SettingsView> {
           dosage: '1 drop OD',
           frequency: '4 times daily',
           duration: '7 days',
-          instructions: 'Instill 1 drop in Right Eye (OD) 4 times daily for 7 days.',
+          instructions:
+              'Instill 1 drop in Right Eye (OD) 4 times daily for 7 days.',
         ),
         PrescriptionItem(
           id: 'rx-2',
@@ -844,14 +1063,23 @@ class _SettingsViewState extends State<SettingsView> {
           dosage: '1 drop OU',
           frequency: 'QID',
           duration: '30 days',
-          instructions: 'Instill 1 drop in Both Eyes (OU) every 4 hours as needed.',
+          instructions:
+              'Instill 1 drop in Both Eyes (OU) every 4 hours as needed.',
         ),
       ],
       date: '2026-08-20',
-      doctorName: _profile.doctorName.text.isNotEmpty ? _profile.doctorName.text : 'Dr. Sigrid T. Robillos',
-      specialization: _profile.specialization.text.isNotEmpty ? _profile.specialization.text : 'OPHTHALMOLOGY / MICROSURGERY',
-      licenseNo: _profile.license.text.isNotEmpty ? _profile.license.text : '100064',
-      ptrNo: _profile.ptrNo.text.isNotEmpty ? _profile.ptrNo.text : 'PTR No. 7821940',
+      doctorName: _profile.doctorName.text.isNotEmpty
+          ? _profile.doctorName.text
+          : 'Dr. Sigrid T. Robillos',
+      specialization: _profile.specialization.text.isNotEmpty
+          ? _profile.specialization.text
+          : 'OPHTHALMOLOGY / MICROSURGERY',
+      licenseNo: _profile.license.text.isNotEmpty
+          ? _profile.license.text
+          : '100064',
+      ptrNo: _profile.ptrNo.text.isNotEmpty
+          ? _profile.ptrNo.text
+          : 'PTR No. 7821940',
       clinic1Name: _profile.clinic1Name.text,
       clinic1Location: _profile.clinic1Location.text,
       clinic1Days: _profile.clinic1Days.text,
@@ -877,7 +1105,10 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Security', 'Manage access and protect your clinical records.'),
+        _buildSectionHeader(
+          'Security',
+          'Manage access and protect your clinical records.',
+        ),
         const SizedBox(height: 20),
 
         // Change Password Card
@@ -890,7 +1121,9 @@ class _SettingsViewState extends State<SettingsView> {
                 'Current Password',
                 _currentPasswordController,
                 obscureText: !_showCurrentPassword,
-                onToggleVisibility: () => setState(() => _showCurrentPassword = !_showCurrentPassword),
+                onToggleVisibility: () => setState(
+                  () => _showCurrentPassword = !_showCurrentPassword,
+                ),
                 visibilityKey: const Key('toggle_current_password_visibility'),
               ),
               const SizedBox(height: 16),
@@ -901,8 +1134,11 @@ class _SettingsViewState extends State<SettingsView> {
                       'New Password',
                       _newPasswordController,
                       obscureText: !_showNewPassword,
-                      onToggleVisibility: () => setState(() => _showNewPassword = !_showNewPassword),
-                      visibilityKey: const Key('toggle_new_password_visibility'),
+                      onToggleVisibility: () =>
+                          setState(() => _showNewPassword = !_showNewPassword),
+                      visibilityKey: const Key(
+                        'toggle_new_password_visibility',
+                      ),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -912,25 +1148,39 @@ class _SettingsViewState extends State<SettingsView> {
                       'Confirm New Password',
                       _confirmPasswordController,
                       obscureText: !_showConfirmPassword,
-                      onToggleVisibility: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
-                      visibilityKey: const Key('toggle_confirm_password_visibility'),
+                      onToggleVisibility: () => setState(
+                        () => _showConfirmPassword = !_showConfirmPassword,
+                      ),
+                      visibilityKey: const Key(
+                        'toggle_confirm_password_visibility',
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Password Strength Indicator
               if (_newPasswordController.text.isNotEmpty) ...[
                 Row(
                   children: [
-                    Text('Password Strength: ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     Text(
-                      _newPasswordController.text.length > 8 ? 'Strong' : 'Weak',
+                      'Password Strength: ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      _newPasswordController.text.length > 8
+                          ? 'Strong'
+                          : 'Weak',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
-                        color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                        color: _newPasswordController.text.length > 8
+                            ? const Color(0xFF059669)
+                            : const Color(0xFFDC2626),
                       ),
                     ),
                   ],
@@ -939,9 +1189,16 @@ class _SettingsViewState extends State<SettingsView> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: (_newPasswordController.text.length / 12).clamp(0.1, 1.0),
-                    backgroundColor: const Color(0xFFE2E8F0),
-                    color: _newPasswordController.text.length > 8 ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                    value: (_newPasswordController.text.length / 12).clamp(
+                      0.1,
+                      1.0,
+                    ),
+                    backgroundColor: _isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                    color: _newPasswordController.text.length > 8
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFDC2626),
                     minHeight: 4,
                   ),
                 ),
@@ -950,20 +1207,41 @@ class _SettingsViewState extends State<SettingsView> {
 
               if (_passwordError != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: _isDark
+                        ? const Color(0xFF7F1D1D).withValues(alpha: 0.25)
+                        : const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFECACA)),
+                    border: Border.all(
+                      color: _isDark
+                          ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                          : const Color(0xFFFECACA),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 16,
+                        color: _isDark
+                            ? const Color(0xFFFCA5A5)
+                            : const Color(0xFFDC2626),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _passwordError!,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _isDark
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFFDC2626),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -975,9 +1253,18 @@ class _SettingsViewState extends State<SettingsView> {
               ElevatedButton.icon(
                 key: const Key('update_password_button'),
                 icon: _isUpdatingPassword
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Icon(Icons.lock_reset, size: 16),
-                label: Text(_isUpdatingPassword ? 'Updating...' : 'Update Password'),
+                label: Text(
+                  _isUpdatingPassword ? 'Updating...' : 'Update Password',
+                ),
                 onPressed: _isUpdatingPassword ? null : _handlePasswordUpdate,
               ),
             ],
@@ -995,8 +1282,18 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: Text('Auto-Lock System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: Text('Automatically lock system after a period of inactivity to protect patient privacy.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text(
+                  'Auto-Lock System',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Automatically lock system after a period of inactivity to protect patient privacy.',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
                 value: _autoLockEnabled,
                 onChanged: (val) async {
                   setState(() => _autoLockEnabled = val);
@@ -1006,14 +1303,25 @@ class _SettingsViewState extends State<SettingsView> {
                     duration: _autoLockDuration,
                     uid: uid,
                   );
-                  _showSaveFeedback(val ? 'Auto-lock system enabled ($_autoLockDuration).' : 'Auto-lock system disabled.');
+                  _showSaveFeedback(
+                    val
+                        ? 'Auto-lock system enabled ($_autoLockDuration).'
+                        : 'Auto-lock system disabled.',
+                  );
                 },
               ),
               if (_autoLockEnabled) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text('Inactivity Timeout:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                    Text(
+                      'Inactivity Timeout:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: ClinicalDropdownField<String>(
@@ -1021,11 +1329,26 @@ class _SettingsViewState extends State<SettingsView> {
                         placeholder: 'Select timeout...',
                         value: _autoLockDuration,
                         items: [
-                          ClinicalPickerItem<String>(value: '5 minutes', label: '5 minutes'),
-                          ClinicalPickerItem<String>(value: '10 minutes', label: '10 minutes'),
-                          ClinicalPickerItem<String>(value: '15 minutes', label: '15 minutes'),
-                          ClinicalPickerItem<String>(value: '30 minutes', label: '30 minutes'),
-                          ClinicalPickerItem<String>(value: 'Never', label: 'Never'),
+                          ClinicalPickerItem<String>(
+                            value: '5 minutes',
+                            label: '5 minutes',
+                          ),
+                          ClinicalPickerItem<String>(
+                            value: '10 minutes',
+                            label: '10 minutes',
+                          ),
+                          ClinicalPickerItem<String>(
+                            value: '15 minutes',
+                            label: '15 minutes',
+                          ),
+                          ClinicalPickerItem<String>(
+                            value: '30 minutes',
+                            label: '30 minutes',
+                          ),
+                          ClinicalPickerItem<String>(
+                            value: 'Never',
+                            label: 'Never',
+                          ),
                         ],
                         onChanged: (v) async {
                           setState(() => _autoLockDuration = v);
@@ -1058,8 +1381,18 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: Text('Two-Factor Authentication (2FA)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: Text('Add an extra layer of security when signing into the DOCRS workstation.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text(
+                  'Two-Factor Authentication (2FA)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Add an extra layer of security when signing into the DOCRS workstation.',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
                 value: _twoFactorEnabled,
                 onChanged: (val) {
                   if (val) {
@@ -1072,27 +1405,53 @@ class _SettingsViewState extends State<SettingsView> {
               if (_twoFactorEnabled) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
+                    color: _isDark
+                        ? const Color(0xFF064E3B).withValues(alpha: 0.25)
+                        : const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                    border: Border.all(
+                      color: _isDark
+                          ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                          : const Color(0xFFA7F3D0),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 20),
+                      Icon(
+                        Icons.verified_user_rounded,
+                        color: _isDark
+                            ? const Color(0xFF34D399)
+                            : const Color(0xFF059669),
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Two-Factor Authentication Active',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _isDark
+                                    ? const Color(0xFF6EE7B7)
+                                    : const Color(0xFF065F46),
+                              ),
                             ),
                             Text(
                               'SMS verification code will be sent to ${securityStore.maskedPhoneNumber} on login.',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF047857)),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _isDark
+                                    ? const Color(0xFFA7F3D0)
+                                    : const Color(0xFF047857),
+                              ),
                             ),
                           ],
                         ),
@@ -1129,15 +1488,23 @@ class _SettingsViewState extends State<SettingsView> {
       return;
     }
     if (newPassword.length < 6) {
-      setState(() => _passwordError = 'New password must be at least 6 characters long.');
+      setState(
+        () =>
+            _passwordError = 'New password must be at least 6 characters long.',
+      );
       return;
     }
     if (newPassword != confirmPassword) {
-      setState(() => _passwordError = 'New password and confirmation do not match.');
+      setState(
+        () => _passwordError = 'New password and confirmation do not match.',
+      );
       return;
     }
     if (newPassword == currentPassword) {
-      setState(() => _passwordError = 'New password must be different from current password.');
+      setState(
+        () => _passwordError =
+            'New password must be different from current password.',
+      );
       return;
     }
 
@@ -1180,11 +1547,14 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Future<void> _showTwoFactorEnrollmentDialog() async {
-    final initialPhone = SecuritySettingsStore.instance.twoFactorPhoneNumber ?? _profile.doctorPhone.text.trim();
+    final initialPhone =
+        SecuritySettingsStore.instance.twoFactorPhoneNumber ??
+        _profile.doctorPhone.text.trim();
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogCtx) => TwoFactorEnrollmentDialog(initialPhone: initialPhone),
+      builder: (dialogCtx) =>
+          TwoFactorEnrollmentDialog(initialPhone: initialPhone),
     );
     if (!mounted) return;
     if (result == true) {
@@ -1211,7 +1581,11 @@ class _SettingsViewState extends State<SettingsView> {
         title: const Text('Disable Two-Factor Authentication?'),
         content: Text(
           'Removing Two-Factor Authentication will reduce the security level of your DOCRS workstation access.',
-          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+          style: TextStyle(
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
@@ -1236,7 +1610,10 @@ class _SettingsViewState extends State<SettingsView> {
               }
               _showSaveFeedback('Two-factor authentication disabled.');
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Disable 2FA'),
           ),
         ],
@@ -1257,7 +1634,10 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Backup & Data', 'Manage local backups and protect patient clinical records.'),
+        _buildSectionHeader(
+          'Backup & Data',
+          'Manage local backups and protect patient clinical records.',
+        ),
         SizedBox(height: 20),
 
         // Backup Status Banner Card
@@ -1278,24 +1658,59 @@ class _SettingsViewState extends State<SettingsView> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.backup_rounded, color: AppTheme.primaryBlue, size: 24),
+                        Icon(
+                          Icons.backup_rounded,
+                          color: AppTheme.primaryBlue,
+                          size: 24,
+                        ),
                         SizedBox(width: 10),
-                        Text('Local Backup Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                        Text(
+                          'Local Backup Status',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
                       ],
                     ),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: Color(0xFFDCFCE7),
+                        color: _isDark
+                            ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+                            : const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Color(0xFF166534).withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: _isDark
+                              ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                              : const Color(0xFF166534).withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, color: Color(0xFF15803D), size: 14),
+                          Icon(
+                            Icons.check_circle,
+                            color: _isDark
+                                ? const Color(0xFF34D399)
+                                : const Color(0xFF15803D),
+                            size: 14,
+                          ),
                           SizedBox(width: 6),
-                          Text('Backup Successful', style: TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 11)),
+                          Text(
+                            'Backup Successful',
+                            style: TextStyle(
+                              color: _isDark
+                                  ? const Color(0xFF6EE7B7)
+                                  : const Color(0xFF15803D),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1308,11 +1723,30 @@ class _SettingsViewState extends State<SettingsView> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Last Backup: $_lastBackupDate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                        Text(
+                          'Last Backup: $_lastBackupDate',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
                         SizedBox(height: 4),
-                        Text('Storage Location: $_backupLocation', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text(
+                          'Storage Location: $_backupLocation',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                         SizedBox(height: 2),
-                        Text('Next Scheduled Backup: August 21, 2026 — 11:00 PM', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text(
+                          'Next Scheduled Backup: August 21, 2026 — 11:00 PM',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                     Row(
@@ -1320,9 +1754,18 @@ class _SettingsViewState extends State<SettingsView> {
                         ElevatedButton.icon(
                           onPressed: _isBackingUp ? null : _triggerManualBackup,
                           icon: _isBackingUp
-                              ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
                               : Icon(Icons.cloud_upload_outlined, size: 16),
-                          label: Text(_isBackingUp ? 'Backing up...' : 'Backup Now'),
+                          label: Text(
+                            _isBackingUp ? 'Backing up...' : 'Backup Now',
+                          ),
                         ),
                       ],
                     ),
@@ -1344,8 +1787,18 @@ class _SettingsViewState extends State<SettingsView> {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: AppTheme.primaryBlue,
                 activeTrackColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                title: Text('Enable Automatic Backup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                subtitle: Text('Automatically backup local encrypted clinical database at specified intervals.', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                title: Text(
+                  'Enable Automatic Backup',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Automatically backup local encrypted clinical database at specified intervals.',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
                 value: _autoBackupEnabled,
                 onChanged: (val) => setState(() => _autoBackupEnabled = val),
               ),
@@ -1357,16 +1810,37 @@ class _SettingsViewState extends State<SettingsView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Backup Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          Text(
+                            'Backup Frequency',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
                           SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupFrequency,
-                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
                             items: ['Daily', 'Weekly', 'Monthly']
-                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(fontSize: 13))))
+                                .map(
+                                  (val) => DropdownMenuItem(
+                                    value: val,
+                                    child: Text(
+                                      val,
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: (val) {
-                              if (val != null) setState(() => _backupFrequency = val);
+                              if (val != null)
+                                setState(() => _backupFrequency = val);
                             },
                           ),
                         ],
@@ -1377,16 +1851,38 @@ class _SettingsViewState extends State<SettingsView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Backup Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                          Text(
+                            'Backup Time',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
                           SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupTime,
-                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                            items: ['10:00 PM', '11:00 PM', '12:00 AM', '01:00 AM']
-                                .map((val) => DropdownMenuItem(value: val, child: Text(val, style: TextStyle(fontSize: 13))))
-                                .toList(),
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            items:
+                                ['10:00 PM', '11:00 PM', '12:00 AM', '01:00 AM']
+                                    .map(
+                                      (val) => DropdownMenuItem(
+                                        value: val,
+                                        child: Text(
+                                          val,
+                                          style: TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
                             onChanged: (val) {
-                              if (val != null) setState(() => _backupTime = val);
+                              if (val != null)
+                                setState(() => _backupTime = val);
                             },
                           ),
                         ],
@@ -1398,15 +1894,29 @@ class _SettingsViewState extends State<SettingsView> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Local Backup Folder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                    Text(
+                      'Local Backup Folder',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
                     SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             readOnly: true,
-                            controller: TextEditingController(text: _backupLocation),
-                            decoration: InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                            controller: TextEditingController(
+                              text: _backupLocation,
+                            ),
+                            decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -1422,17 +1932,41 @@ class _SettingsViewState extends State<SettingsView> {
                     SizedBox(height: 8),
                     if (_locationAvailable)
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF0FDF4),
+                          color: _isDark
+                              ? const Color(0xFF064E3B).withValues(alpha: 0.25)
+                              : const Color(0xFFF0FDF4),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Color(0xFF10B981).withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: _isDark
+                                ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                : const Color(0xFF10B981)
+                                      .withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.check_circle, size: 14, color: Color(0xFF10B981)),
+                            Icon(
+                              Icons.check_circle,
+                              size: 14,
+                              color: _isDark
+                                  ? const Color(0xFF34D399)
+                                  : const Color(0xFF10B981),
+                            ),
                             SizedBox(width: 6),
-                            Text('Backup folder verified and available.', style: TextStyle(fontSize: 11, color: Color(0xFF047857))),
+                            Text(
+                              'Backup folder verified and available.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _isDark
+                                    ? const Color(0xFF6EE7B7)
+                                    : const Color(0xFF047857),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1453,11 +1987,31 @@ class _SettingsViewState extends State<SettingsView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total Storage: 1 TB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                  Text(
+                    'Total Storage: 1 TB',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                   Row(
                     children: [
-                      Text('Used: 650 GB ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryBlue)),
-                      Text('• Available: 350 GB', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text(
+                        'Used: 650 GB ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                      Text(
+                        '• Available: 350 GB',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1467,7 +2021,9 @@ class _SettingsViewState extends State<SettingsView> {
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: 0.65,
-                  backgroundColor: Color(0xFFE2E8F0),
+                  backgroundColor: _isDark
+                      ? const Color(0xFF334155)
+                      : const Color(0xFFE2E8F0),
                   color: AppTheme.primaryBlue,
                   minHeight: 10,
                 ),
@@ -1477,10 +2033,26 @@ class _SettingsViewState extends State<SettingsView> {
                 spacing: 16,
                 runSpacing: 8,
                 children: [
-                  _buildStorageLegend('Patient Records', '210 GB', AppTheme.primaryBlue),
-                  _buildStorageLegend('Eye Drawings', '320 GB', Color(0xFF06B6D4)),
-                  _buildStorageLegend('Prescriptions', '40 GB', Color(0xFF10B981)),
-                  _buildStorageLegend('Backup Files', '80 GB', Color(0xFFD97706)),
+                  _buildStorageLegend(
+                    'Patient Records',
+                    '210 GB',
+                    AppTheme.primaryBlue,
+                  ),
+                  _buildStorageLegend(
+                    'Eye Drawings',
+                    '320 GB',
+                    Color(0xFF06B6D4),
+                  ),
+                  _buildStorageLegend(
+                    'Prescriptions',
+                    '40 GB',
+                    Color(0xFF10B981),
+                  ),
+                  _buildStorageLegend(
+                    'Backup Files',
+                    '80 GB',
+                    Color(0xFFD97706),
+                  ),
                 ],
               ),
             ],
@@ -1491,11 +2063,7 @@ class _SettingsViewState extends State<SettingsView> {
         // Backup History Table (Section 5 & 6)
         _buildCardContainer(
           title: 'Backup History Log',
-          child: Column(
-            children: [
-              _buildBackupHistoryTable(),
-            ],
-          ),
+          child: Column(children: [_buildBackupHistoryTable()]),
         ),
       ],
     );
@@ -1505,19 +2073,51 @@ class _SettingsViewState extends State<SettingsView> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         SizedBox(width: 6),
-        Text('$label: ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-        Text(size, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary)),
+        Text(
+          '$label: ',
+          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+        ),
+        Text(
+          size,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+            color: AppTheme.textPrimary,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildBackupHistoryTable() {
     final history = [
-      {'date': 'Aug 20, 2026', 'time': '11:00 PM', 'type': 'Full Backup', 'size': '4.8 GB', 'status': 'Successful'},
-      {'date': 'Aug 19, 2026', 'time': '11:00 PM', 'type': 'Full Backup', 'size': '4.7 GB', 'status': 'Successful'},
-      {'date': 'Aug 18, 2026', 'time': '11:00 PM', 'type': 'Full Backup', 'size': '4.6 GB', 'status': 'Successful'},
+      {
+        'date': 'Aug 20, 2026',
+        'time': '11:00 PM',
+        'type': 'Full Backup',
+        'size': '4.8 GB',
+        'status': 'Successful',
+      },
+      {
+        'date': 'Aug 19, 2026',
+        'time': '11:00 PM',
+        'type': 'Full Backup',
+        'size': '4.7 GB',
+        'status': 'Successful',
+      },
+      {
+        'date': 'Aug 18, 2026',
+        'time': '11:00 PM',
+        'type': 'Full Backup',
+        'size': '4.6 GB',
+        'status': 'Successful',
+      },
     ];
 
     return Table(
@@ -1530,37 +2130,78 @@ class _SettingsViewState extends State<SettingsView> {
       },
       children: [
         TableRow(
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.borderColor))),
-          children: ['Date', 'Backup Type', 'Size', 'Status', 'Action'].map((heading) {
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
+          ),
+          children: ['Date', 'Backup Type', 'Size', 'Status', 'Action'].map((
+            heading,
+          ) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(heading, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textSecondary)),
+              child: Text(
+                heading,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
             );
           }).toList(),
         ),
         ...history.map((row) {
           return TableRow(
-            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9)))),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
+            ),
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['date']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+                child: Text(
+                  row['date']!,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['type']!, style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                child: Text(
+                  row['type']!,
+                  style: TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+                ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(row['size']!, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                child: Text(
+                  row['size']!,
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Color(0xFF10B981), size: 14),
+                    Icon(
+                      Icons.check_circle,
+                      color: _isDark
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF10B981),
+                      size: 14,
+                    ),
                     SizedBox(width: 4),
-                    Text(row['status']!, style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.bold, fontSize: 11)),
+                    Text(
+                      row['status']!,
+                      style: TextStyle(
+                        color: _isDark
+                            ? const Color(0xFF6EE7B7)
+                            : const Color(0xFF047857),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1569,21 +2210,41 @@ class _SettingsViewState extends State<SettingsView> {
                 child: Row(
                   children: [
                     TextButton(
-                      style: TextButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 8), minimumSize: Size.zero),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                      ),
                       onPressed: () {
-                        _showSaveFeedback('Backup log verified: ${row['date']}');
+                        _showSaveFeedback(
+                          'Backup log verified: ${row['date']}',
+                        );
                       },
                       child: Text('View', style: TextStyle(fontSize: 11)),
                     ),
                     SizedBox(width: 4),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         minimumSize: Size.zero,
-                        side: BorderSide(color: Color(0xFFF59E0B)),
+                        side: BorderSide(
+                          color: _isDark
+                              ? const Color(0xFFF59E0B).withValues(alpha: 0.6)
+                              : const Color(0xFFF59E0B),
+                        ),
                       ),
                       onPressed: () => _showRestoreDialog(row),
-                      child: Text('Restore', style: TextStyle(fontSize: 11, color: Color(0xFFD97706))),
+                      child: Text(
+                        'Restore',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _isDark
+                              ? const Color(0xFFFDE68A)
+                              : const Color(0xFFD97706),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1602,7 +2263,10 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('System Preferences', 'Customize your DOCRS experience.'),
+        _buildSectionHeader(
+          'System Preferences',
+          'Customize your DOCRS experience.',
+        ),
         SizedBox(height: 20),
 
         // Appearance Card
@@ -1610,11 +2274,29 @@ class _SettingsViewState extends State<SettingsView> {
           title: 'Appearance',
           child: Row(
             children: [
-              Expanded(child: _buildAppearanceCard('Light', Icons.light_mode, _appearanceMode == 'Light')),
+              Expanded(
+                child: _buildAppearanceCard(
+                  'Light',
+                  Icons.light_mode,
+                  _appearanceMode == 'Light',
+                ),
+              ),
               SizedBox(width: 12),
-              Expanded(child: _buildAppearanceCard('Dark', Icons.dark_mode, _appearanceMode == 'Dark')),
+              Expanded(
+                child: _buildAppearanceCard(
+                  'Dark',
+                  Icons.dark_mode,
+                  _appearanceMode == 'Dark',
+                ),
+              ),
               SizedBox(width: 12),
-              Expanded(child: _buildAppearanceCard('System Default', Icons.settings_brightness, _appearanceMode == 'System Default')),
+              Expanded(
+                child: _buildAppearanceCard(
+                  'System Default',
+                  Icons.settings_brightness,
+                  _appearanceMode == 'System Default',
+                ),
+              ),
             ],
           ),
         ),
@@ -1634,9 +2316,18 @@ class _SettingsViewState extends State<SettingsView> {
                   showCheckmark: false,
                   backgroundColor: AppTheme.cardBg,
                   selectedColor: AppTheme.primaryBlue,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryBlue
+                        : AppTheme.borderColor,
+                  ),
                   label: Text(fmt),
-                  labelStyle: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.textPrimary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
                   onSelected: (_) => setState(() => _dateFormat = fmt),
                 ),
               );
@@ -1659,9 +2350,18 @@ class _SettingsViewState extends State<SettingsView> {
                   showCheckmark: false,
                   backgroundColor: AppTheme.cardBg,
                   selectedColor: AppTheme.primaryBlue,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor),
+                  side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryBlue
+                        : AppTheme.borderColor,
+                  ),
                   label: Text(fmt),
-                  labelStyle: TextStyle(color: isSelected ? Colors.white : AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : AppTheme.textPrimary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
                   onSelected: (_) => setState(() => _timeFormat = fmt),
                 ),
               );
@@ -1681,7 +2381,11 @@ class _SettingsViewState extends State<SettingsView> {
               children: [
                 Text(
                   'How long before an appointment its reminder alert is sent. Applies to events you schedule from now on.',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                    height: 1.4,
+                  ),
                 ),
                 SizedBox(height: 12),
                 SizedBox(
@@ -1690,11 +2394,16 @@ class _SettingsViewState extends State<SettingsView> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final option in ReminderSettingsStore.options.entries)
+                      for (final option
+                          in ReminderSettingsStore.options.entries)
                         FilterPill(
                           label: option.value,
-                          selected: ReminderSettingsStore.instance.minutesBefore == option.key,
-                          onSelected: () => ReminderSettingsStore.instance.minutesBefore = option.key,
+                          selected:
+                              ReminderSettingsStore.instance.minutesBefore ==
+                              option.key,
+                          onSelected: () =>
+                              ReminderSettingsStore.instance.minutesBefore =
+                                  option.key,
                         ),
                     ],
                   ),
@@ -1714,21 +2423,33 @@ class _SettingsViewState extends State<SettingsView> {
                 _buildDropdownField(
                   'Default Examination Layout',
                   _defaultExamLayout,
-                  ['Standard 2-Column', 'Expanded Single Canvas', 'Clinical Tabbed'],
+                  [
+                    'Standard 2-Column',
+                    'Expanded Single Canvas',
+                    'Clinical Tabbed',
+                  ],
                   (val) => setState(() => _defaultExamLayout = val!),
                 ),
                 SizedBox(height: 16),
                 _buildDropdownField(
                   'Default Eye Drawing Template',
                   _defaultDrawingTemplate,
-                  ['Fundus / Retina Map', 'Anterior Segment / Cornea', 'External Eye & Lids'],
+                  [
+                    'Fundus / Retina Map',
+                    'Anterior Segment / Cornea',
+                    'External Eye & Lids',
+                  ],
                   (val) => setState(() => _defaultDrawingTemplate = val!),
                 ),
                 SizedBox(height: 16),
                 _buildDropdownField(
                   'Default View When Opening a Patient',
                   _defaultPatientView,
-                  ['Patient EHR Profile', 'New Eye Exam Workstation', 'Past Encounters Timeline'],
+                  [
+                    'Patient EHR Profile',
+                    'New Eye Exam Workstation',
+                    'Past Encounters Timeline',
+                  ],
                   (val) => setState(() => _defaultPatientView = val!),
                 ),
               ],
@@ -1755,7 +2476,9 @@ class _SettingsViewState extends State<SettingsView> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryBlue.withValues(alpha: 0.12) : AppTheme.cardBg,
+          color: isSelected
+              ? AppTheme.primaryBlue.withValues(alpha: 0.12)
+              : AppTheme.cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor,
@@ -1764,9 +2487,20 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary, size: 28),
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
+              size: 28,
+            ),
             SizedBox(height: 8),
-            Text(mode, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 12, color: isSelected ? AppTheme.primaryBlue : AppTheme.textPrimary)),
+            Text(
+              mode,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+                color: isSelected ? AppTheme.primaryBlue : AppTheme.textPrimary,
+              ),
+            ),
           ],
         ),
       ),
@@ -1776,7 +2510,10 @@ class _SettingsViewState extends State<SettingsView> {
   // ==========================================
   // SHARED REUSABLE UTILITIES
   // ==========================================
-  Widget _buildRestrictedSectionNotice({required String title, required String message}) {
+  Widget _buildRestrictedSectionNotice({
+    required String title,
+    required String message,
+  }) {
     return Card(
       color: AppTheme.cardBg,
       elevation: 0,
@@ -1796,12 +2533,20 @@ class _SettingsViewState extends State<SettingsView> {
                   color: Color(0xFFD97706).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 36),
+                child: Icon(
+                  Icons.shield_outlined,
+                  color: Color(0xFFD97706),
+                  size: 36,
+                ),
               ),
               SizedBox(height: 16),
               Text(
                 title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               SizedBox(height: 8),
               ConstrainedBox(
@@ -1809,7 +2554,11 @@ class _SettingsViewState extends State<SettingsView> {
                 child: Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.45),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    height: 1.45,
+                  ),
                 ),
               ),
             ],
@@ -1823,14 +2572,28 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         SizedBox(height: 4),
-        Text(subtitle, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        Text(
+          subtitle,
+          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+        ),
       ],
     );
   }
 
-  Widget _buildCardContainer({required String title, Widget? trailing, required Widget child}) {
+  Widget _buildCardContainer({
+    required String title,
+    Widget? trailing,
+    required Widget child,
+  }) {
     return Card(
       color: AppTheme.cardBg,
       elevation: 0,
@@ -1846,13 +2609,27 @@ class _SettingsViewState extends State<SettingsView> {
             LayoutBuilder(
               builder: (context, constraints) {
                 if (trailing == null) {
-                  return Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary));
+                  return Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  );
                 }
                 if (constraints.maxWidth < 500) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
                       SizedBox(height: 10),
                       trailing,
                     ],
@@ -1862,7 +2639,14 @@ class _SettingsViewState extends State<SettingsView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
                     ),
                     SizedBox(width: 12),
                     trailing,
@@ -1889,7 +2673,14 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         SizedBox(height: 6),
         TextFormField(
           key: fieldKey,
@@ -1898,7 +2689,9 @@ class _SettingsViewState extends State<SettingsView> {
           style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: icon != null ? Icon(icon, size: 18, color: AppTheme.primaryBlue) : null,
+            prefixIcon: icon != null
+                ? Icon(icon, size: 18, color: AppTheme.primaryBlue)
+                : null,
             contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
@@ -1916,7 +2709,14 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryBlue)),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: AppTheme.primaryBlue,
+          ),
+        ),
         SizedBox(height: 8),
         Row(
           children: [
@@ -1970,7 +2770,7 @@ class _SettingsViewState extends State<SettingsView> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: _isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -1980,10 +2780,16 @@ class _SettingsViewState extends State<SettingsView> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              color: AppTheme.primaryBlue.withValues(
+                alpha: _isDark ? 0.2 : 0.1,
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.location_on_outlined, color: AppTheme.primaryBlue, size: 20),
+            child: const Icon(
+              Icons.location_on_outlined,
+              color: AppTheme.primaryBlue,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1992,7 +2798,11 @@ class _SettingsViewState extends State<SettingsView> {
               children: [
                 Text(
                   branch.name,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -2002,11 +2812,21 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.access_time_rounded, size: 13, color: AppTheme.primaryBlue),
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 13,
+                      color: _isDark
+                          ? AppTheme.accentCyan
+                          : AppTheme.primaryBlue,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${branch.days} • ${branch.hours}',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -2016,12 +2836,30 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(width: 12),
           OutlinedButton.icon(
             key: Key('archive_branch_${branch.id}'),
-            icon: Icon(Icons.archive_outlined, size: 14, color: Colors.orange.shade800),
-            label: Text('Archive', style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+            icon: Icon(
+              Icons.archive_outlined,
+              size: 14,
+              color: _isDark ? const Color(0xFFFDBA74) : Colors.orange.shade800,
+            ),
+            label: Text(
+              'Archive',
+              style: TextStyle(
+                color: _isDark
+                    ? const Color(0xFFFDBA74)
+                    : Colors.orange.shade800,
+                fontSize: 12,
+              ),
+            ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.orange.shade300),
+              side: BorderSide(
+                color: _isDark
+                    ? const Color(0xFFF97316).withValues(alpha: 0.5)
+                    : Colors.orange.shade300,
+              ),
               visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => _confirmArchiveBranch(branch),
           ),
@@ -2035,7 +2873,7 @@ class _SettingsViewState extends State<SettingsView> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: _isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppTheme.borderColor),
       ),
@@ -2051,30 +2889,69 @@ class _SettingsViewState extends State<SettingsView> {
                   children: [
                     Text(
                       branch.name,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: _isDark
+                            ? const Color(0xFF334155)
+                            : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text('Archived', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                      child: Text(
+                        'Archived',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _isDark
+                              ? const Color(0xFFE2E8F0)
+                              : Colors.grey.shade700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(branch.address, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                Text(
+                  branch.address,
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
               ],
             ),
           ),
           TextButton.icon(
             key: Key('restore_branch_${branch.id}'),
-            icon: const Icon(Icons.unarchive_outlined, size: 14, color: Color(0xFF059669)),
-            label: const Text('Restore', style: TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold)),
+            icon: Icon(
+              Icons.unarchive_outlined,
+              size: 14,
+              color: _isDark
+                  ? const Color(0xFF34D399)
+                  : const Color(0xFF059669),
+            ),
+            label: Text(
+              'Restore',
+              style: TextStyle(
+                color: _isDark
+                    ? const Color(0xFF34D399)
+                    : const Color(0xFF059669),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             onPressed: () async {
-              await _profile.restoreBranch(branch.id, teamId: TeamService.instance.activeTeam?.id);
+              await _profile.restoreBranch(
+                branch.id,
+                teamId: TeamService.instance.activeTeam?.id,
+              );
               if (mounted) {
                 _showSaveFeedback('Clinic branch "${branch.name}" restored.');
               }
@@ -2097,7 +2974,9 @@ class _SettingsViewState extends State<SettingsView> {
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setModalState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Container(
@@ -2106,10 +2985,17 @@ class _SettingsViewState extends State<SettingsView> {
                     color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.add_business_rounded, color: AppTheme.primaryBlue, size: 20),
+                  child: const Icon(
+                    Icons.add_business_rounded,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                const Text('Add Clinic Branch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Add Clinic Branch',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             content: SizedBox(
@@ -2121,22 +3007,47 @@ class _SettingsViewState extends State<SettingsView> {
                   children: [
                     Text(
                       'Add a new clinic branch location and consultation schedule to appear on prescription headers.',
-                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (errorText != null) ...[
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
+                          color: _isDark
+                              ? const Color(0xFF7F1D1D).withValues(alpha: 0.25)
+                              : Colors.red.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
+                          border: Border.all(
+                            color: _isDark
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                                : Colors.red.shade200,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, size: 16, color: Colors.redAccent),
+                            Icon(
+                              Icons.error_outline,
+                              size: 16,
+                              color: _isDark
+                                  ? const Color(0xFFFCA5A5)
+                                  : Colors.redAccent,
+                            ),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(errorText!, style: const TextStyle(fontSize: 12, color: Colors.redAccent))),
+                            Expanded(
+                              child: Text(
+                                errorText!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _isDark
+                                      ? const Color(0xFFFCA5A5)
+                                      : Colors.redAccent,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2191,7 +3102,9 @@ class _SettingsViewState extends State<SettingsView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: () async {
                   if (nameCtrl.text.trim().isEmpty) {
@@ -2199,7 +3112,9 @@ class _SettingsViewState extends State<SettingsView> {
                     return;
                   }
                   if (addressCtrl.text.trim().isEmpty) {
-                    setModalState(() => errorText = 'Address / Location is required.');
+                    setModalState(
+                      () => errorText = 'Address / Location is required.',
+                    );
                     return;
                   }
                   Navigator.pop(dialogCtx);
@@ -2211,7 +3126,9 @@ class _SettingsViewState extends State<SettingsView> {
                     teamId: TeamService.instance.activeTeam?.id,
                   );
                   if (mounted) {
-                    _showSaveFeedback('Clinic branch "${nameCtrl.text.trim()}" added successfully.');
+                    _showSaveFeedback(
+                      'Clinic branch "${nameCtrl.text.trim()}" added successfully.',
+                    );
                   }
                 },
                 child: const Text('Add Branch'),
@@ -2251,11 +3168,16 @@ class _SettingsViewState extends State<SettingsView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await _profile.archiveBranch(branch.id, teamId: TeamService.instance.activeTeam?.id);
+              await _profile.archiveBranch(
+                branch.id,
+                teamId: TeamService.instance.activeTeam?.id,
+              );
               if (mounted) {
                 _showSaveFeedback('Clinic branch "${branch.name}" archived.');
               }
@@ -2281,7 +3203,14 @@ class _SettingsViewState extends State<SettingsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textPrimary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -2289,7 +3218,11 @@ class _SettingsViewState extends State<SettingsView> {
           onChanged: onChanged,
           style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.lock_outline, size: 18, color: AppTheme.primaryBlue),
+            prefixIcon: Icon(
+              Icons.lock_outline,
+              size: 18,
+              color: AppTheme.primaryBlue,
+            ),
             suffixIcon: onToggleVisibility != null
                 ? Semantics(
                     label: toggleTooltip,
@@ -2297,7 +3230,9 @@ class _SettingsViewState extends State<SettingsView> {
                     child: IconButton(
                       key: visibilityKey,
                       icon: Icon(
-                        isMasked ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        isMasked
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         size: 20,
                         color: AppTheme.textSecondary,
                       ),
@@ -2306,24 +3241,38 @@ class _SettingsViewState extends State<SettingsView> {
                     ),
                   )
                 : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDropdownField(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
     return ClinicalDropdownField<String>(
       label: FieldLabel(label, fontSize: 12),
       placeholder: 'Select option...',
       value: value,
-      items: [for (final item in items) ClinicalPickerItem<String>(value: item, label: item)],
+      items: [
+        for (final item in items)
+          ClinicalPickerItem<String>(value: item, label: item),
+      ],
       onChanged: onChanged,
     );
   }
 
-  Widget _buildActionButtons({String saveLabel = 'Save Changes', required VoidCallback onSave}) {
+  Widget _buildActionButtons({
+    String saveLabel = 'Save Changes',
+    required VoidCallback onSave,
+  }) {
     return Row(
       children: [
         ElevatedButton.icon(
@@ -2348,7 +3297,8 @@ class TwoFactorEnrollmentDialog extends StatefulWidget {
   const TwoFactorEnrollmentDialog({super.key, required this.initialPhone});
 
   @override
-  State<TwoFactorEnrollmentDialog> createState() => _TwoFactorEnrollmentDialogState();
+  State<TwoFactorEnrollmentDialog> createState() =>
+      _TwoFactorEnrollmentDialogState();
 }
 
 class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
@@ -2361,6 +3311,8 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
   String? _dialogError;
   String? _verificationId;
   String? _infoMessage;
+
+  bool get _isDark => ThemeController.instance.isDarkMode;
 
   @override
   void initState() {
@@ -2404,7 +3356,9 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _dialogError = e is AuthFailure ? e.message : 'Failed to send SMS code: $e';
+        _dialogError = e is AuthFailure
+            ? e.message
+            : 'Failed to send SMS code: $e';
         _isLoading = false;
       });
     }
@@ -2433,7 +3387,9 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
       if (!mounted) return;
       setState(() {
         _isResending = false;
-        _dialogError = e is AuthFailure ? e.message : 'Failed to resend code: $e';
+        _dialogError = e is AuthFailure
+            ? e.message
+            : 'Failed to resend code: $e';
       });
     }
   }
@@ -2441,7 +3397,10 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
   Future<void> _handleVerifyAndActivate() async {
     final enteredCode = _otpControllers.map((c) => c.text.trim()).join();
     if (enteredCode.length < 6) {
-      setState(() => _dialogError = 'Please enter all 6 digits of the verification code.');
+      setState(
+        () => _dialogError =
+            'Please enter all 6 digits of the verification code.',
+      );
       return;
     }
     setState(() {
@@ -2504,7 +3463,11 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                 children: [
                   Text(
                     'Protect your clinical workstation by requiring an SMS verification code whenever signing into DOCRS.',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -2518,8 +3481,13 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
                       hintText: '+63 917 555 0192',
-                      prefixIcon: const Icon(Icons.phone_iphone_rounded, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      prefixIcon: const Icon(
+                        Icons.phone_iphone_rounded,
+                        size: 20,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                   if (_dialogError != null) ...[
@@ -2527,13 +3495,27 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Icon(
+                            Icons.error_outline_rounded,
+                            color: _isDark
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFFDC2626),
+                            size: 16,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(_dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                          child: Text(
+                            _dialogError!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isDark
+                                  ? const Color(0xFFFCA5A5)
+                                  : const Color(0xFFDC2626),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -2546,7 +3528,11 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                 children: [
                   Text(
                     'Enter the 6-digit verification code sent to ${_phoneController.text.trim()}:',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -2562,10 +3548,15 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
                           maxLength: 1,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                           decoration: InputDecoration(
                             counterText: '',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             contentPadding: EdgeInsets.zero,
                           ),
                           onChanged: (value) {
@@ -2585,21 +3576,32 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                     children: [
                       Text(
                         "Didn't receive a code?",
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                       TextButton.icon(
                         key: const Key('two_factor_modal_resend_button'),
-                        onPressed: (_isLoading || _isResending) ? null : _handleResendCode,
+                        onPressed: (_isLoading || _isResending)
+                            ? null
+                            : _handleResendCode,
                         icon: _isResending
                             ? const SizedBox(
                                 width: 12,
                                 height: 12,
-                                child: CircularProgressIndicator(strokeWidth: 1.5),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                ),
                               )
                             : const Icon(Icons.refresh_rounded, size: 14),
                         label: Text(
                           _isResending ? 'Resending...' : 'Resend Code',
-                          style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primaryBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -2608,10 +3610,24 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 16),
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: _isDark
+                              ? const Color(0xFF6EE7B7)
+                              : const Color(0xFF059669),
+                          size: 16,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(_infoMessage!, style: const TextStyle(fontSize: 12, color: Color(0xFF059669))),
+                          child: Text(
+                            _infoMessage!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isDark
+                                  ? const Color(0xFF6EE7B7)
+                                  : const Color(0xFF059669),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -2621,13 +3637,27 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Icon(
+                            Icons.error_outline_rounded,
+                            color: _isDark
+                                ? const Color(0xFFFCA5A5)
+                                : const Color(0xFFDC2626),
+                            size: 16,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(_dialogError!, style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626))),
+                          child: Text(
+                            _dialogError!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isDark
+                                  ? const Color(0xFFFCA5A5)
+                                  : const Color(0xFFDC2626),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -2645,18 +3675,38 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
           ElevatedButton(
             key: const Key('send_enrollment_sms_button'),
             onPressed: _isLoading ? null : _handleSendCode,
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
             child: _isLoading
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Text('Send Verification Code'),
           )
         else
           ElevatedButton(
             key: const Key('verify_enrollment_sms_button'),
             onPressed: _isLoading ? null : _handleVerifyAndActivate,
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+            ),
             child: _isLoading
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Text('Verify & Activate 2FA'),
           ),
       ],
