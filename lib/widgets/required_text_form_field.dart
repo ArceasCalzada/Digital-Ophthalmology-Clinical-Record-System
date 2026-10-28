@@ -16,6 +16,7 @@ class RequiredTextFormField extends StatefulWidget {
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
   final bool? enabled;
+  final TextCapitalization textCapitalization;
 
   /// Whether surrounding spaces are ignored when deciding if the field is empty.
   final bool trim;
@@ -33,6 +34,7 @@ class RequiredTextFormField extends StatefulWidget {
     this.keyboardType,
     this.onChanged,
     this.enabled,
+    this.textCapitalization = TextCapitalization.none,
     this.trim = true,
     this.invalidMessage,
     this.validator,
@@ -88,6 +90,7 @@ class _RequiredTextFormFieldState extends State<RequiredTextFormField> {
         obscureText: widget.obscureText,
         maxLines: widget.maxLines,
         keyboardType: widget.keyboardType,
+        textCapitalization: widget.textCapitalization,
         onChanged: widget.onChanged,
         enabled: widget.enabled,
         decoration: widget.decoration.copyWith(

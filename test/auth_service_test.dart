@@ -1,12 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_backend.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late FakeAuthBackend backend;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     await AuthService.instance.resetForTesting();
     backend = FakeAuthBackend({
       'admin@clinic.test': (password: 'correct-horse', role: UserRole.admin),
@@ -67,12 +70,34 @@ void main() {
     expect(AuthService.instance.user?.email, 'stranger@clinic.test');
   });
 
-  test('registers a new user and triggers verification and pending role state', () async {
-    await AuthService.instance.signUp('newdoc@clinic.test', 'securepass123', 'Dr. New Doctor');
+  test('independent physician registration automatically provisions active workspace and bypasses approval', () async {
+    await AuthService.instance.signUp(
+      'newdoc@clinic.test',
+      'securepass123',
+      'Dr. New Doctor',
+      requestedRole: 'physician',
+    );
     expect(AuthService.instance.user?.email, 'newdoc@clinic.test');
     expect(AuthService.instance.user?.displayName, 'Dr. New Doctor');
+    expect(AuthService.instance.isSignedIn, isTrue);
+    expect(AuthService.instance.role, UserRole.physician);
+    expect(AuthService.instance.isPendingRole, isFalse);
+    expect(AuthService.instance.isPendingApproval, isFalse);
+  });
+
+  test('staff registration with invite code is routed to pending approval queue', () async {
+    await AuthService.instance.signUp(
+      'staff@clinic.test',
+      'securepass123',
+      'Staff Assistant',
+      requestedRole: 'assistant',
+      inviteCode: 'ABC-123',
+    );
+    expect(AuthService.instance.user?.email, 'staff@clinic.test');
     expect(AuthService.instance.isSignedIn, isFalse);
     expect(AuthService.instance.isPendingRole, isTrue);
+    expect(AuthService.instance.isPendingApproval, isTrue);
+    expect(AuthService.instance.pendingInviteCode, 'ABC-123');
   });
 
   test('rejects weak passwords during registration', () async {

@@ -46,7 +46,7 @@ class DevAuthBackend implements AuthBackend {
     String? lastName,
     String? middleName,
     String? suffix,
-    String requestedRole = 'assistant',
+    String requestedRole = 'physician',
     String? inviteCode,
     String? workspaceId,
   }) async {

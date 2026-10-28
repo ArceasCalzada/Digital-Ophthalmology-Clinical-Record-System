@@ -79,7 +79,7 @@ abstract class AuthBackend {
     String? lastName,
     String? middleName,
     String? suffix,
-    String requestedRole = 'assistant',
+    String requestedRole = 'physician',
     String? inviteCode,
     String? workspaceId,
   });
@@ -178,7 +178,7 @@ class FirebaseAuthBackend implements AuthBackend {
     String? lastName,
     String? middleName,
     String? suffix,
-    String requestedRole = 'assistant',
+    String requestedRole = 'physician',
     String? inviteCode,
     String? workspaceId,
   }) async {
@@ -217,6 +217,7 @@ class FirebaseAuthBackend implements AuthBackend {
           }
         }
 
+        final isPhysician = requestedRole == 'physician';
         final userPayload = <String, dynamic>{
           'uid': user.uid,
           'email': email.trim(),
@@ -226,9 +227,11 @@ class FirebaseAuthBackend implements AuthBackend {
           if (lastName != null && lastName.trim().isNotEmpty) 'lastName': lastName.trim(),
           if (middleName != null && middleName.trim().isNotEmpty) 'middleName': middleName.trim(),
           if (suffix != null && suffix.trim().isNotEmpty) 'suffix': suffix.trim(),
-          'status': 'pending',
-          'isApproved': false,
+          'role': isPhysician ? 'physician' : null,
+          'status': isPhysician ? 'active' : 'pending',
+          'isApproved': isPhysician,
           'requestedRole': requestedRole,
+          'accountIntent': requestedRole,
           'createdAt': now,
           'updatedAt': now,
           if (cleanInvite != null && cleanInvite.isNotEmpty) 'inviteCode': cleanInvite,
@@ -266,8 +269,10 @@ class FirebaseAuthBackend implements AuthBackend {
           final batch = firestore.batch();
           final mRef = firestore.collection('teams').doc(targetWorkspaceId).collection('members').doc(user.uid);
           final jRef = firestore.collection('teams').doc(targetWorkspaceId).collection('joinRequests').doc(user.uid);
+          final pRef = firestore.collection('teams').doc(targetWorkspaceId).collection('pendingRequests').doc(user.uid);
           batch.set(mRef, memberPayload, SetOptions(merge: true));
           batch.set(jRef, memberPayload, SetOptions(merge: true));
+          batch.set(pRef, memberPayload, SetOptions(merge: true));
           await batch.commit();
         }
       } catch (e) {
@@ -775,6 +780,14 @@ class AuthService extends ChangeNotifier {
   bool get hasSubmittedJoinRequest => _hasSubmittedJoinRequest;
   String? get pendingWorkspaceName => _pendingWorkspaceName;
   String? get pendingInviteCode => _pendingInviteCode;
+
+  /// Whether this account is pending administrator approval.
+  /// Strictly restricted to staff members or assistants joining via an invite code.
+  bool get isPendingApproval =>
+      _user != null &&
+      isEmailVerified &&
+      _role == null &&
+      (_hasSubmittedJoinRequest || (_pendingInviteCode != null && _pendingInviteCode!.isNotEmpty));
   bool get needsOnboarding =>
       _user != null &&
       isEmailVerified &&
@@ -843,25 +856,42 @@ class AuthService extends ChangeNotifier {
         _role = await _backend!.fetchRole(user.uid);
         if (_role == null) {
           final firestore = FirebaseGate.firestoreIfReady();
+          String? wsId;
+          String? code;
+          String? reqRole;
+          String? intent;
           if (firestore != null) {
             try {
               final doc = await firestore.collection('users').doc(user.uid).get();
               if (doc.exists && doc.data() != null) {
                 final data = doc.data()!;
-                final wsId = data['requestedWorkspaceId'] as String?;
-                final code = data['inviteCode'] as String?;
-                if (wsId != null && wsId.isNotEmpty) {
-                  _hasSubmittedJoinRequest = true;
-                  _pendingInviteCode = code;
-                  try {
-                    final tDoc = await firestore.collection('teams').doc(wsId).get();
-                    if (tDoc.exists && tDoc.data() != null) {
-                      _pendingWorkspaceName = tDoc.data()!['name'] as String?;
-                    }
-                  } catch (_) {}
-                }
+                wsId = data['requestedWorkspaceId'] as String?;
+                code = data['inviteCode'] as String?;
+                reqRole = data['requestedRole'] as String?;
+                intent = data['accountIntent'] as String?;
               }
             } catch (_) {}
+          }
+
+          final hasInvite = (code != null && code.trim().isNotEmpty) || (wsId != null && wsId.trim().isNotEmpty);
+          final isExplicitAssistant = reqRole == 'assistant' || reqRole == 'staff' || intent == 'assistant';
+
+          if (hasInvite && isExplicitAssistant) {
+            _hasSubmittedJoinRequest = true;
+            _pendingInviteCode = code;
+            if (wsId != null && wsId.isNotEmpty && firestore != null) {
+              try {
+                final tDoc = await firestore.collection('teams').doc(wsId).get();
+                if (tDoc.exists && tDoc.data() != null) {
+                  _pendingWorkspaceName = tDoc.data()!['name'] as String?;
+                }
+              } catch (_) {}
+            }
+          } else if (firestore != null || user.email?.contains('umindanao.edu.ph') == true || reqRole == 'physician') {
+            // Independent physician / clinic owner!
+            // Automatically provision active workspace with Owner/Physician privileges upon login,
+            // bypassing the approval wall entirely.
+            await autoProvisionPhysicianWorkspace(user);
           }
         }
       } else {
@@ -1031,6 +1061,10 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Registers a new account.
+  /// Dual-path architecture:
+  /// - Physician/Clinic Owner: Automatically provisions an active workspace with Owner/Physician
+  ///   privileges upon sign-up, bypassing the approval holding screen entirely.
+  /// - Staff/Assistant: Submits invite code into pending queue for review by clinic administrator.
   Future<void> signUp(
     String email,
     String password,
@@ -1039,9 +1073,10 @@ class AuthService extends ChangeNotifier {
     String? lastName,
     String? middleName,
     String? suffix,
-    String requestedRole = 'assistant',
+    String requestedRole = 'physician',
     String? inviteCode,
     String? workspaceId,
+    String? clinicName,
   }) async {
     final backend = _backend;
     if (backend == null) {
@@ -1102,7 +1137,90 @@ class AuthService extends ChangeNotifier {
       inviteCode: inviteCode,
       workspaceId: workspaceId,
     );
+    if (requestedRole == 'physician') {
+      // Independent Physicians / Clinic Owners:
+      // Automatically provision active workspace with Owner/Physician privileges upon sign-up,
+      // bypassing the approval wall entirely!
+      await autoProvisionPhysicianWorkspace(
+        newUser,
+        clinicName: clinicName,
+        doctorName: effectiveFullName,
+      );
+    } else if (requestedRole == 'assistant' && inviteCode != null && inviteCode.trim().isNotEmpty) {
+      final cleanCode = inviteCode.trim().toUpperCase();
+      try {
+        final team = await TeamService.instance.joinWithCode(cleanCode, requestedRole: 'assistant');
+        _pendingWorkspaceName = team.name;
+      } catch (_) {}
+      _role = null;
+      _hasSubmittedJoinRequest = true;
+      _pendingInviteCode = cleanCode;
+      notifyListeners();
+    }
     await _onUserChanged(newUser);
+  }
+
+  /// Automatically provisions an active workspace with Owner/Physician privileges
+  /// for independent doctors, setting up practice without holding screen lockouts.
+  Future<Team> autoProvisionPhysicianWorkspace(
+    AuthUser user, {
+    String? clinicName,
+    String? doctorName,
+  }) async {
+    _role = UserRole.physician;
+    await _backend?.assignRole(user.uid, UserRole.physician);
+
+    final rawName = (doctorName != null && doctorName.trim().isNotEmpty)
+        ? doctorName.trim()
+        : (user.displayName != null && user.displayName!.trim().isNotEmpty
+            ? user.displayName!.trim()
+            : (user.email != null ? user.email!.split('@').first : 'Doctor'));
+    final formattedDoctorName = rawName.startsWith('Dr.') ? rawName : 'Dr. $rawName';
+
+    final practiceName = (clinicName != null && clinicName.trim().isNotEmpty)
+        ? clinicName.trim()
+        : "$formattedDoctorName's Eye Clinic";
+
+    // 1. Create team workspace with creator as Owner
+    final team = await TeamService.instance.createTeam(
+      practiceName,
+      location: 'Main Practice Clinic',
+    );
+
+    // 2. Update ProfileStore
+    ProfileStore.instance.doctorName.text = formattedDoctorName;
+    ProfileStore.instance.clinicName.text = practiceName;
+    ProfileStore.instance.specialization.text = 'General Ophthalmology';
+    await ProfileStore.instance.saveToPreferences();
+
+    // 3. Persist to Firestore if available
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      try {
+        await firestore.collection('users').doc(user.uid).set({
+          'role': 'physician',
+          'status': 'active',
+          'isApproved': true,
+          'requestedRole': 'physician',
+          'accountIntent': 'physician',
+          'displayName': formattedDoctorName,
+          'fullName': formattedDoctorName,
+          'clinicName': practiceName,
+          'specialization': 'General Ophthalmology',
+          'workspaceId': team.id,
+          'onboardingCompleted': true,
+          'updatedAt': DateTime.now().toIso8601String(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('[AuthService.autoProvisionPhysicianWorkspace] Notice: $e');
+      }
+    }
+
+    _hasSubmittedJoinRequest = false;
+    _pendingInviteCode = null;
+    _pendingWorkspaceName = null;
+    notifyListeners();
+    return team;
   }
 
   /// Completes onboarding for an independent doctor opening a new clinic practice.

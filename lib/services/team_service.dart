@@ -34,6 +34,7 @@ class TeamService extends ChangeNotifier {
   StreamSubscription? _teamsSub;
   StreamSubscription? _membersSub;
   StreamSubscription? _joinRequestsSub;
+  StreamSubscription? _pendingRequestsSub;
   StreamSubscription? _pendingUsersSub;
 
   void _resolveCurrentUser() {
@@ -282,6 +283,7 @@ class TeamService extends ChangeNotifier {
 
     _membersSub?.cancel();
     _joinRequestsSub?.cancel();
+    _pendingRequestsSub?.cancel();
     _pendingUsersSub?.cancel();
 
     final activeMap = <String, TeamMember>{};
@@ -359,6 +361,22 @@ class TeamService extends ChangeNotifier {
       recomputeAndNotify();
     }, onError: (Object e) {
       debugPrint('[TeamService] JoinRequests stream error for workspace $teamId: $e');
+    });
+
+    _pendingRequestsSub = firestore
+        .collection('teams')
+        .doc(teamId)
+        .collection('pendingRequests')
+        .snapshots()
+        .listen((snapshot) {
+      for (final doc in snapshot.docs) {
+        final data = FirebaseGate.decode(doc.data());
+        final member = TeamMember.fromJson(data);
+        joinRequestsMap[member.uid] = member.copyWith(requestedWorkspaceId: teamId);
+      }
+      recomputeAndNotify();
+    }, onError: (Object e) {
+      debugPrint('[TeamService] PendingRequests stream error for workspace $teamId: $e');
     });
 
     _pendingUsersSub = firestore
@@ -521,6 +539,24 @@ class TeamService extends ChangeNotifier {
               debugPrint('[streamPendingMembers] joinRequests stream error for $wsId: $e');
             });
             subscriptions.add(subJ);
+
+            final subP = firestore
+                .collection('teams')
+                .doc(wsId)
+                .collection('pendingRequests')
+                .snapshots()
+                .listen((snap) {
+              final rGroup = firestoreRequests[wsId] ?? {};
+              for (final doc in snap.docs) {
+                final d = FirebaseGate.decode(doc.data());
+                final m = TeamMember.fromJson(d);
+                rGroup[m.uid] = m.copyWith(requestedWorkspaceId: wsId);
+              }
+              emitMerged();
+            }, onError: (e) {
+              debugPrint('[streamPendingMembers] pendingRequests stream error for $wsId: $e');
+            });
+            subscriptions.add(subP);
           }
 
           final subU = firestore
@@ -775,11 +811,13 @@ class TeamService extends ChangeNotifier {
     };
 
     final joinRequestRef = firestore.collection('teams').doc(team.id).collection('joinRequests').doc(uid);
+    final pendingRequestRef = firestore.collection('teams').doc(team.id).collection('pendingRequests').doc(uid);
     final userRef = firestore.collection('users').doc(uid);
 
     try {
       final batch = firestore.batch();
       batch.set(joinRequestRef, memberPayload, SetOptions(merge: true));
+      batch.set(pendingRequestRef, memberPayload, SetOptions(merge: true));
       batch.set(userRef, userPayload, SetOptions(merge: true));
       batch.set(memberRef, memberPayload, SetOptions(merge: true));
 
@@ -790,6 +828,7 @@ class TeamService extends ChangeNotifier {
       try {
         final fallbackBatch = firestore.batch();
         fallbackBatch.set(joinRequestRef, memberPayload, SetOptions(merge: true));
+        fallbackBatch.set(pendingRequestRef, memberPayload, SetOptions(merge: true));
         fallbackBatch.set(userRef, userPayload, SetOptions(merge: true));
         await fallbackBatch.commit();
         debugPrint('[TeamService.joinWithCode] Fallback join request successfully submitted for user $uid to workspace ${team.id}');
@@ -1173,6 +1212,13 @@ class TeamService extends ChangeNotifier {
           .doc(memberUid);
       batch.delete(joinRequestRef);
 
+      final pendingRequestRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('pendingRequests')
+          .doc(memberUid);
+      batch.delete(pendingRequestRef);
+
       try {
         await batch.commit();
         debugPrint('[TeamService.approvePendingMember] Approved member $memberUid in workspace ${active.id} as ${assignedRole.name}');
@@ -1227,6 +1273,13 @@ class TeamService extends ChangeNotifier {
           .collection('joinRequests')
           .doc(memberUid);
       batch.delete(joinRequestRef);
+
+      final pendingRequestRef = firestore
+          .collection('teams')
+          .doc(active.id)
+          .collection('pendingRequests')
+          .doc(memberUid);
+      batch.delete(pendingRequestRef);
 
       await batch.commit();
     }

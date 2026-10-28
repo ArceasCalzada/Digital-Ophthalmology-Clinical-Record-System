@@ -49,14 +49,15 @@ class FakeAuthBackend implements AuthBackend {
     String? lastName,
     String? middleName,
     String? suffix,
-    String requestedRole = 'assistant',
+    String requestedRole = 'physician',
     String? inviteCode,
     String? workspaceId,
   }) async {
     if (accounts.containsKey(email)) {
       throw const AuthFailure('An account with this email address already exists.');
     }
-    accounts[email] = (password: password, role: null);
+    final initialRole = requestedRole == 'physician' ? UserRole.physician : null;
+    accounts[email] = (password: password, role: initialRole);
     _current = AuthUser(
       'uid-$email',
       email,

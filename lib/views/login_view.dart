@@ -31,6 +31,7 @@ class _LoginViewState extends State<LoginView> {
   final _signUpInviteCodeController = TextEditingController();
 
   bool _isSignUpMode = false;
+  String _signUpRoleIntent = 'physician';
   bool _obscureSignInPassword = true;
   bool _obscureSignUpPassword = true;
   bool _obscureConfirmPassword = true;
@@ -122,28 +123,41 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
+    if (_signUpRoleIntent == 'assistant' && _signUpInviteCodeController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please enter a clinic invite code to join an existing practice.');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
+      final email = _signUpEmailController.text.trim();
+      final password = _signUpPasswordController.text;
+      final inviteCode = _signUpInviteCodeController.text.trim();
+
       await AuthService.instance.signUp(
-        _signUpEmailController.text.trim(),
-        _signUpPasswordController.text,
+        email,
+        password,
         '',
+        requestedRole: _signUpRoleIntent,
+        inviteCode: _signUpRoleIntent == 'assistant' ? inviteCode : null,
       );
       _signUpPasswordController.clear();
       _confirmPasswordController.clear();
       if (mounted) {
-        if (AuthService.instance.needsOnboarding || AuthService.instance.hasSubmittedJoinRequest) {
-          setState(() {});
-        } else if (AuthService.instance.isSignedIn) {
+        if (AuthService.instance.isSignedIn) {
           setState(() => _isSuccessTransitioning = true);
           await Future.delayed(const Duration(milliseconds: 300));
           if (mounted) {
             widget.onLoginSuccess();
           }
+        } else if (AuthService.instance.isPendingApproval ||
+            AuthService.instance.hasSubmittedJoinRequest ||
+            AuthService.instance.needsOnboarding) {
+          setState(() {});
         }
       }
     } on AuthFailure catch (e) {
@@ -367,8 +381,10 @@ class _LoginViewState extends State<LoginView> {
                         _buildTwoFactorPendingView(auth)
                       else if (auth.isPendingEmailVerification)
                         _buildEmailVerificationPendingView(auth)
-                      else if (auth.isPendingRole)
+                      else if (auth.isPendingRole && auth.isPendingApproval)
                         _buildPendingRoleView(auth)
+                      else if (auth.isPendingRole && !auth.isPendingApproval)
+                        _buildAutoProvisionPhysicianView(auth)
                       else ...[
                         // Mode Switcher Tabs
                         Container(
@@ -722,6 +738,197 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Account Intent Selector
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    key: const Key('signup-intent-physician'),
+                    onTap: _isLoading
+                        ? null
+                        : () => setState(() {
+                              _signUpRoleIntent = 'physician';
+                              _errorMessage = null;
+                            }),
+                    borderRadius: BorderRadius.circular(9),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: _signUpRoleIntent == 'physician' ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: _signUpRoleIntent == 'physician'
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.medical_services_rounded,
+                            size: 16,
+                            color: _signUpRoleIntent == 'physician' ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Doctor / Practice',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: _signUpRoleIntent == 'physician' ? FontWeight.bold : FontWeight.w500,
+                                color: _signUpRoleIntent == 'physician' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: InkWell(
+                    key: const Key('signup-intent-assistant'),
+                    onTap: _isLoading
+                        ? null
+                        : () => setState(() {
+                              _signUpRoleIntent = 'assistant';
+                              _errorMessage = null;
+                            }),
+                    borderRadius: BorderRadius.circular(9),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: _signUpRoleIntent == 'assistant' ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: _signUpRoleIntent == 'assistant'
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.badge_outlined,
+                            size: 16,
+                            color: _signUpRoleIntent == 'assistant' ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              'Staff / Assistant',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: _signUpRoleIntent == 'assistant' ? FontWeight.bold : FontWeight.w500,
+                                color: _signUpRoleIntent == 'assistant' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Context callout badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _signUpRoleIntent == 'physician' ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _signUpRoleIntent == 'physician' ? const Color(0xFFBBF7D0) : const Color(0xFFBFDBFE),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _signUpRoleIntent == 'physician' ? Icons.verified_user_rounded : Icons.info_outline_rounded,
+                  size: 16,
+                  color: _signUpRoleIntent == 'physician' ? const Color(0xFF16A34A) : AppTheme.primaryBlue,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _signUpRoleIntent == 'physician'
+                        ? 'Independent practice: instant workspace provisioning with full Owner & Physician access.'
+                        : 'Staff registration requires a clinic invite code from your practice administrator.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: _signUpRoleIntent == 'physician' ? const Color(0xFF15803D) : const Color(0xFF1E40AF),
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          if (_signUpRoleIntent == 'assistant') ...[
+            Text(
+              'Clinic Invite Code',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            RequiredTextFormField(
+              key: const Key('signup-invite-code-field'),
+              controller: _signUpInviteCodeController,
+              enabled: !_isLoading,
+              textCapitalization: TextCapitalization.characters,
+              style: TextStyle(
+                color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                fontSize: 14,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                hintText: 'e.g. DOC-982',
+                prefixIcon: Icon(
+                  Icons.vpn_key_outlined,
+                  color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                  size: 20,
+                ),
+                filled: _isLoading,
+                fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              ),
+              validator: (val) {
+                if (_signUpRoleIntent == 'assistant' && (val == null || val.trim().isEmpty)) {
+                  return 'Enter your clinic invite code';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
+
           Text(
             'Clinic Email',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
@@ -874,12 +1081,26 @@ class _LoginViewState extends State<LoginView> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.person_add_rounded, size: 20),
-                        SizedBox(width: 8),
-                        Text('Register Account', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        Icon(
+                          _signUpRoleIntent == 'physician'
+                              ? Icons.local_hospital_rounded
+                              : Icons.send_rounded,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _signUpRoleIntent == 'physician'
+                                ? 'Create Physician Practice'
+                                : 'Request Clinic Access',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ],
                     ),
             ),
@@ -1067,7 +1288,11 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildPendingRoleView(AuthService auth) {
+    final workspaceName = auth.pendingWorkspaceName ?? 'the clinic team';
+    final inviteCode = auth.pendingInviteCode;
+
     return Container(
+      key: const Key('pending-approval-holding-card'),
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Color(0xFFEFF6FF),
@@ -1088,12 +1313,29 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           Text(
-            'Your account (${auth.email}) is registered and verified. A clinic administrator must assign your role (Physician, Staff, or Admin) before you can access clinical records.',
+            'Your account (${auth.email}) has requested to join $workspaceName${inviteCode != null ? " with invite code $inviteCode" : ""}. A clinic administrator must approve your join request before you can access clinical records.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
+          if (inviteCode != null) ...[
+            SizedBox(height: 10),
+            Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Invite Code: $inviteCode',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                ),
+              ),
+            ),
+          ],
           SizedBox(height: 18),
           ElevatedButton.icon(
+            key: const Key('check-status-button'),
             onPressed: () async {
               setState(() => _isLoading = true);
               await auth.reloadUserAndCheckRole();
@@ -1109,12 +1351,76 @@ class _LoginViewState extends State<LoginView> {
           ),
           SizedBox(height: 8),
           OutlinedButton.icon(
+            key: const Key('change-invite-code-button'),
             onPressed: () => _showJoinClinicModalForPending(context, auth),
             icon: Icon(Icons.group_add_outlined, size: 18),
-            label: Text('Enter Clinic Invite Code'),
+            label: Text('Enter Different Invite Code'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.primaryBlue,
               side: BorderSide(color: AppTheme.primaryBlue),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          SizedBox(height: 8),
+          TextButton(
+            onPressed: () => auth.signOut(),
+            child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoProvisionPhysicianView(AuthService auth) {
+    return Container(
+      key: const Key('physician-activation-card'),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(0xFFBBF7D0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Icon(Icons.medical_services_rounded, size: 48, color: Color(0xFF16A34A)),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Doctor Practice Activation',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Your physician account (${auth.email}) is verified. Click below to automatically provision your private clinic workspace with full Owner & Physician privileges.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+          ),
+          SizedBox(height: 18),
+          ElevatedButton.icon(
+            key: const Key('auto-provision-workspace-button'),
+            onPressed: () async {
+              setState(() => _isLoading = true);
+              try {
+                if (auth.user != null) {
+                  await auth.autoProvisionPhysicianWorkspace(auth.user!);
+                  if (mounted && auth.isSignedIn) {
+                    setState(() => _isSuccessTransitioning = true);
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    if (mounted) widget.onLoginSuccess();
+                  }
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
+              }
+            },
+            icon: Icon(Icons.check_circle_outline, size: 18),
+            label: Text('Activate Practice Workspace'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF16A34A),
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),

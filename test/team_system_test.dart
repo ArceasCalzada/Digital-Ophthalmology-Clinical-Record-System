@@ -714,5 +714,52 @@ void main() {
       expect(repo.events.any((e) => e.id == 'evt-beta'), isTrue);
       expect(repo.events.any((e) => e.id == 'evt-alpha'), isFalse);
     });
+
+    test('Master administrator admin.docrs@gmail.com can archive and restore owned clinic teams', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('master-admin-uid', userEmail: 'admin.docrs@gmail.com', displayName: 'Master Admin');
+
+      final team1 = await service.createTeam('Clinic Alpha');
+      final team2 = await service.createTeam('Clinic Beta');
+
+      // Active is currently team2. Archiving inactive team1 should succeed
+      expect(service.canManageTeam(team1), isTrue);
+      await service.archiveTeam(team1.id);
+
+      expect(service.archivedTeams.any((t) => t.id == team1.id), isTrue);
+      final archivedTeam = service.archivedTeams.firstWhere((t) => t.id == team1.id);
+      expect(archivedTeam.isArchived, isTrue);
+
+      // Restore team1
+      await service.restoreTeam(team1.id);
+      final restoredTeam = service.teams.firstWhere((t) => t.id == team1.id);
+      expect(restoredTeam.isArchived, isFalse);
+    });
+
+    test('Assistant submits join request with invite code into pending queue without error', () async {
+      SharedPreferences.setMockInitialValues({});
+      final service = TeamService.instance;
+      await service.load('clinic-owner-uid', userEmail: 'doctor@clinic.ph', displayName: 'Dr. Clinic Owner');
+
+      final clinicTeam = await service.createTeam('St. Luke Eye Clinic');
+      final invite = clinicTeam.inviteCode;
+
+      // New assistant registers and submits join request
+      service.unload();
+      final fakeBackend = FakeAuthBackend({});
+      await AuthService.instance.attach(fakeBackend);
+      await fakeBackend.signUp('alex@clinic.ph', 'password123', 'Alex Assistant', requestedRole: 'assistant');
+
+      final resultTeam = await service.joinWithCode(invite, requestedRole: 'assistant');
+
+      expect(resultTeam.id, clinicTeam.id);
+      expect(service.pendingMembers.any((m) => m.email == 'alex@clinic.ph'), isTrue);
+      final req = service.pendingMembers.firstWhere((m) => m.email == 'alex@clinic.ph');
+      expect(req.uid, 'uid-alex@clinic.ph');
+      expect(req.status, 'pending');
+      expect(req.isPending, isTrue);
+      expect(req.requestedRole, 'assistant');
+    });
   });
 }

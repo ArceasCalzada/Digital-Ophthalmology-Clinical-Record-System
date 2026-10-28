@@ -24,6 +24,19 @@ rules_version = '2';
 //   - joinedAt: string (optional, max 64)
 //   - status: string (optional, max 32: 'active' | 'pending')
 //
+// Collection: teams/{teamId}/pendingRequests/{uid}
+//   - uid: string (required, max 128)
+//   - email: string (optional, max 200)
+//   - displayName: string (optional, max 200)
+//   - role: string (optional, max 32)
+//   - requestedRole: string (optional, max 32)
+//   - status: string (optional, max 32: 'pending')
+//   - isApproved: bool (optional: false)
+//   - targetWorkspaceId, requestedWorkspaceId, workspaceId, teamId: string (optional, max 128)
+//   - joinedAt, requestedAt, createdAt, updatedAt: string or timestamp
+//   - inviteCode: string (optional, max 32)
+//   - firstName, lastName, middleName, suffix: string (optional)
+//
 // Collection: patients/{pid}
 //   - id, mrn, fullName, dateOfBirth, gender, phone, address (required)
 //   - firstName, middleName, lastName, occupation, phicNumber, referringDoctor (optional)
@@ -60,17 +73,6 @@ service cloud.firestore {
     function userPath() {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
-    function hasRole() {
-      return request.auth != null && (
-        (request.auth.token.get('role', '') != '') ||
-        exists(userPath())
-      );
-    }
-    function role() {
-      return request.auth.token.get('role', '') != ''
-        ? request.auth.token.role
-        : (exists(userPath()) ? get(userPath()).data.get('role', '') : '');
-    }
     function roleLower() {
       let r = request.auth.token.get('role', '');
       return r != ''
@@ -79,9 +81,10 @@ service cloud.firestore {
     }
     function isMasterAdmin() {
       return request.auth != null && (
-        request.auth.token.email == 'admin.docrs@gmail.com' ||
-        request.auth.token.get('email', '') == 'admin.docrs@gmail.com' ||
-        request.auth.token.get('email', '').lower() == 'admin.docrs@gmail.com'
+        request.auth.token.get('email', '').lower() == 'admin.docrs@gmail.com' ||
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'admin.docrs@gmail.com') ||
+        (exists(userPath()) && get(userPath()).data.get('email', '').lower() == 'admin.docrs@gmail.com') ||
+        (exists(userPath()) && get(userPath()).data.get('role', '').lower() in ['admin', 'master_admin'] && get(userPath()).data.get('email', '').lower() == 'admin.docrs@gmail.com')
       );
     }
     function isStaff() {
@@ -92,21 +95,23 @@ service cloud.firestore {
       );
     }
     function isPhysician() {
-      return request.auth != null && !isAssistant() && (
+      return request.auth != null && (
         isMasterAdmin() ||
-        roleLower() in ['admin', 'physician', 'owner', 'editor', 'doctor'] ||
-        request.auth.token.get('role', '').lower() in ['admin', 'physician', 'owner', 'editor', 'doctor']
+        (!isAssistant() && (
+          roleLower() in ['admin', 'physician', 'owner', 'editor', 'doctor'] ||
+          request.auth.token.get('role', '').lower() in ['admin', 'physician', 'owner', 'editor', 'doctor']
+        ))
       );
     }
     function isAssistant() {
-      return request.auth != null && (
+      return request.auth != null && !isMasterAdmin() && (
         roleLower() in ['assistant'] ||
         request.auth.token.get('role', '').lower() in ['assistant'] ||
         (exists(userPath()) && get(userPath()).data.get('role', '').lower() in ['assistant'])
       );
     }
     function isTeamAssistant(teamId) {
-      return request.auth != null && (
+      return request.auth != null && !isMasterAdmin() && (
         isAssistant() ||
         (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() == 'assistant') ||
         (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() == 'assistant')
@@ -140,7 +145,12 @@ service cloud.firestore {
         (teamId != null && teamId != '' && (
           exists(memberPath(teamId, request.auth.uid)) ||
           teamOwnerId(teamId) == request.auth.uid ||
-          (resource != null && (resource.data.get('ownerId', '') == request.auth.uid || resource.data.ownerId == request.auth.uid))
+          (resource != null && (
+            resource.data.get('ownerId', '') == request.auth.uid ||
+            resource.data.ownerId == request.auth.uid ||
+            resource.data.get('adminId', '') == request.auth.uid ||
+            (resource.data.get('ownerEmail', '') != '' && request.auth.token.get('email', '').lower() == resource.data.get('ownerEmail', '').lower())
+          ))
         ))
       );
     }
@@ -152,27 +162,44 @@ service cloud.firestore {
             : (teamOwnerId(teamId) == request.auth.uid ? 'owner' : 'viewer'));
     }
     function isTeamOwner(teamId) {
-      return request.auth != null && !isTeamAssistant(teamId) && (
+      return request.auth != null && (
         isMasterAdmin() ||
-        (teamId != null && teamId != '' && teamOwnerId(teamId) == request.auth.uid) ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
-        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && memberRole(teamId).lower() in ['owner', 'leader', 'admin']) ||
-        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
-        (resource != null && (resource.data.get('ownerId', '') == request.auth.uid || resource.data.ownerId == request.auth.uid || resource.data.get('adminId', '') == request.auth.uid))
+        (!isTeamAssistant(teamId) && (
+          (teamId != null && teamId != '' && teamOwnerId(teamId) == request.auth.uid) ||
+          (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
+          (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && (
+            memberRole(teamId).lower() in ['owner', 'leader', 'admin'] ||
+            get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']
+          )) ||
+          (resource != null && (
+            resource.data.get('ownerId', '') == request.auth.uid ||
+            resource.data.ownerId == request.auth.uid ||
+            resource.data.get('adminId', '') == request.auth.uid ||
+            (resource.data.get('ownerEmail', '') != '' && request.auth.token.get('email', '').lower() == resource.data.get('ownerEmail', '').lower())
+          )) ||
+          (exists(userPath()) && get(userPath()).data.get('teamRole', '').lower() in ['owner', 'admin', 'leader'])
+        ))
       );
     }
     function isTeamAdmin(teamId) {
-      return request.auth != null && !isTeamAssistant(teamId) && (
+      return request.auth != null && (
         isMasterAdmin() ||
         isTeamOwner(teamId) ||
-        roleLower() in ['admin', 'owner', 'leader'] ||
-        (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
-        (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && (
-          memberRole(teamId).lower() in ['owner', 'leader', 'admin'] ||
-          get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']
-        )) ||
-        (exists(userPath()) && get(userPath()).data.get('teamRole', '').lower() in ['owner', 'admin', 'leader']) ||
-        (resource != null && (resource.data.get('ownerId', '') == request.auth.uid || resource.data.ownerId == request.auth.uid || resource.data.get('adminId', '') == request.auth.uid))
+        (!isTeamAssistant(teamId) && (
+          roleLower() in ['admin', 'owner', 'leader'] ||
+          (tokenWorkspaceMatches(teamId) && request.auth.token.get('role', '').lower() in ['owner', 'leader', 'admin']) ||
+          (teamId != null && teamId != '' && exists(memberPath(teamId, request.auth.uid)) && (
+            memberRole(teamId).lower() in ['owner', 'leader', 'admin'] ||
+            get(memberPath(teamId, request.auth.uid)).data.get('role', '').lower() in ['owner', 'leader', 'admin']
+          )) ||
+          (exists(userPath()) && get(userPath()).data.get('teamRole', '').lower() in ['owner', 'admin', 'leader']) ||
+          (resource != null && (
+            resource.data.get('ownerId', '') == request.auth.uid ||
+            resource.data.ownerId == request.auth.uid ||
+            resource.data.get('adminId', '') == request.auth.uid ||
+            (resource.data.get('ownerEmail', '') != '' && request.auth.token.get('email', '').lower() == resource.data.get('ownerEmail', '').lower())
+          ))
+        ))
       );
     }
     function canViewPatients(teamId) {
@@ -267,15 +294,17 @@ service cloud.firestore {
           'ownerId', 'inviteCode', 'createdAt', 'updatedAt', 'archivedAt',
           'patientCount', 'encounterCount', 'prescriptionCount', 'isArchived',
           'description', 'adminId', 'prescriptionSettings', 'ownerEmail',
-          'ownerName', 'status', 'membersCount', 'memberCount', 'settings'
+          'ownerName', 'status', 'membersCount', 'memberCount', 'settings',
+          'phone', 'email', 'archived', 'active', 'isActive', 'logoUrl',
+          'photoUrl', 'imageUrl', 'specialty', 'clinicName', 'metadata'
         ])
-        && d.keys().hasAll(['name', 'ownerId'])
-        && d.get('id', id) == id
+        && d.keys().hasAll(['name'])
+        && (d.get('id', '') == '' || d.get('id', id) == id)
         && s(d, 'name', 100)
         && sn(d, 'location', 200)
         && sn(d, 'clinicLocation', 200)
         && sn(d, 'address', 200)
-        && s(d, 'ownerId', 128)
+        && sn(d, 'ownerId', 128)
         && sn(d, 'inviteCode', 32)
         && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
         && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
@@ -294,27 +323,27 @@ service cloud.firestore {
       allow list: if request.auth != null && request.query.limit <= 100;
       allow create: if request.auth != null && (
         isMasterAdmin() ||
-        request.auth.token.email == "admin.docrs@gmail.com" ||
-        request.resource.data.ownerId == request.auth.uid
+        isTeamOwner(teamId) ||
+        isTeamAdmin(teamId) ||
+        request.resource.data.get('ownerId', '') == request.auth.uid ||
+        request.resource.data.get('adminId', '') == request.auth.uid
       ) && validTeam(request.resource.data, teamId);
       allow update: if request.auth != null && (
         isMasterAdmin() ||
-        request.auth.token.email == "admin.docrs@gmail.com" ||
-        ((resource.data.ownerId == request.auth.uid ||
-          resource.data.get('ownerId', '') == request.auth.uid ||
-          isTeamOwner(teamId) ||
-          isTeamAdmin(teamId)) && !isTeamAssistant(teamId))
+        isTeamOwner(teamId) ||
+        isTeamAdmin(teamId) ||
+        resource.data.get('ownerId', '') == request.auth.uid ||
+        resource.data.get('adminId', '') == request.auth.uid
       ) && (
         isMasterAdmin() ||
-        request.auth.token.email == "admin.docrs@gmail.com" ||
         validTeam(request.resource.data, teamId)
       );
       allow delete: if request.auth != null && (
         isMasterAdmin() ||
-        request.auth.token.email == "admin.docrs@gmail.com" ||
-        ((resource.data.ownerId == request.auth.uid ||
-          resource.data.get('ownerId', '') == request.auth.uid ||
-          isTeamOwner(teamId)) && !isTeamAssistant(teamId))
+        isTeamOwner(teamId) ||
+        isTeamAdmin(teamId) ||
+        resource.data.get('ownerId', '') == request.auth.uid ||
+        resource.data.get('adminId', '') == request.auth.uid
       );
 
       function validMember(d, uid) {
@@ -322,11 +351,13 @@ service cloud.firestore {
             'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
             'isApproved', 'targetWorkspaceId', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
             'createdAt', 'updatedAt', 'inviteCode', 'requestedRole',
-            'firstName', 'lastName', 'middleName', 'suffix'
+            'firstName', 'lastName', 'middleName', 'suffix',
+            'fullName', 'id', 'notes', 'accountIntent', 'phoneNumber', 'photoUrl'
           ])
           && d.keys().hasAll(['uid', 'role'])
           && d.get('uid', uid) == uid
           && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && sn(d, 'fullName', 200)
           && sn(d, 'firstName', 100) && sn(d, 'lastName', 100)
           && sn(d, 'middleName', 100) && sn(d, 'suffix', 50)
           && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
@@ -349,10 +380,12 @@ service cloud.firestore {
             'uid', 'email', 'displayName', 'role', 'joinedAt', 'status',
             'isApproved', 'targetWorkspaceId', 'requestedWorkspaceId', 'workspaceId', 'teamId', 'requestedAt',
             'createdAt', 'updatedAt', 'inviteCode', 'requestedRole',
-            'firstName', 'lastName', 'middleName', 'suffix'
+            'firstName', 'lastName', 'middleName', 'suffix',
+            'fullName', 'id', 'notes', 'accountIntent', 'phoneNumber', 'photoUrl'
           ])
           && d.get('uid', uid) == uid
           && sn(d, 'email', 200) && sn(d, 'displayName', 200)
+          && sn(d, 'fullName', 200)
           && sn(d, 'firstName', 100) && sn(d, 'lastName', 100)
           && sn(d, 'middleName', 100) && sn(d, 'suffix', 50)
           && (sn(d, 'joinedAt', 64) || d.get('joinedAt', null) is timestamp)
@@ -375,6 +408,12 @@ service cloud.firestore {
         allow create: if request.auth != null && (isTeamOwner(teamId) || isTeamAdmin(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
         allow update: if request.auth != null && (isTeamOwner(teamId) || isTeamAdmin(teamId) || request.auth.uid == uid) && validMember(request.resource.data, uid);
         allow delete: if isTeamOwner(teamId) || isTeamAdmin(teamId) || (request.auth != null && request.auth.uid == uid);
+      }
+
+      match /pendingRequests/{uid} {
+        allow get, list: if isTeamOwner(teamId) || isTeamAdmin(teamId);
+        allow create: if request.auth != null && (request.auth.uid == uid || isTeamOwner(teamId) || isTeamAdmin(teamId)) && validJoinRequest(request.resource.data, uid);
+        allow update, delete: if isTeamOwner(teamId) || isTeamAdmin(teamId);
       }
 
       match /joinRequests/{uid} {
@@ -405,6 +444,11 @@ service cloud.firestore {
 
     // Collection group rule for querying join requests across teams
     match /{path=**}/joinRequests/{uid} {
+      allow read: if request.auth != null;
+    }
+
+    // Collection group rule for querying pending requests across teams
+    match /{path=**}/pendingRequests/{uid} {
       allow read: if request.auth != null;
     }
 
@@ -547,16 +591,14 @@ service cloud.firestore {
       allow get: if request.auth != null && (
         request.auth.uid == uid ||
         isMasterAdmin() ||
-        request.auth.token.email == 'admin.docrs@gmail.com' ||
         isStaff() ||
         isTeamOwner(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', ''))) ||
         isTeamAdmin(resource.data.get('requestedWorkspaceId', resource.data.get('teamId', '')))
       );
-      allow list: if request.auth != null && (isMasterAdmin() || isStaff() || request.auth.token.email == 'admin.docrs@gmail.com' || request.query.limit <= 100);
+      allow list: if request.auth != null && (isMasterAdmin() || isStaff() || request.query.limit <= 100);
       allow create, update: if request.auth != null && (
         request.auth.uid == uid ||
         isMasterAdmin() ||
-        request.auth.token.email == 'admin.docrs@gmail.com' ||
         isStaff() ||
         isTeamOwner(request.resource.data.get('requestedWorkspaceId', request.resource.data.get('teamId', ''))) ||
         isTeamAdmin(request.resource.data.get('requestedWorkspaceId', request.resource.data.get('teamId', ''))) ||
