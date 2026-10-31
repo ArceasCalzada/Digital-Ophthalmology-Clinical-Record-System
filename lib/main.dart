@@ -42,6 +42,7 @@ void main() async {
   }
 
   await PatientRepository.init();
+  await ThemeController.instance.init();
   runApp(OphthalmologyApp());
 }
 

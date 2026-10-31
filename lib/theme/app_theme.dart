@@ -25,25 +25,29 @@ class ThemeController extends ChangeNotifier {
     return WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
   }
 
-  void setThemeMode(ThemeMode mode) {
+  Future<void> init() async {
+    await _load();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
     if (_themeMode != mode) {
       _themeMode = mode;
       notifyListeners();
-      _save();
+      await _save();
     }
   }
 
-  void setThemeModeByName(String name) {
+  Future<void> setThemeModeByName(String name) async {
     switch (name) {
       case 'Dark':
-        setThemeMode(ThemeMode.dark);
+        await setThemeMode(ThemeMode.dark);
         break;
       case 'System Default':
-        setThemeMode(ThemeMode.system);
+        await setThemeMode(ThemeMode.system);
         break;
       case 'Light':
       default:
-        setThemeMode(ThemeMode.light);
+        await setThemeMode(ThemeMode.light);
         break;
     }
   }
@@ -71,7 +75,19 @@ class ThemeController extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_key);
       if (saved != null) {
-        setThemeModeByName(saved);
+        switch (saved) {
+          case 'Dark':
+            _themeMode = ThemeMode.dark;
+            break;
+          case 'System Default':
+            _themeMode = ThemeMode.system;
+            break;
+          case 'Light':
+          default:
+            _themeMode = ThemeMode.light;
+            break;
+        }
+        notifyListeners();
       }
     } catch (_) {}
   }

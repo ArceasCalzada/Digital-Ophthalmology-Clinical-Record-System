@@ -75,6 +75,51 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
+  bool get _isDark =>
+      ThemeController.instance.isDarkMode ||
+      (mounted && Theme.of(context).brightness == Brightness.dark);
+
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required IconData prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    final isDark = _isDark;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1);
+    final focusBorderColor = isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue;
+    final fillColor = isDark
+        ? const Color(0xFF0F172A)
+        : (_isLoading ? const Color(0xFFF8FAFC) : Colors.white);
+    final iconColor = _isLoading
+        ? (isDark ? const Color(0xFF64748B) : AppTheme.textSecondary)
+        : (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue);
+
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+        fontSize: 14,
+      ),
+      prefixIcon: Icon(prefixIcon, color: iconColor, size: 20),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: fillColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: focusBorderColor, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+  }
+
   Future<void> _handleSignIn() async {
     if (_signInFormKey.currentState == null || !_signInFormKey.currentState!.validate()) return;
     setState(() {
@@ -175,21 +220,35 @@ class _LoginViewState extends State<LoginView> {
     bool isResetting = false;
     String? dialogError;
     String? dialogSuccess;
+    final isDark = _isDark;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              ),
+            ),
             title: Row(
               children: [
-                Icon(Icons.lock_reset_rounded, color: AppTheme.primaryBlue),
-                SizedBox(width: 8),
+                Icon(
+                  Icons.lock_reset_rounded,
+                  color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Reset Workstation Password',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                    ),
                   ),
                 ),
               ],
@@ -202,18 +261,23 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   Text(
                     'Enter your registered email address and we will send you a link to reset your password.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   RequiredTextFormField(
                     controller: resetEmailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-                    decoration: InputDecoration(
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                      fontSize: 14,
+                    ),
+                    decoration: _buildInputDecoration(
                       hintText: 'name@clinic.example',
-                      prefixIcon: Icon(Icons.email_outlined, color: AppTheme.primaryBlue, size: 20),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      prefixIcon: Icons.email_outlined,
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) return 'Please enter your email';
@@ -224,17 +288,24 @@ class _LoginViewState extends State<LoginView> {
                     },
                   ),
                   if (dialogError != null) ...[
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       dialogError!,
-                      style: TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
+                      ),
                     ),
                   ],
                   if (dialogSuccess != null) ...[
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       dialogSuccess!,
-                      style: TextStyle(fontSize: 12, color: Color(0xFF047857), fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ],
@@ -243,7 +314,10 @@ class _LoginViewState extends State<LoginView> {
             actions: [
               TextButton(
                 onPressed: isResetting ? null : () => Navigator.pop(context),
-                child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                ),
               ),
               ElevatedButton(
                 onPressed: isResetting
@@ -274,12 +348,12 @@ class _LoginViewState extends State<LoginView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: isResetting
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : Text('Send Reset Link'),
+                    : const Text('Send Reset Link'),
               ),
             ],
           );
@@ -299,222 +373,249 @@ class _LoginViewState extends State<LoginView> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Container(
-              constraints: BoxConstraints(maxWidth: 460),
-              child: Card(
-                color: Colors.white,
-                elevation: 4,
-                shadowColor: Colors.black.withValues(alpha: 0.08),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(color: AppTheme.borderColor),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Brand Header & Logo Emblem
-                      Center(
-                        child: Container(
-                          width: 58,
-                          height: 58,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.primaryBlue,
-                                AppTheme.primaryBlue.withValues(alpha: 0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryBlue.withValues(alpha: 0.25),
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
+    return ListenableBuilder(
+      listenable: ThemeController.instance,
+      builder: (context, _) {
+        final isDark = _isDark;
+        return Scaffold(
+          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Card(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    elevation: isDark ? 8 : 4,
+                    shadowColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Brand Header & Logo Emblem
+                          Center(
+                            child: Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.primaryBlue,
+                                    AppTheme.primaryBlue.withValues(alpha: 0.8),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryBlue.withValues(alpha: 0.25),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
+                              child: const Icon(
+                                Icons.remove_red_eye_rounded,
+                                size: 32,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                          child: Icon(
-                            Icons.remove_red_eye_rounded,
-                            size: 32,
-                            color: Colors.white,
+                          const SizedBox(height: 14),
+                          Text(
+                            'DOCRS Clinical System',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(height: 14),
-                      Text(
-                        'DOCRS Clinical System',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Digital Ophthalmology Clinical Record System',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 20),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Digital Ophthalmology Clinical Record System',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
 
-                      // State Handler views
-                      if (_isSuccessTransitioning)
-                        _buildSuccessTransitionView()
-                      else if (auth.is2faPending)
-                        _buildTwoFactorPendingView(auth)
-                      else if (auth.isPendingEmailVerification)
-                        _buildEmailVerificationPendingView(auth)
-                      else if (auth.isPendingRole && auth.isPendingApproval)
-                        _buildPendingRoleView(auth)
-                      else if (auth.isPendingRole && !auth.isPendingApproval)
-                        _buildAutoProvisionPhysicianView(auth)
-                      else ...[
-                        // Mode Switcher Tabs
-                        Container(
-                          height: 40,
-                          padding: EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: _isLoading
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _isSignUpMode = false;
-                                            _errorMessage = null;
-                                          });
-                                        },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: !_isSignUpMode ? Colors.white : Colors.transparent,
+                          // State Handler views
+                          if (_isSuccessTransitioning)
+                            _buildSuccessTransitionView()
+                          else if (auth.is2faPending)
+                            _buildTwoFactorPendingView(auth)
+                          else if (auth.isPendingEmailVerification)
+                            _buildEmailVerificationPendingView(auth)
+                          else if (auth.isPendingRole && auth.isPendingApproval)
+                            _buildPendingRoleView(auth)
+                          else if (auth.isPendingRole && !auth.isPendingApproval)
+                            _buildAutoProvisionPhysicianView(auth)
+                          else ...[
+                            // Mode Switcher Tabs
+                            Container(
+                              height: 40,
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _isLoading
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _isSignUpMode = false;
+                                                _errorMessage = null;
+                                              });
+                                            },
                                       borderRadius: BorderRadius.circular(8),
-                                      boxShadow: !_isSignUpMode
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 1),
-                                              )
-                                            ]
-                                          : null,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'Sign In',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: !_isSignUpMode ? FontWeight.bold : FontWeight.w500,
-                                        color: !_isSignUpMode ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: !_isSignUpMode
+                                              ? (isDark ? const Color(0xFF334155) : Colors.white)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: !_isSignUpMode
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 1),
+                                                  )
+                                                ]
+                                              : null,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: !_isSignUpMode ? FontWeight.bold : FontWeight.w500,
+                                            color: !_isSignUpMode
+                                                ? (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue)
+                                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: _isLoading
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _isSignUpMode = true;
-                                            _errorMessage = null;
-                                          });
-                                        },
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: _isSignUpMode ? Colors.white : Colors.transparent,
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _isLoading
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _isSignUpMode = true;
+                                                _errorMessage = null;
+                                              });
+                                            },
                                       borderRadius: BorderRadius.circular(8),
-                                      boxShadow: _isSignUpMode
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.05),
-                                                blurRadius: 4,
-                                                offset: Offset(0, 1),
-                                              )
-                                            ]
-                                          : null,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      'Create Account',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: _isSignUpMode ? FontWeight.bold : FontWeight.w500,
-                                        color: _isSignUpMode ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: _isSignUpMode
+                                              ? (isDark ? const Color(0xFF334155) : Colors.white)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: _isSignUpMode
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 1),
+                                                  )
+                                                ]
+                                              : null,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          'Create Account',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: _isSignUpMode ? FontWeight.bold : FontWeight.w500,
+                                            color: _isSignUpMode
+                                                ? (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue)
+                                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 18),
-
-                        if (!_isSignUpMode) _buildSignInForm() else _buildSignUpForm(),
-                      ],
-
-                      SizedBox(height: 24),
-
-                      // Compliance Footer Badge
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderColor),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shield_outlined, size: 16, color: Color(0xFF059669)),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                'Authorised clinic staff only',
-                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
-                                overflow: TextOverflow.ellipsis,
+                                ],
                               ),
                             ),
+                            const SizedBox(height: 18),
+
+                            if (!_isSignUpMode) _buildSignInForm() else _buildSignUpForm(),
                           ],
-                        ),
+
+                          const SizedBox(height: 24),
+
+                          // Compliance Footer Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.shield_outlined,
+                                  size: 16,
+                                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    'Authorised clinic staff only',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildSignInForm() {
+    final isDark = _isDark;
     return Form(
       key: _signInFormKey,
       child: Column(
@@ -522,60 +623,60 @@ class _LoginViewState extends State<LoginView> {
         children: [
           Text(
             'Email Address',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInEmailController,
             enabled: !_isLoading,
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              color: isDark
+                  ? const Color(0xFFF8FAFC)
+                  : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
               fontSize: 14,
             ),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: Icon(
-                Icons.email_outlined,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              prefixIcon: Icons.email_outlined,
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Enter your email';
               return null;
             },
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
 
           Text(
             'Password',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           RequiredTextFormField(
             controller: _signInPasswordController,
             enabled: !_isLoading,
             obscureText: _obscureSignInPassword,
             style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              color: isDark
+                  ? const Color(0xFFF8FAFC)
+                  : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
               fontSize: 14,
             ),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
               hintText: '••••••••••••',
-              prefixIcon: Icon(
-                Icons.lock_outline,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
+              prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignInPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   size: 20,
                 ),
                 onPressed: _isLoading
@@ -584,17 +685,13 @@ class _LoginViewState extends State<LoginView> {
                         setState(() => _obscureSignInPassword = !_obscureSignInPassword);
                       },
               ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.isEmpty) return 'Enter your password';
               return null;
             },
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -609,15 +706,22 @@ class _LoginViewState extends State<LoginView> {
                       child: Checkbox(
                         value: _rememberMe,
                         activeColor: AppTheme.primaryBlue,
+                        side: BorderSide(
+                          color: isDark ? const Color(0xFF64748B) : const Color(0xFFCBD5E1),
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         onChanged: _isLoading ? null : (val) => setState(() => _rememberMe = val ?? true),
                       ),
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Keep me signed in',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -634,7 +738,9 @@ class _LoginViewState extends State<LoginView> {
                 child: Text(
                   'Forgot Password?',
                   style: TextStyle(
-                    color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
+                    color: _isLoading
+                        ? (isDark ? const Color(0xFF64748B) : AppTheme.textSecondary)
+                        : (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -643,10 +749,10 @@ class _LoginViewState extends State<LoginView> {
             ],
           ),
           if (_errorMessage != null) ...[
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildErrorContainer(_errorMessage!),
           ],
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -686,6 +792,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildSuccessTransitionView() {
+    final isDark = _isDark;
     return Container(
       key: const Key('login-transition-view'),
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
@@ -713,7 +820,7 @@ class _LoginViewState extends State<LoginView> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
               letterSpacing: -0.3,
             ),
           ),
@@ -723,7 +830,7 @@ class _LoginViewState extends State<LoginView> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -733,6 +840,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildSignUpForm() {
+    final isDark = _isDark;
     return Form(
       key: _signUpFormKey,
       child: Column(
@@ -742,9 +850,9 @@ class _LoginViewState extends State<LoginView> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             ),
             child: Row(
               children: [
@@ -761,12 +869,17 @@ class _LoginViewState extends State<LoginView> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
                       decoration: BoxDecoration(
-                        color: _signUpRoleIntent == 'physician' ? Colors.white : Colors.transparent,
+                        color: _signUpRoleIntent == 'physician'
+                            ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
+                        border: _signUpRoleIntent == 'physician' && isDark
+                            ? Border.all(color: const Color(0xFF475569))
+                            : null,
                         boxShadow: _signUpRoleIntent == 'physician'
                             ? [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                                   blurRadius: 4,
                                   offset: const Offset(0, 1),
                                 )
@@ -779,7 +892,9 @@ class _LoginViewState extends State<LoginView> {
                           Icon(
                             Icons.medical_services_rounded,
                             size: 16,
-                            color: _signUpRoleIntent == 'physician' ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                            color: _signUpRoleIntent == 'physician'
+                                ? (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue)
+                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                           const SizedBox(width: 6),
                           Flexible(
@@ -789,7 +904,9 @@ class _LoginViewState extends State<LoginView> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: _signUpRoleIntent == 'physician' ? FontWeight.bold : FontWeight.w500,
-                                color: _signUpRoleIntent == 'physician' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                color: _signUpRoleIntent == 'physician'
+                                    ? (isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A))
+                                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               ),
                             ),
                           ),
@@ -812,12 +929,17 @@ class _LoginViewState extends State<LoginView> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
                       decoration: BoxDecoration(
-                        color: _signUpRoleIntent == 'assistant' ? Colors.white : Colors.transparent,
+                        color: _signUpRoleIntent == 'assistant'
+                            ? (isDark ? const Color(0xFF1E293B) : Colors.white)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
+                        border: _signUpRoleIntent == 'assistant' && isDark
+                            ? Border.all(color: const Color(0xFF475569))
+                            : null,
                         boxShadow: _signUpRoleIntent == 'assistant'
                             ? [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                                   blurRadius: 4,
                                   offset: const Offset(0, 1),
                                 )
@@ -830,7 +952,9 @@ class _LoginViewState extends State<LoginView> {
                           Icon(
                             Icons.badge_outlined,
                             size: 16,
-                            color: _signUpRoleIntent == 'assistant' ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                            color: _signUpRoleIntent == 'assistant'
+                                ? (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue)
+                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                           const SizedBox(width: 6),
                           Flexible(
@@ -840,7 +964,9 @@ class _LoginViewState extends State<LoginView> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: _signUpRoleIntent == 'assistant' ? FontWeight.bold : FontWeight.w500,
-                                color: _signUpRoleIntent == 'assistant' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                color: _signUpRoleIntent == 'assistant'
+                                    ? (isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A))
+                                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                               ),
                             ),
                           ),
@@ -858,10 +984,14 @@ class _LoginViewState extends State<LoginView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: _signUpRoleIntent == 'physician' ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+              color: _signUpRoleIntent == 'physician'
+                  ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFF0FDF4))
+                  : (isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF)),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: _signUpRoleIntent == 'physician' ? const Color(0xFFBBF7D0) : const Color(0xFFBFDBFE),
+                color: _signUpRoleIntent == 'physician'
+                    ? (isDark ? const Color(0xFF059669).withValues(alpha: 0.6) : const Color(0xFFBBF7D0))
+                    : (isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.5) : const Color(0xFFBFDBFE)),
               ),
             ),
             child: Row(
@@ -869,7 +999,9 @@ class _LoginViewState extends State<LoginView> {
                 Icon(
                   _signUpRoleIntent == 'physician' ? Icons.verified_user_rounded : Icons.info_outline_rounded,
                   size: 16,
-                  color: _signUpRoleIntent == 'physician' ? const Color(0xFF16A34A) : AppTheme.primaryBlue,
+                  color: _signUpRoleIntent == 'physician'
+                      ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
+                      : (isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -880,7 +1012,9 @@ class _LoginViewState extends State<LoginView> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: _signUpRoleIntent == 'physician' ? const Color(0xFF15803D) : const Color(0xFF1E40AF),
+                      color: _signUpRoleIntent == 'physician'
+                          ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF15803D))
+                          : (isDark ? const Color(0xFFBFDBFE) : const Color(0xFF1E40AF)),
                       height: 1.3,
                     ),
                   ),
@@ -893,7 +1027,11 @@ class _LoginViewState extends State<LoginView> {
           if (_signUpRoleIntent == 'assistant') ...[
             Text(
               'Clinic Invite Code',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+              ),
             ),
             const SizedBox(height: 8),
             RequiredTextFormField(
@@ -902,22 +1040,16 @@ class _LoginViewState extends State<LoginView> {
               enabled: !_isLoading,
               textCapitalization: TextCapitalization.characters,
               style: TextStyle(
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+                color: isDark
+                    ? const Color(0xFFF8FAFC)
+                    : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
                 fontSize: 14,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.bold,
               ),
-              decoration: InputDecoration(
+              decoration: _buildInputDecoration(
                 hintText: 'e.g. DOC-982',
-                prefixIcon: Icon(
-                  Icons.vpn_key_outlined,
-                  color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                  size: 20,
-                ),
-                filled: _isLoading,
-                fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                prefixIcon: Icons.vpn_key_outlined,
               ),
               validator: (val) {
                 if (_signUpRoleIntent == 'assistant' && (val == null || val.trim().isEmpty)) {
@@ -931,29 +1063,27 @@ class _LoginViewState extends State<LoginView> {
 
           Text(
             'Clinic Email',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           RequiredTextFormField(
             key: const Key('signup-email-field'),
             controller: _signUpEmailController,
             enabled: !_isLoading,
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              color: isDark
+                  ? const Color(0xFFF8FAFC)
+                  : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
               fontSize: 14,
             ),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
               hintText: 'name@clinic.example',
-              prefixIcon: Icon(
-                Icons.email_outlined,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              prefixIcon: Icons.email_outlined,
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Enter your email';
@@ -963,33 +1093,35 @@ class _LoginViewState extends State<LoginView> {
               return null;
             },
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
 
           Text(
             'Password',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           RequiredTextFormField(
             key: const Key('signup-password-field'),
             controller: _signUpPasswordController,
             enabled: !_isLoading,
             obscureText: _obscureSignUpPassword,
             style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              color: isDark
+                  ? const Color(0xFFF8FAFC)
+                  : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
               fontSize: 14,
             ),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
               hintText: 'At least 6 characters',
-              prefixIcon: Icon(
-                Icons.lock_outline,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
+              prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureSignUpPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   size: 20,
                 ),
                 onPressed: _isLoading
@@ -998,43 +1130,41 @@ class _LoginViewState extends State<LoginView> {
                         setState(() => _obscureSignUpPassword = !_obscureSignUpPassword);
                       },
               ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val == null || val.length < 6) return 'Password must be at least 6 characters';
               return null;
             },
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
 
           Text(
             'Confirm Password',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           RequiredTextFormField(
             key: const Key('signup-confirm-password-field'),
             controller: _confirmPasswordController,
             enabled: !_isLoading,
             obscureText: _obscureConfirmPassword,
             style: TextStyle(
-              color: _isLoading ? AppTheme.textSecondary : AppTheme.textPrimary,
+              color: isDark
+                  ? const Color(0xFFF8FAFC)
+                  : (_isLoading ? const Color(0xFF64748B) : const Color(0xFF0F172A)),
               fontSize: 14,
             ),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
               hintText: 'Repeat password',
-              prefixIcon: Icon(
-                Icons.lock_clock_outlined,
-                color: _isLoading ? AppTheme.textSecondary : AppTheme.primaryBlue,
-                size: 20,
-              ),
+              prefixIcon: Icons.lock_clock_outlined,
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: _isLoading ? AppTheme.textSecondary.withValues(alpha: 0.5) : AppTheme.textSecondary,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                   size: 20,
                 ),
                 onPressed: _isLoading
@@ -1043,10 +1173,6 @@ class _LoginViewState extends State<LoginView> {
                         setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
                       },
               ),
-              filled: _isLoading,
-              fillColor: _isLoading ? const Color(0xFFF8FAFC) : null,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
             validator: (val) {
               if (val != _signUpPasswordController.text) return 'Passwords do not match';
@@ -1054,10 +1180,10 @@ class _LoginViewState extends State<LoginView> {
             },
           ),
           if (_errorMessage != null) ...[
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildErrorContainer(_errorMessage!),
           ],
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -1115,47 +1241,66 @@ class _LoginViewState extends State<LoginView> {
   bool _isSendingVerification = false;
 
   Widget _buildEmailVerificationPendingView(AuthService auth) {
+    final isDark = _isDark;
     return Container(
-      padding: EdgeInsets.all(18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Color(0xFFFFFBEB),
+        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.25) : const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFFDE68A)),
+        border: Border.all(
+          color: isDark ? const Color(0xFFD97706).withValues(alpha: 0.5) : const Color(0xFFFDE68A),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
             child: Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFFEF3C7),
+                color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.5) : const Color(0xFFFEF3C7),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.mark_email_unread_rounded, size: 40, color: Color(0xFFD97706)),
+              child: Icon(
+                Icons.mark_email_unread_rounded,
+                size: 40,
+                color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+              ),
             ),
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           Text(
             'Verify Your Gmail Address',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'A verification link has been sent to ${auth.email ?? "your Gmail address"}. Please open your Gmail inbox (or Spam folder), click the link to verify, then return here and tap the button below.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+              height: 1.4,
+            ),
           ),
           if (_verificationStatusMessage != null) ...[
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Container(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _verificationIsError ? Color(0xFFFEF2F2) : Color(0xFFECFDF5),
+                color: _verificationIsError
+                    ? (isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2))
+                    : (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5)),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _verificationIsError ? Color(0xFFFCA5A5) : Color(0xFFA7F3D0),
+                  color: _verificationIsError
+                      ? (isDark ? const Color(0xFFDC2626).withValues(alpha: 0.5) : const Color(0xFFFCA5A5))
+                      : (isDark ? const Color(0xFF059669).withValues(alpha: 0.5) : const Color(0xFFA7F3D0)),
                 ),
               ),
               child: Row(
@@ -1163,15 +1308,19 @@ class _LoginViewState extends State<LoginView> {
                   Icon(
                     _verificationIsError ? Icons.error_outline : Icons.check_circle_outline,
                     size: 18,
-                    color: _verificationIsError ? Color(0xFFB91C1C) : Color(0xFF047857),
+                    color: _verificationIsError
+                        ? (isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C))
+                        : (isDark ? const Color(0xFF34D399) : const Color(0xFF047857)),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _verificationStatusMessage!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: _verificationIsError ? Color(0xFFB91C1C) : Color(0xFF047857),
+                        color: _verificationIsError
+                            ? (isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C))
+                            : (isDark ? const Color(0xFF34D399) : const Color(0xFF047857)),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1180,7 +1329,7 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
           ],
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
 
           SizedBox(
             height: 48,
@@ -1204,13 +1353,13 @@ class _LoginViewState extends State<LoginView> {
                       }
                     },
               icon: _isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : Icon(Icons.mark_email_read_rounded, size: 18),
-              label: Text('I Have Clicked the Verification Link', style: TextStyle(fontWeight: FontWeight.bold)),
+                  : const Icon(Icons.mark_email_read_rounded, size: 18),
+              label: const Text('I Have Clicked the Verification Link', style: TextStyle(fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
@@ -1218,7 +1367,7 @@ class _LoginViewState extends State<LoginView> {
               ),
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
 
           SizedBox(
             height: 44,
@@ -1257,21 +1406,21 @@ class _LoginViewState extends State<LoginView> {
                       }
                     },
               icon: _isSendingVerification
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
                     )
-                  : Icon(Icons.send_rounded, size: 16),
-              label: Text('Resend Verification Email to Gmail'),
+                  : const Icon(Icons.send_rounded, size: 16),
+              label: const Text('Resend Verification Email to Gmail'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryBlue,
-                side: BorderSide(color: AppTheme.primaryBlue),
+                foregroundColor: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+                side: BorderSide(color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           Center(
             child: TextButton(
@@ -1279,7 +1428,10 @@ class _LoginViewState extends State<LoginView> {
                 setState(() => _verificationStatusMessage = null);
                 auth.signOut();
               },
-              child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+              child: Text(
+                'Sign Out',
+                style: TextStyle(color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), fontSize: 13),
+              ),
             ),
           ),
         ],
@@ -1288,52 +1440,71 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildPendingRoleView(AuthService auth) {
+    final isDark = _isDark;
     final workspaceName = auth.pendingWorkspaceName ?? 'the clinic team';
     final inviteCode = auth.pendingInviteCode;
 
     return Container(
       key: const Key('pending-approval-holding-card'),
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFFEFF6FF),
+        color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.25) : const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFBFDBFE)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.5) : const Color(0xFFBFDBFE),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
-            child: Icon(Icons.admin_panel_settings_outlined, size: 48, color: AppTheme.primaryBlue),
+            child: Icon(
+              Icons.admin_panel_settings_outlined,
+              size: 48,
+              color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+            ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Waiting for Administrator Approval',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Your account (${auth.email}) has requested to join $workspaceName${inviteCode != null ? " with invite code $inviteCode" : ""}. A clinic administrator must approve your join request before you can access clinical records.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+              height: 1.4,
+            ),
           ),
           if (inviteCode != null) ...[
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Center(
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Color(0xFFDBEAFE),
+                  color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.6) : const Color(0xFFDBEAFE),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Invite Code: $inviteCode',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFF93C5FD) : AppTheme.primaryBlue,
+                  ),
                 ),
               ),
             ),
           ],
-          SizedBox(height: 18),
+          const SizedBox(height: 18),
           ElevatedButton.icon(
             key: const Key('check-status-button'),
             onPressed: () async {
@@ -1341,30 +1512,33 @@ class _LoginViewState extends State<LoginView> {
               await auth.reloadUserAndCheckRole();
               if (mounted) setState(() => _isLoading = false);
             },
-            icon: Icon(Icons.refresh_rounded, size: 18),
-            label: Text('Check Status'),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Check Status'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
             key: const Key('change-invite-code-button'),
             onPressed: () => _showJoinClinicModalForPending(context, auth),
-            icon: Icon(Icons.group_add_outlined, size: 18),
-            label: Text('Enter Different Invite Code'),
+            icon: const Icon(Icons.group_add_outlined, size: 18),
+            label: const Text('Enter Different Invite Code'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primaryBlue,
-              side: BorderSide(color: AppTheme.primaryBlue),
+              foregroundColor: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+              side: BorderSide(color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           TextButton(
             onPressed: () => auth.signOut(),
-            child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
+            child: Text(
+              'Sign Out',
+              style: TextStyle(color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+            ),
           ),
         ],
       ),
@@ -1372,33 +1546,48 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildAutoProvisionPhysicianView(AuthService auth) {
+    final isDark = _isDark;
     return Container(
       key: const Key('physician-activation-card'),
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFFF0FDF4),
+        color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.25) : const Color(0xFFF0FDF4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFBBF7D0)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF059669).withValues(alpha: 0.5) : const Color(0xFFBBF7D0),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
-            child: Icon(Icons.medical_services_rounded, size: 48, color: Color(0xFF16A34A)),
+            child: Icon(
+              Icons.medical_services_rounded,
+              size: 48,
+              color: isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A),
+            ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Doctor Practice Activation',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? const Color(0xFF34D399) : const Color(0xFF15803D),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Your physician account (${auth.email}) is verified. Click below to automatically provision your private clinic workspace with full Owner & Physician privileges.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF64748B),
+              height: 1.4,
+            ),
           ),
-          SizedBox(height: 18),
+          const SizedBox(height: 18),
           ElevatedButton.icon(
             key: const Key('auto-provision-workspace-button'),
             onPressed: () async {
@@ -1416,18 +1605,21 @@ class _LoginViewState extends State<LoginView> {
                 if (mounted) setState(() => _isLoading = false);
               }
             },
-            icon: Icon(Icons.check_circle_outline, size: 18),
-            label: Text('Activate Practice Workspace'),
+            icon: const Icon(Icons.check_circle_outline, size: 18),
+            label: const Text('Activate Practice Workspace'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF16A34A),
+              backgroundColor: const Color(0xFF16A34A),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           TextButton(
             onPressed: () => auth.signOut(),
-            child: Text('Sign Out', style: TextStyle(color: Color(0xFFDC2626))),
+            child: Text(
+              'Sign Out',
+              style: TextStyle(color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+            ),
           ),
         ],
       ),
@@ -1438,17 +1630,31 @@ class _LoginViewState extends State<LoginView> {
     final codeController = TextEditingController();
     bool isSubmitting = false;
     String? errorText;
+    final isDark = _isDark;
 
     showDialog(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            ),
+          ),
           title: Row(
             children: [
-              Icon(Icons.group_add_rounded, color: AppTheme.primaryBlue),
-              SizedBox(width: 8),
-              Text('Join Clinic Team', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Icon(Icons.group_add_rounded, color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
+              const SizedBox(width: 8),
+              Text(
+                'Join Clinic Team',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                ),
+              ),
             ],
           ),
           content: Column(
@@ -1457,26 +1663,39 @@ class _LoginViewState extends State<LoginView> {
             children: [
               Text(
                 'Enter the 6-character invite code provided by your clinic owner to submit your join request for approval.',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               if (errorText != null) ...[
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.5) : const Color(0xFFFCA5A5),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           errorText!,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C), height: 1.3),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
+                            height: 1.3,
+                          ),
                         ),
                       ),
                     ],
@@ -1487,11 +1706,13 @@ class _LoginViewState extends State<LoginView> {
               TextField(
                 controller: codeController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: 'Invite Code',
+                style: TextStyle(
+                  color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                  fontSize: 14,
+                ),
+                decoration: _buildInputDecoration(
                   hintText: 'e.g. ABC123',
-                  prefixIcon: Icon(Icons.vpn_key_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  prefixIcon: Icons.vpn_key_outlined,
                 ),
               ),
             ],
@@ -1499,7 +1720,10 @@ class _LoginViewState extends State<LoginView> {
           actions: [
             TextButton(
               onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              ),
             ),
             ElevatedButton(
               onPressed: isSubmitting
@@ -1548,12 +1772,12 @@ class _LoginViewState extends State<LoginView> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: isSubmitting
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : Text('Submit Request'),
+                  : const Text('Submit Request'),
             ),
           ],
         ),
@@ -1562,21 +1786,31 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildErrorContainer(String message) {
+    final isDark = _isDark;
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Color(0xFFFEF2F2),
+        color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Color(0xFFFCA5A5)),
+        border: Border.all(
+          color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.5) : const Color(0xFFFCA5A5),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
-          SizedBox(width: 8),
+          Icon(
+            Icons.error_outline,
+            size: 18,
+            color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
+              ),
             ),
           ),
         ],
@@ -1585,13 +1819,16 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Widget _buildTwoFactorPendingView(AuthService auth) {
+    final isDark = _isDark;
     return Container(
       key: const Key('two_factor_verification_view'),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1603,9 +1840,12 @@ class _LoginViewState extends State<LoginView> {
               decoration: BoxDecoration(
                 color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2), width: 2),
+                border: Border.all(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  width: 2,
+                ),
               ),
-              child: Icon(Icons.shield_outlined, size: 30, color: AppTheme.primaryBlue),
+              child: const Icon(Icons.shield_outlined, size: 30, color: AppTheme.primaryBlue),
             ),
           ),
           const SizedBox(height: 14),
@@ -1615,7 +1855,7 @@ class _LoginViewState extends State<LoginView> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
+              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 6),
@@ -1624,7 +1864,7 @@ class _LoginViewState extends State<LoginView> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
               height: 1.4,
             ),
           ),
@@ -1644,10 +1884,34 @@ class _LoginViewState extends State<LoginView> {
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   maxLength: 1,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                  ),
                   decoration: InputDecoration(
                     counterText: '',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+                        width: 1.5,
+                      ),
+                    ),
                     contentPadding: EdgeInsets.zero,
                   ),
                   onChanged: (value) {
@@ -1670,18 +1934,28 @@ class _LoginViewState extends State<LoginView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFECACA)),
+                border: Border.all(
+                  color: isDark ? const Color(0xFFDC2626).withValues(alpha: 0.5) : const Color(0xFFFECACA),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, size: 16, color: Color(0xFFDC2626)),
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 16,
+                    color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _twoFactorError!,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -1729,7 +2003,8 @@ class _LoginViewState extends State<LoginView> {
             icon: const Icon(Icons.refresh_rounded, size: 16),
             label: const Text('Resend SMS Code'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primaryBlue,
+              foregroundColor: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+              side: BorderSide(color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
@@ -1746,7 +2021,13 @@ class _LoginViewState extends State<LoginView> {
                 setState(() => _twoFactorError = null);
                 auth.cancel2fa();
               },
-              child: const Text('Cancel & Return to Sign In', style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+              child: Text(
+                'Cancel & Return to Sign In',
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],
