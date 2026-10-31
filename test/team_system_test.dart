@@ -721,7 +721,7 @@ void main() {
       await service.load('master-admin-uid', userEmail: 'admin.docrs@gmail.com', displayName: 'Master Admin');
 
       final team1 = await service.createTeam('Clinic Alpha');
-      final team2 = await service.createTeam('Clinic Beta');
+      await service.createTeam('Clinic Beta');
 
       // Active is currently team2. Archiving inactive team1 should succeed
       expect(service.canManageTeam(team1), isTrue);

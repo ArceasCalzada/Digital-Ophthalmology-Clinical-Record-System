@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../models/patient.dart' show PatientRepository;
@@ -129,6 +130,11 @@ class OfflineSyncService extends ChangeNotifier {
   Timer? _autoSyncTimer;
   Timer? _retryTimer;
   int _retryAttempt = 0;
+
+  Connectivity? _connectivity;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<void>? _snapshotsInSyncSub;
+  bool _isConnectivityListening = false;
 
   OfflineSyncService._internal();
 
@@ -270,6 +276,75 @@ class OfflineSyncService extends ChangeNotifier {
 
   bool get isOnline => _networkState == NetworkConnectivityState.online;
   bool get isOffline => _networkState == NetworkConnectivityState.offline;
+
+  /// Evaluates whether a list of [ConnectivityResult] indicates an active network connection.
+  static bool isConnectedResults(List<ConnectivityResult> results) {
+    if (results.isEmpty) return false;
+    if (results.length == 1 && results.first == ConnectivityResult.none) {
+      return false;
+    }
+    return results.any((r) => r != ConnectivityResult.none);
+  }
+
+  /// Starts real-time connectivity listener and binds to Firebase Firestore persistence events.
+  void startConnectivityListener({Connectivity? connectivity}) {
+    if (connectivity != null) {
+      _connectivity = connectivity;
+    } else {
+      _connectivity ??= Connectivity();
+    }
+    if (_isConnectivityListening) return;
+    _isConnectivityListening = true;
+
+    // Check initial connectivity status
+    _connectivity!.checkConnectivity().then((results) {
+      final online = isConnectedResults(results);
+      setNetworkState(online ? NetworkConnectivityState.online : NetworkConnectivityState.offline);
+    }).catchError((_) {
+      // In tests or platform environments where channels are absent, retain default state
+    });
+
+    // Dynamically listen to network connectivity state changes
+    _connectivitySub = _connectivity!.onConnectivityChanged.listen(
+      (results) {
+        final online = isConnectedResults(results);
+        setNetworkState(online ? NetworkConnectivityState.online : NetworkConnectivityState.offline);
+      },
+      onError: (err) {
+        debugPrint('Connectivity listener error: $err');
+      },
+    );
+
+    _initFirestorePersistenceListener();
+  }
+
+  void _initFirestorePersistenceListener() {
+    _snapshotsInSyncSub?.cancel();
+    _snapshotsInSyncSub = null;
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null) {
+      try {
+        _snapshotsInSyncSub = firestore.snapshotsInSync().listen(
+          (_) {
+            if (_pendingQueue.isEmpty && _failed.isEmpty && isOnline && _syncState != SyncStatusState.syncing) {
+              _syncState = SyncStatusState.upToDate;
+              _lastSyncedAt = DateTime.now();
+              notifyListeners();
+            }
+          },
+          onError: (_) {},
+        );
+      } catch (_) {}
+    }
+  }
+
+  void stopConnectivityListener() {
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    _snapshotsInSyncSub?.cancel();
+    _snapshotsInSyncSub = null;
+    _isConnectivityListening = false;
+  }
 
   void startAutoSyncTimer({Duration interval = const Duration(seconds: 15)}) {
     _autoSyncTimer?.cancel();
@@ -603,6 +678,7 @@ class OfflineSyncService extends ChangeNotifier {
 
   void resetForTesting() {
     stopAutoSyncTimer();
+    stopConnectivityListener();
     _pendingQueue.clear();
     _failed.clear();
     _retryAttempt = 0;
@@ -618,9 +694,16 @@ class OfflineSyncService extends ChangeNotifier {
     notifyListeners();
   }
 
+  @visibleForTesting
+  void setSyncStateForTesting(SyncStatusState state) {
+    _syncState = state;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     stopAutoSyncTimer();
+    stopConnectivityListener();
     super.dispose();
   }
 }

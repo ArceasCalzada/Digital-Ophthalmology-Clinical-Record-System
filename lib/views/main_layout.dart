@@ -789,7 +789,12 @@ class _MainLayoutState extends State<MainLayout> {
                   actions: [
                     Padding(
                       padding: EdgeInsets.only(right: 6),
-                      child: Center(child: SyncStatusIndicator(compact: true)),
+                      child: Center(
+                        child: SyncStatusIndicator(
+                          key: const Key('header-sync-status-indicator'),
+                          compact: true,
+                        ),
+                      ),
                     ),
                     IconButton(
                       icon: Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryBlue),

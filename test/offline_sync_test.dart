@@ -138,7 +138,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SyncStatusIndicator), findsOneWidget);
-      expect(find.text('Up to date'), findsOneWidget);
+      expect(find.text('Synced with Firebase'), findsOneWidget);
 
       // Tap status indicator to open modal details
       await tester.tap(find.byType(SyncStatusIndicator));

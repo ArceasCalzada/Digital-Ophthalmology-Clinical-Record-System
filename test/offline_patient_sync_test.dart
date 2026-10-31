@@ -79,8 +79,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Check that "Not saved (1)" is rendered accurately
-      expect(find.text('Not saved (1)'), findsOneWidget);
+      // Check that "Offline - Changes saved locally" is rendered accurately
+      expect(find.text('Offline - Changes saved locally'), findsOneWidget);
 
       // Check that the manual retry button is present next to the indicator
       final retryButton = find.byKey(const ValueKey('sync-indicator-retry-button'));
@@ -96,7 +96,7 @@ void main() {
 
       // In local/test mode without Firebase, sync clears the queue
       expect(syncService.pendingCount, equals(0));
-      expect(find.text('Up to date'), findsOneWidget);
+      expect(find.text('Synced with Firebase'), findsOneWidget);
     });
 
     testWidgets('PatientsScreen updates dynamically when an offline patient is added without reload', (WidgetTester tester) async {

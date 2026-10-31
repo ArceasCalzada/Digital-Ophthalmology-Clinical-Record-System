@@ -43,6 +43,7 @@ void main() async {
 
   await PatientRepository.init();
   await ThemeController.instance.init();
+  OfflineSyncService().startConnectivityListener();
   runApp(OphthalmologyApp());
 }
 

@@ -8,6 +8,7 @@ import '../widgets/pdf_exam_preview_dialog.dart';
 import '../theme/app_theme.dart';
 import '../widgets/page_header.dart';
 import '../widgets/success_modal.dart';
+import '../widgets/sync_status_indicator.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
 import '../services/profile_store.dart';
@@ -675,6 +676,10 @@ class _EyeExamViewState extends State<EyeExamView> {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: Center(child: SyncStatusIndicator(compact: true)),
+          ),
           // Prescription Writer
           OutlinedButton.icon(
             key: const Key('btn_add_prescription'),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ophthalmology_clinical_record_system/models/clinic_branch.dart';
 import 'package:ophthalmology_clinical_record_system/services/profile_store.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/settings_view.dart';

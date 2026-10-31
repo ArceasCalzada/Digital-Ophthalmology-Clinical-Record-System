@@ -5,7 +5,6 @@ import 'package:ophthalmology_clinical_record_system/services/auth_service.dart'
 import 'package:ophthalmology_clinical_record_system/services/profile_store.dart';
 import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
 import 'package:ophthalmology_clinical_record_system/views/login_view.dart';
-import 'package:ophthalmology_clinical_record_system/views/onboarding_wizard_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_backend.dart';

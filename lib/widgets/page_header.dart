@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'sync_status_indicator.dart';
 
 /// The one page header used by Dashboard, Calendar, Records and Prescriptions
 /// (and the Examination app bar, through [titleStyle] and [subtitleStyle]), so
@@ -33,12 +34,16 @@ class PageHeader extends StatelessWidget {
   /// Width below which [action] moves under the title. Null uses 600.
   final double? stackBelow;
 
+  /// Whether to show the real-time sync status indicator badge in the header.
+  final bool showSyncStatus;
+
   const PageHeader({
     super.key,
     required this.title,
     required this.subtitle,
     this.action,
     this.stackBelow,
+    this.showSyncStatus = true,
   });
 
   @override
@@ -46,8 +51,18 @@ class PageHeader extends StatelessWidget {
     final titles = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: titleStyle),
-        SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(child: Text(title, style: titleStyle)),
+            if (showSyncStatus) ...[
+              const SizedBox(width: 12),
+              const SyncStatusIndicator(compact: true),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
         Text(subtitle, style: subtitleStyle),
       ],
     );
