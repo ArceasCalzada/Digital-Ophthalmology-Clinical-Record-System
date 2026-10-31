@@ -130,13 +130,18 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     final user = AuthService.instance.user;
     if (user != null) {
       ClinicStore.instance.load(user.uid);
-      TeamService.instance.load(user.uid, userEmail: user.email, displayName: user.displayName);
       ProfileStore.instance.syncWithUser(user);
       SecuritySettingsStore.instance.loadFromFirestore(user.uid);
+      TeamService.instance.load(
+        user.uid,
+        userEmail: user.email,
+        displayName: user.displayName,
+      );
+    } else {
+      PatientRepository.connect();
+      CalendarEventRepository().connect();
+      ClinicalNotificationRepository().connect();
     }
-    PatientRepository.connect();
-    CalendarEventRepository().connect();
-    ClinicalNotificationRepository().connect();
     final sync = OfflineSyncService();
     sync.startAutoSyncTimer();
     sync.syncNow(); // flush anything queued while signed out
@@ -165,6 +170,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
         listenable: Listenable.merge([
           ThemeController.instance,
           AuthService.instance,
+          TeamService.instance,
           SecuritySettingsStore.instance,
           WorkspaceStore.instance,
         ]),
@@ -178,12 +184,29 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeController.instance.themeMode,
-            home: auth.isResolving
+            home: (auth.isResolving ||
+                    (auth.isSignedIn &&
+                        TeamService.instance.loading &&
+                        TeamService.instance.activeTeam == null))
                 ? Scaffold(
                     backgroundColor: AppTheme.lightBg,
                     body: Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryBlue,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(
+                            color: AppTheme.primaryBlue,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading clinical workspace...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )

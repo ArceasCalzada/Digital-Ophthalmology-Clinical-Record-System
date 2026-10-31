@@ -127,6 +127,7 @@ class ClinicalNotificationRepository extends ChangeNotifier {
   final List<ClinicalNotification> _notifications = [];
   StreamSubscription? _notifSub;
   String? _activeTeamId;
+  final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
 
   ClinicalNotificationRepository._internal() {
     _initSeedData();
@@ -139,23 +140,29 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
-    if (teamChanged) {
-      _notifications.clear();
-      notifyListeners();
-    }
-
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) {
-      _notifications.clear();
-      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-        _notifications.addAll(_allMemoryNotifications.where((n) =>
-            n.teamId == _activeTeamId ||
-            (n.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
-      } else {
-        _notifications.addAll(_allMemoryNotifications);
+      if (teamChanged) {
+        _notifications.clear();
       }
+      if (_notifications.isEmpty) {
+        if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+          _notifications.addAll(_allMemoryNotifications.where((n) =>
+              n.teamId == _activeTeamId ||
+              n.teamId.isEmpty ||
+              (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
+        } else {
+          _notifications.addAll(_allMemoryNotifications);
+        }
+      }
+      isLoading.value = false;
       notifyListeners();
       return;
+    }
+
+    isLoading.value = true;
+    if (teamChanged) {
+      notifyListeners();
     }
 
     _notifSub?.cancel();
@@ -182,9 +189,11 @@ class ClinicalNotificationRepository extends ChangeNotifier {
           debugPrint('Error parsing notification ${doc.id}: $e');
         }
       }
+      isLoading.value = false;
       notifyListeners();
     }, onError: (Object e) {
       debugPrint('Firestore notifications stream error: $e');
+      isLoading.value = false;
     });
   }
 
@@ -193,6 +202,7 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     _notifSub = null;
     _notifications.clear();
     _activeTeamId = null;
+    isLoading.value = false;
     notifyListeners();
   }
 
@@ -200,7 +210,8 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_notifications.where((n) =>
           n.teamId == _activeTeamId ||
-          (n.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
+          n.teamId.isEmpty ||
+          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
     }
     return List.unmodifiable(_notifications);
   }

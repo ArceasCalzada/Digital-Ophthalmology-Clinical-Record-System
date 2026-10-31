@@ -69,7 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _onWorkspaceChanged() {
     if (!mounted) return;
     setState(() {
-      _allPatients = [];
       _searchSuggestions = [];
       _isSearching = false;
     });
@@ -445,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right)
           // Both cards read the calendar's events, so they refresh when one is added or changed.
           ListenableBuilder(
-            listenable: Listenable.merge([CalendarEventRepository(), WorkspaceStore.instance]),
+            listenable: Listenable.merge([CalendarEventRepository(), CalendarEventRepository().isLoading, WorkspaceStore.instance]),
             builder: (context, _) => LayoutBuilder(
               builder: (context, constraints) {
                 final isNarrow = constraints.maxWidth < 960;
@@ -1195,8 +1194,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // TODAY'S PATIENT SCHEDULE / QUEUE CARD
   // =========================================================================
   Widget _buildTodayQueueCard({bool isNarrow = false}) {
-    final queue = CalendarEventRepository().getEventsForDay(DateTime.now());
+    final calRepo = CalendarEventRepository();
+    final queue = calRepo.getEventsForDay(DateTime.now());
+    final isEventsLoading = calRepo.isLoading.value;
     final queueItems = _buildQueueItems(queue);
+
+    Widget emptyContent = isEventsLoading
+        ? Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Loading schedule...',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          )
+        : Center(
+            child: Text(
+              'Nothing scheduled for today',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+          );
+
     return Container(
       width: isNarrow ? double.infinity : null,
       padding: EdgeInsets.all(16),
@@ -1226,12 +1253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (queue.isEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(
-                  child: Text(
-                    'Nothing scheduled for today',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                  ),
-                ),
+                child: emptyContent,
               )
             else
               ...queueItems
@@ -1243,12 +1265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Positioned.fill(
                     child: queue.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Nothing scheduled for today',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                            ),
-                          )
+                        ? emptyContent
                         : ListView(padding: EdgeInsets.zero, children: queueItems),
                   ),
                 ],

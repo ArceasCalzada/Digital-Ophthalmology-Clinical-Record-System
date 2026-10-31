@@ -108,6 +108,7 @@ class CalendarEventRepository extends ChangeNotifier {
   final List<CalendarEvent> _events = [];
   StreamSubscription? _eventsSub;
   String? _activeTeamId;
+  final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
 
   CalendarEventRepository._internal() {
     _initSeedData();
@@ -120,23 +121,29 @@ class CalendarEventRepository extends ChangeNotifier {
     final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
-    if (teamChanged) {
-      _events.clear();
-      notifyListeners();
-    }
-
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) {
-      _events.clear();
-      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-        _events.addAll(_allMemoryEvents.where((e) =>
-            e.teamId == _activeTeamId ||
-            (e.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
-      } else {
-        _events.addAll(_allMemoryEvents);
+      if (teamChanged) {
+        _events.clear();
       }
+      if (_events.isEmpty) {
+        if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+          _events.addAll(_allMemoryEvents.where((e) =>
+              e.teamId == _activeTeamId ||
+              e.teamId.isEmpty ||
+              (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
+        } else {
+          _events.addAll(_allMemoryEvents);
+        }
+      }
+      isLoading.value = false;
       notifyListeners();
       return;
+    }
+
+    isLoading.value = true;
+    if (teamChanged) {
+      notifyListeners();
     }
 
     _eventsSub?.cancel();
@@ -165,9 +172,11 @@ class CalendarEventRepository extends ChangeNotifier {
           debugPrint('Error parsing calendar event ${doc.id}: $e');
         }
       }
+      isLoading.value = false;
       notifyListeners();
     }, onError: (Object e) {
       debugPrint('Firestore calendar events stream error: $e');
+      isLoading.value = false;
     });
   }
 
@@ -176,6 +185,7 @@ class CalendarEventRepository extends ChangeNotifier {
     _eventsSub = null;
     _events.clear();
     _activeTeamId = null;
+    isLoading.value = false;
     notifyListeners();
   }
 
@@ -183,7 +193,8 @@ class CalendarEventRepository extends ChangeNotifier {
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_events.where((e) =>
           e.teamId == _activeTeamId ||
-          (e.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
+          e.teamId.isEmpty ||
+          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
     }
     return List.unmodifiable(_events);
   }

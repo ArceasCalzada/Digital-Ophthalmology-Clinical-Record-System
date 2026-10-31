@@ -74,8 +74,11 @@ class _MainLayoutState extends State<MainLayout> {
   void _onTeamServiceChanged() {
     final newTeamId = TeamService.instance.activeTeam?.id;
     if (_activeTeamId != newTeamId) {
+      final wasNull = _activeTeamId == null;
       _activeTeamId = newTeamId;
-      _handleTeamWorkspaceSwitch();
+      if (!wasNull) {
+        _handleTeamWorkspaceSwitch();
+      }
     } else if (!_isIndexPermitted(_selectedIndex)) {
       setState(() {
         _selectedIndex = 0;

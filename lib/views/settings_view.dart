@@ -1939,8 +1939,9 @@ class _SettingsViewState extends State<SettingsView> {
                                 )
                                 .toList(),
                             onChanged: (val) {
-                              if (val != null)
+                              if (val != null) {
                                 setState(() => _backupFrequency = val);
+                              }
                             },
                           ),
                         ],
@@ -1981,8 +1982,9 @@ class _SettingsViewState extends State<SettingsView> {
                                     )
                                     .toList(),
                             onChanged: (val) {
-                              if (val != null)
+                              if (val != null) {
                                 setState(() => _backupTime = val);
+                              }
                             },
                           ),
                         ],

@@ -216,6 +216,39 @@ class RxPadWidget extends StatelessWidget {
               }
 
               if (effectiveBranches.isEmpty) {
+                if (profile.isBranchesLoading) {
+                  return Container(
+                    key: const Key('rx_pad_branches_loading_state'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF64748B)),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Loading clinic branches...',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 return Container(
                   key: const Key('rx_pad_branches_empty_state'),
                   width: double.infinity,

@@ -636,7 +636,6 @@ class PatientRepository {
 
     if (teamChanged) {
       _cancelDetails();
-      _patients.clear();
       _pendingPatients.clear();
       isLoading.value = true;
       changeNotifier.value++;
@@ -647,7 +646,8 @@ class PatientRepository {
       if (targetTeamId != null && targetTeamId.isNotEmpty) {
         _patients.addAll(_allMemoryPatients.where((p) =>
             p.teamId == targetTeamId ||
-            (p.teamId.isEmpty && (targetTeamId == 'c-default-team' || targetTeamId == 'default'))));
+            p.teamId.isEmpty ||
+            (targetTeamId == 'c-default-team' || targetTeamId == 'default')));
       } else {
         _patients.addAll(_allMemoryPatients);
       }
@@ -807,7 +807,8 @@ class PatientRepository {
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_patients.where((p) =>
           p.teamId == _activeTeamId ||
-          (p.teamId.isEmpty && (_activeTeamId == 'c-default-team' || _activeTeamId == 'default'))));
+          p.teamId.isEmpty ||
+          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
     }
     return List.unmodifiable(_patients);
   }

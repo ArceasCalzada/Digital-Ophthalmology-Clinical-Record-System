@@ -236,6 +236,8 @@ class TeamService extends ChangeNotifier {
       PatientRepository.connect(_activeTeam!.id);
       CalendarEventRepository().connect(_activeTeam!.id);
       ClinicalNotificationRepository().connect(_activeTeam!.id);
+      ProfileStore.instance.loadFromFirestore(teamId: _activeTeam!.id);
+      ProfileStore.instance.listenToBranches(_activeTeam!.id);
     }
 
     _loading = false;
@@ -270,6 +272,8 @@ class TeamService extends ChangeNotifier {
     PatientRepository.connect(defaultTeam.id);
     CalendarEventRepository().connect(defaultTeam.id);
     ClinicalNotificationRepository().connect(defaultTeam.id);
+    ProfileStore.instance.loadFromFirestore(teamId: defaultTeam.id);
+    ProfileStore.instance.listenToBranches(defaultTeam.id);
   }
 
   Future<void> _createInitialDefaultTeam(String uid) async {
@@ -872,6 +876,8 @@ class TeamService extends ChangeNotifier {
     PatientRepository.connect(teamId);
     CalendarEventRepository().connect(teamId);
     ClinicalNotificationRepository().connect(teamId);
+    ProfileStore.instance.loadFromFirestore(teamId: teamId);
+    ProfileStore.instance.listenToBranches(teamId);
     notifyListeners();
   }
 

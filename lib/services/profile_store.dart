@@ -87,9 +87,11 @@ class ProfileStore extends ChangeNotifier {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _branchesSub;
   String? _listeningTeamId;
   bool _isBranchesLoading = false;
+  bool _isProfileLoading = false;
   Object? _branchesError;
 
   bool get isBranchesLoading => _isBranchesLoading;
+  bool get isProfileLoading => _isProfileLoading;
   Object? get branchesError => _branchesError;
   String? get listeningTeamId => _listeningTeamId;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? get branchesSubscription => _branchesSub;
@@ -626,6 +628,9 @@ class ProfileStore extends ChangeNotifier {
 
   /// Loads prescription settings from Firestore with fallback to SharedPreferences.
   Future<void> loadFromFirestore({String? teamId}) async {
+    _isProfileLoading = true;
+    notifyListeners();
+
     await loadFromPreferences();
 
     final effTeamId = (teamId != null && teamId.isNotEmpty)
@@ -637,7 +642,11 @@ class ProfileStore extends ChangeNotifier {
     }
 
     final firestore = FirebaseGate.firestoreIfReady();
-    if (firestore == null) return;
+    if (firestore == null) {
+      _isProfileLoading = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       DocumentSnapshot<Map<String, dynamic>>? snap;
@@ -649,7 +658,7 @@ class ProfileStore extends ChangeNotifier {
             .doc('prescription')
             .get();
         if (!snap.exists) {
-          final teamSnap = await firestore.collection('teams').doc(teamId).get();
+          final teamSnap = await firestore.collection('teams').doc(effTeamId).get();
           if (teamSnap.exists && teamSnap.data()?['prescriptionSettings'] != null) {
             final tData = FirebaseGate.decode(teamSnap.data()!['prescriptionSettings'] as Map<String, dynamic>);
             fromMap(tData);
@@ -668,7 +677,11 @@ class ProfileStore extends ChangeNotifier {
         fromMap(decoded);
         await saveToPreferences();
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      _isProfileLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Updates ProfileStore fields based on the currently logged in user.

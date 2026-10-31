@@ -38,6 +38,8 @@ class _PrescriptionViewState extends State<PrescriptionView> {
 
   @override
   void dispose() {
+    ProfileStore.instance.removeListener(_onProfileStoreChanged);
+    PatientRepository.changeNotifier.removeListener(_onPatientsRepoChanged);
     _medNameController.dispose();
     _strengthController.dispose();
     _dosageController.dispose();
@@ -80,6 +82,29 @@ class _PrescriptionViewState extends State<PrescriptionView> {
     }
     final allPatients = PatientRepository.getAllPatients();
     _resolveAndSetPatient(widget.initialPatient, allPatients);
+
+    ProfileStore.instance.addListener(_onProfileStoreChanged);
+    PatientRepository.changeNotifier.addListener(_onPatientsRepoChanged);
+  }
+
+  void _onProfileStoreChanged() {
+    if (!mounted) return;
+    final active = ProfileStore.instance.activeBranches;
+    setState(() {
+      if (_selectedBranch == null && active.isNotEmpty) {
+        _selectedBranch = active.first;
+      } else if (_selectedBranch != null && !active.any((b) => b.id == _selectedBranch!.id)) {
+        _selectedBranch = active.isNotEmpty ? active.first : null;
+      }
+    });
+  }
+
+  void _onPatientsRepoChanged() {
+    if (!mounted) return;
+    if (_selectedPatient != null) {
+      final allPatients = PatientRepository.getAllPatients();
+      _resolveAndSetPatient(_selectedPatient, allPatients);
+    }
   }
 
   @override
