@@ -79,6 +79,7 @@ class _SettingsViewState extends State<SettingsView> {
     ThemeController.instance.addListener(_onThemeChanged);
     _profile.addListener(_onProfileChanged);
     _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
+    _profile.listenToBranches(TeamService.instance.activeTeam?.id);
 
     _autoLockEnabled = SecuritySettingsStore.instance.autoLockEnabled;
     _autoLockDuration = SecuritySettingsStore.instance.autoLockDuration;
@@ -91,6 +92,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   void _onTeamChanged() {
+    _profile.listenToBranches(TeamService.instance.activeTeam?.id);
     if (mounted) {
       final isAssistant = TeamService.instance.isAssistant;
       if (isAssistant &&
@@ -882,10 +884,100 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
                 SizedBox(height: 14),
                 if (!_isEditingClinicHeaders) ...[
-                  if (_profile.activeBranches.isEmpty)
+                  if (_profile.isBranchesLoading)
                     Container(
+                      key: const Key('branches_loading_indicator'),
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Loading clinic branches...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_profile.branchesError != null)
+                    Container(
+                      key: const Key('branches_error_banner'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: _isDark
+                            ? const Color(0xFF7F1D1D).withValues(alpha: 0.25)
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _isDark
+                              ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                              : Colors.red.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 20,
+                            color: _isDark
+                                ? const Color(0xFFFCA5A5)
+                                : Colors.redAccent,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Failed to retrieve clinic branches',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: _isDark
+                                        ? const Color(0xFFFCA5A5)
+                                        : Colors.red.shade800,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_profile.branchesError}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: _isDark
+                                        ? const Color(0xFFFCA5A5)
+                                        : Colors.red.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => _profile.listenToBranches(
+                              TeamService.instance.activeTeam?.id,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_profile.activeBranches.isEmpty)
+                    Container(
+                      key: const Key('branches_empty_state'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: _isDark
                             ? const Color(0xFF0F172A)
@@ -893,14 +985,33 @@ class _SettingsViewState extends State<SettingsView> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: AppTheme.borderColor),
                       ),
-                      child: Center(
-                        child: Text(
-                          'No active clinic branches. Click "+ Add Branch" to add one.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_off_outlined,
+                            size: 28,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.6),
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No clinic branches registered',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Click "+ Add Branch" above to register consultation locations and schedules for this clinic.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   else
@@ -1080,18 +1191,7 @@ class _SettingsViewState extends State<SettingsView> {
       ptrNo: _profile.ptrNo.text.isNotEmpty
           ? _profile.ptrNo.text
           : 'PTR No. 7821940',
-      clinic1Name: _profile.clinic1Name.text,
-      clinic1Location: _profile.clinic1Location.text,
-      clinic1Days: _profile.clinic1Days.text,
-      clinic1Hours: _profile.clinic1Hours.text,
-      clinic2Name: _profile.clinic2Name.text,
-      clinic2Location: _profile.clinic2Location.text,
-      clinic2Days: _profile.clinic2Days.text,
-      clinic2Hours: _profile.clinic2Hours.text,
-      clinic3Name: _profile.clinic3Name.text,
-      clinic3Location: _profile.clinic3Location.text,
-      clinic3Days: _profile.clinic3Days.text,
-      clinic3Hours: _profile.clinic3Hours.text,
+      branches: _profile.activeBranches,
       showBorder: true,
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -83,6 +84,16 @@ class ProfileStore extends ChangeNotifier {
     ),
   ];
 
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _branchesSub;
+  String? _listeningTeamId;
+  bool _isBranchesLoading = false;
+  Object? _branchesError;
+
+  bool get isBranchesLoading => _isBranchesLoading;
+  Object? get branchesError => _branchesError;
+  String? get listeningTeamId => _listeningTeamId;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? get branchesSubscription => _branchesSub;
+
   List<ClinicBranch> get branches => List.unmodifiable(_branches);
 
   List<ClinicBranch> get activeBranches =>
@@ -90,6 +101,94 @@ class ProfileStore extends ChangeNotifier {
 
   List<ClinicBranch> get archivedBranches =>
       _branches.where((b) => b.isArchived).toList();
+
+  /// Listens to real-time updates for clinic branches of the specified team (/teams/{teamId}/branches).
+  void listenToBranches(String? teamId, {Stream<QuerySnapshot<Map<String, dynamic>>>? branchStream}) {
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : TeamService.instance.activeTeam?.id;
+
+    if (effTeamId == null || effTeamId.isEmpty) {
+      stopListeningToBranches();
+      _isBranchesLoading = false;
+      _branchesError = null;
+      notifyListeners();
+      return;
+    }
+
+    if (_listeningTeamId == effTeamId && _branchesSub != null && branchStream == null) {
+      return; // Already actively listening to this workspace
+    }
+
+    stopListeningToBranches();
+    _listeningTeamId = effTeamId;
+    _isBranchesLoading = true;
+    _branchesError = null;
+    notifyListeners();
+
+    if (branchStream != null) {
+      _branchesSub = branchStream.listen(
+        (snapshot) => _onBranchesSnapshot(snapshot),
+        onError: (err) {
+          _isBranchesLoading = false;
+          _branchesError = err;
+          notifyListeners();
+        },
+      );
+      return;
+    }
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) {
+      _isBranchesLoading = false;
+      _branchesError = null;
+      notifyListeners();
+      return;
+    }
+
+    final colRef = firestore.collection('teams').doc(effTeamId).collection('branches');
+    _branchesSub = colRef.snapshots().listen(
+      (snapshot) => _onBranchesSnapshot(snapshot),
+      onError: (err) {
+        _isBranchesLoading = false;
+        _branchesError = err;
+        notifyListeners();
+      },
+    );
+  }
+
+  void _onBranchesSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    _isBranchesLoading = false;
+    _branchesError = null;
+    _branches = snapshot.docs.map((doc) {
+      final data = FirebaseGate.decode(doc.data());
+      if (!data.containsKey('id') || data['id'] == null || data['id'].toString().isEmpty) {
+        data['id'] = doc.id;
+      }
+      return ClinicBranch.fromMap(data);
+    }).toList();
+    _syncActiveBranchesToControllers();
+    saveToPreferences();
+    notifyListeners();
+  }
+
+  void stopListeningToBranches() {
+    _branchesSub?.cancel();
+    _branchesSub = null;
+    _listeningTeamId = null;
+  }
+
+  void clearBranches() {
+    _branches.clear();
+    _syncActiveBranchesToControllers();
+    notifyListeners();
+  }
+
+  void setBranches(List<ClinicBranch> newBranches) {
+    _branches = List.from(newBranches);
+    _syncActiveBranchesToControllers();
+    notifyListeners();
+  }
 
   void _syncActiveBranchesToControllers() {
     final active = activeBranches;
@@ -160,6 +259,10 @@ class ProfileStore extends ChangeNotifier {
     String? teamId,
   }) async {
     if (TeamService.instance.isAssistant) return;
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
     final newBranch = ClinicBranch(
       id: 'branch-${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
@@ -169,46 +272,161 @@ class ProfileStore extends ChangeNotifier {
       isArchived: false,
       createdAt: DateTime.now(),
     );
-    _branches.add(newBranch);
+    final existingIndex = _branches.indexWhere((b) => b.id == newBranch.id);
+    if (existingIndex == -1) {
+      _branches.add(newBranch);
+    } else {
+      _branches[existingIndex] = newBranch;
+    }
     _syncActiveBranchesToControllers();
     notifyListeners();
-    await saveToFirestore(teamId: teamId);
+    await saveToPreferences();
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
+      try {
+        final bData = FirebaseGate.encode(newBranch.toMap());
+        await firestore
+            .collection('teams')
+            .doc(effTeamId)
+            .collection('branches')
+            .doc(newBranch.id)
+            .set(bData, SetOptions(merge: true));
+      } catch (e) {
+        _branchesError = e;
+        notifyListeners();
+      }
+    }
+    await saveToFirestore(teamId: effTeamId);
   }
 
   Future<void> archiveBranch(String branchId, {String? teamId}) async {
     if (TeamService.instance.isAssistant) return;
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
       _branches[index].isArchived = true;
       _syncActiveBranchesToControllers();
       notifyListeners();
-      await saveToFirestore(teamId: teamId);
+      await saveToPreferences();
+
+      final firestore = FirebaseGate.firestoreIfReady();
+      if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
+        try {
+          await firestore
+              .collection('teams')
+              .doc(effTeamId)
+              .collection('branches')
+              .doc(branchId)
+              .set({
+                'isArchived': true,
+                'archivedAt': DateTime.now().toIso8601String(),
+              }, SetOptions(merge: true));
+        } catch (e) {
+          _branchesError = e;
+          notifyListeners();
+        }
+      }
+      await saveToFirestore(teamId: effTeamId);
     }
   }
 
   Future<void> restoreBranch(String branchId, {String? teamId}) async {
     if (TeamService.instance.isAssistant) return;
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
       _branches[index].isArchived = false;
       _syncActiveBranchesToControllers();
       notifyListeners();
-      await saveToFirestore(teamId: teamId);
+      await saveToPreferences();
+
+      final firestore = FirebaseGate.firestoreIfReady();
+      if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
+        try {
+          await firestore
+              .collection('teams')
+              .doc(effTeamId)
+              .collection('branches')
+              .doc(branchId)
+              .set({'isArchived': false}, SetOptions(merge: true));
+        } catch (e) {
+          _branchesError = e;
+          notifyListeners();
+        }
+      }
+      await saveToFirestore(teamId: effTeamId);
     }
   }
 
   Future<void> updateBranch(ClinicBranch updated, {String? teamId}) async {
     if (TeamService.instance.isAssistant) return;
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
     final index = _branches.indexWhere((b) => b.id == updated.id);
     if (index != -1) {
       _branches[index] = updated;
       _syncActiveBranchesToControllers();
       notifyListeners();
-      await saveToFirestore(teamId: teamId);
+      await saveToPreferences();
+
+      final firestore = FirebaseGate.firestoreIfReady();
+      if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
+        try {
+          final bData = FirebaseGate.encode(updated.toMap());
+          await firestore
+              .collection('teams')
+              .doc(effTeamId)
+              .collection('branches')
+              .doc(updated.id)
+              .set(bData, SetOptions(merge: true));
+        } catch (e) {
+          _branchesError = e;
+          notifyListeners();
+        }
+      }
+      await saveToFirestore(teamId: effTeamId);
     }
   }
 
+  Future<void> deleteBranch(String branchId, {String? teamId}) async {
+    if (TeamService.instance.isAssistant) return;
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
+    _branches.removeWhere((b) => b.id == branchId);
+    _syncActiveBranchesToControllers();
+    notifyListeners();
+    await saveToPreferences();
+
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
+      try {
+        await firestore
+            .collection('teams')
+            .doc(effTeamId)
+            .collection('branches')
+            .doc(branchId)
+            .delete();
+      } catch (e) {
+        _branchesError = e;
+        notifyListeners();
+      }
+    }
+    await saveToFirestore(teamId: effTeamId);
+  }
+
   void resetToDefaultBranches() {
+    stopListeningToBranches();
     _resetBranches();
     notifyListeners();
   }
@@ -410,15 +628,23 @@ class ProfileStore extends ChangeNotifier {
   Future<void> loadFromFirestore({String? teamId}) async {
     await loadFromPreferences();
 
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : TeamService.instance.activeTeam?.id;
+
+    if (effTeamId != null && effTeamId.isNotEmpty) {
+      listenToBranches(effTeamId);
+    }
+
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
 
     try {
       DocumentSnapshot<Map<String, dynamic>>? snap;
-      if (teamId != null && teamId.isNotEmpty) {
+      if (effTeamId != null && effTeamId.isNotEmpty) {
         snap = await firestore
             .collection('teams')
-            .doc(teamId)
+            .doc(effTeamId)
             .collection('settings')
             .doc('prescription')
             .get();

@@ -24,6 +24,15 @@ rules_version = '2';
 //   - joinedAt: string (optional, max 64)
 //   - status: string (optional, max 32: 'active' | 'pending')
 //
+// Collection: teams/{teamId}/branches/{branchId}
+//   - id: string (optional, max 128)
+//   - name: string (optional, max 200)
+//   - address: string (optional, max 300)
+//   - days: string (optional, max 100)
+//   - hours: string (optional, max 100)
+//   - isArchived: bool (optional)
+//   - createdAt, updatedAt, archivedAt: string or timestamp
+//
 // Collection: teams/{teamId}/pendingRequests/{uid}
 //   - uid: string (required, max 128)
 //   - email: string (optional, max 200)
@@ -458,6 +467,37 @@ service cloud.firestore {
         allow get, list: if isTeamMember(teamId);
         allow create, update: if (isTeamOwner(teamId) || isTeamAdmin(teamId)) && !isTeamAssistant(teamId);
         allow delete: if isTeamOwner(teamId) && !isTeamAssistant(teamId);
+      }
+
+      function validBranch(d, id) {
+        return d.keys().hasOnly([
+            'id', 'name', 'address', 'days', 'hours', 'isArchived',
+            'createdAt', 'updatedAt', 'archivedAt', 'teamId', 'clinicName', 'location'
+          ])
+          && (d.get('id', '') == '' || d.get('id', id) == id)
+          && sn(d, 'name', 200)
+          && sn(d, 'clinicName', 200)
+          && sn(d, 'address', 300)
+          && sn(d, 'location', 300)
+          && sn(d, 'days', 100)
+          && sn(d, 'hours', 100)
+          && optBool(d, 'isArchived')
+          && (sn(d, 'createdAt', 64) || d.get('createdAt', null) is timestamp)
+          && (sn(d, 'updatedAt', 64) || d.get('updatedAt', null) is timestamp)
+          && (sn(d, 'archivedAt', 64) || d.get('archivedAt', null) is timestamp);
+      }
+
+      match /branches/{branchId} {
+        allow get, list: if isMasterAdmin() || isTeamMember(teamId);
+        allow create: if request.auth != null && (
+          isMasterAdmin() || isTeamOwner(teamId) || isTeamAdmin(teamId)
+        ) && !isTeamAssistant(teamId) && validBranch(request.resource.data, branchId);
+        allow update: if request.auth != null && (
+          isMasterAdmin() || isTeamOwner(teamId) || isTeamAdmin(teamId)
+        ) && !isTeamAssistant(teamId) && validBranch(request.resource.data, branchId);
+        allow delete: if request.auth != null && (
+          isMasterAdmin() || isTeamOwner(teamId) || isTeamAdmin(teamId)
+        ) && !isTeamAssistant(teamId);
       }
     }
 

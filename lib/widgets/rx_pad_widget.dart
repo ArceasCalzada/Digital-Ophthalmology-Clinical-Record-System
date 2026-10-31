@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../services/profile_store.dart';
@@ -15,6 +16,7 @@ class RxPadWidget extends StatelessWidget {
   final String? ptrNo;
   final String followUpDate;
   final bool showBorder;
+  final List<ClinicBranch>? branches;
   final String? clinic1Name;
   final String? clinic1Location;
   final String? clinic1Days;
@@ -39,6 +41,7 @@ class RxPadWidget extends StatelessWidget {
     this.ptrNo,
     this.followUpDate = '_________________',
     this.showBorder = true,
+    this.branches,
     this.clinic1Name,
     this.clinic1Location,
     this.clinic1Days,
@@ -170,59 +173,127 @@ class RxPadWidget extends StatelessWidget {
           // 2. Multi-Clinic Schedule Columns (Active branches)
           Builder(
             builder: (context) {
-              final activeCols = <Widget>[];
-              final hasExplicitClinics = clinic1Name != null || clinic2Name != null || clinic3Name != null;
-              if (hasExplicitClinics) {
-                if (effClinic1Name.isNotEmpty) {
-                  activeCols.add(Expanded(
-                    child: _buildClinicScheduleCol(
-                      effClinic1Name,
-                      effClinic1Location,
-                      effClinic1Days,
-                      effClinic1Hours,
-                    ),
-                  ));
-                }
-                if (effClinic2Name.isNotEmpty) {
-                  activeCols.add(Expanded(
-                    child: _buildClinicScheduleCol(
-                      effClinic2Name,
-                      effClinic2Location,
-                      effClinic2Days,
-                      effClinic2Hours,
-                    ),
-                  ));
-                }
-                if (effClinic3Name.isNotEmpty) {
-                  activeCols.add(Expanded(
-                    child: _buildClinicScheduleCol(
-                      effClinic3Name,
-                      effClinic3Location,
-                      effClinic3Days,
-                      effClinic3Hours,
-                    ),
-                  ));
-                }
+              List<ClinicBranch> effectiveBranches;
+              if (branches != null) {
+                effectiveBranches = branches!.where((b) => !b.isArchived).toList();
               } else {
-                profile.syncControllersToBranches();
-                for (final branch in profile.activeBranches) {
-                  activeCols.add(Expanded(
-                    child: _buildClinicScheduleCol(
-                      branch.name,
-                      branch.address,
-                      branch.days,
-                      branch.hours,
-                    ),
-                  ));
+                final hasExplicitClinics = (clinic1Name != null && clinic1Name!.isNotEmpty) ||
+                    (clinic2Name != null && clinic2Name!.isNotEmpty) ||
+                    (clinic3Name != null && clinic3Name!.isNotEmpty);
+                if (hasExplicitClinics) {
+                  effectiveBranches = [];
+                  if (effClinic1Name.isNotEmpty) {
+                    effectiveBranches.add(ClinicBranch(
+                      id: 'c1',
+                      name: effClinic1Name,
+                      address: effClinic1Location,
+                      days: effClinic1Days,
+                      hours: effClinic1Hours,
+                    ));
+                  }
+                  if (effClinic2Name.isNotEmpty) {
+                    effectiveBranches.add(ClinicBranch(
+                      id: 'c2',
+                      name: effClinic2Name,
+                      address: effClinic2Location,
+                      days: effClinic2Days,
+                      hours: effClinic2Hours,
+                    ));
+                  }
+                  if (effClinic3Name.isNotEmpty) {
+                    effectiveBranches.add(ClinicBranch(
+                      id: 'c3',
+                      name: effClinic3Name,
+                      address: effClinic3Location,
+                      days: effClinic3Days,
+                      hours: effClinic3Hours,
+                    ));
+                  }
+                } else {
+                  profile.syncControllersToBranches();
+                  effectiveBranches = profile.activeBranches;
                 }
               }
 
-              if (activeCols.isEmpty) {
-                return const SizedBox.shrink();
+              if (effectiveBranches.isEmpty) {
+                return Container(
+                  key: const Key('rx_pad_branches_empty_state'),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No clinic branches registered',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
               }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: activeCols,
+
+              if (effectiveBranches.length <= 3) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: effectiveBranches
+                      .map(
+                        (b) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: _buildClinicScheduleCol(
+                              b.name,
+                              b.address,
+                              b.days,
+                              b.hours,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+
+              final rows = <Widget>[];
+              final chunkSize = effectiveBranches.length == 4 ? 2 : 3;
+              for (var i = 0; i < effectiveBranches.length; i += chunkSize) {
+                final chunk = effectiveBranches.skip(i).take(chunkSize).toList();
+                rows.add(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: chunk
+                        .map(
+                          (b) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: _buildClinicScheduleCol(
+                                b.name,
+                                b.address,
+                                b.days,
+                                b.hours,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+                if (i + chunkSize < effectiveBranches.length) {
+                  rows.add(const SizedBox(height: 8));
+                }
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: rows,
               );
             },
           ),
