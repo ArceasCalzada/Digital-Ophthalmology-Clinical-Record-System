@@ -4,11 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/calendar_event.dart';
 import '../models/patient.dart';
+import '../services/clinical_reminder_service.dart';
 import '../services/profile_store.dart';
 import '../services/team_service.dart';
 import '../services/workspace_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_modal_picker.dart';
+import '../widgets/follow_up_reminders_widget.dart';
 import '../widgets/page_header.dart';
 import '../widgets/skeleton_loader.dart';
 import 'new_patient_modal.dart';
@@ -50,6 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     CalendarEventRepository().addListener(_loadDashboardData);
     TeamService.instance.addListener(_loadDashboardData);
     WorkspaceStore.instance.addListener(_onWorkspaceChanged);
+    ClinicalReminderService.instance.addListener(_loadDashboardData);
     _clockTimer = Timer.periodic(Duration(seconds: 1), (_) {
       if (mounted) _updateClock();
     });
@@ -61,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     CalendarEventRepository().removeListener(_loadDashboardData);
     TeamService.instance.removeListener(_loadDashboardData);
     WorkspaceStore.instance.removeListener(_onWorkspaceChanged);
+    ClinicalReminderService.instance.removeListener(_loadDashboardData);
     _clockTimer?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -441,6 +445,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
 
+          // Automated Reminder & Return Alert Banner
+          ListenableBuilder(
+            listenable: ClinicalReminderService.instance,
+            builder: (context, _) {
+              final service = ClinicalReminderService.instance;
+              if (service.totalActionableCount == 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: _buildReminderAlertBanner(service),
+              );
+            },
+          ),
+
           // 2. Today's Patient Queue Overview (Left) & Clinical Calendar with Date/Time (Right)
           // Both cards read the calendar's events, so they refresh when one is added or changed.
           ListenableBuilder(
@@ -473,6 +490,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
             ),
+          ),
+          SizedBox(height: 28),
+
+          // 2.5 Automated Follow-Up Reminders & Return Queue
+          FollowUpRemindersWidget(
+            onSelectPatient: widget.onSelectPatient,
+            onOpenCalendar: widget.onOpenCalendar,
           ),
           SizedBox(height: 28),
 
@@ -994,6 +1018,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildReminderAlertBanner(ClinicalReminderService service) {
+    final overdue = service.overdueCount;
+    final dueToday = service.dueTodayCount;
+    final dueSoon = service.dueSoonCount;
+
+    final hasOverdue = overdue > 0;
+    final borderColor = hasOverdue ? const Color(0xFFFCA5A5) : const Color(0xFFFDE68A);
+    final bgColor = hasOverdue ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB);
+    final textColor = hasOverdue ? const Color(0xFF991B1B) : const Color(0xFF92400E);
+    final iconColor = hasOverdue ? const Color(0xFFDC2626) : const Color(0xFFD97706);
+
+    final parts = <String>[];
+    if (overdue > 0) parts.add('$overdue overdue follow-up${overdue > 1 ? 's' : ''}');
+    if (dueToday > 0) parts.add('$dueToday due today');
+    if (dueSoon > 0) parts.add('$dueSoon due in 3 days');
+
+    return Container(
+      key: const Key('dashboard_reminder_alert_banner'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasOverdue ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
+            color: iconColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Patient Return Alerts: ${parts.join(', ')}.',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'View Queue',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor),
+            ),
+          ),
+        ],
       ),
     );
   }

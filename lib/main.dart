@@ -10,6 +10,7 @@ import 'models/clinical_notification.dart';
 import 'models/patient.dart';
 import 'services/auth_service.dart';
 import 'services/clinic_store.dart';
+import 'services/clinical_reminder_service.dart';
 import 'services/dev_auth_backend.dart';
 import 'services/draft_manager_service.dart';
 import 'services/offline_sync_service.dart';
@@ -143,6 +144,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
       PatientRepository.connect();
       CalendarEventRepository().connect();
       ClinicalNotificationRepository().connect();
+      ClinicalReminderService.instance.connect();
     }
     final sync = OfflineSyncService();
     sync.startAutoSyncTimer();
@@ -155,6 +157,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     PatientRepository.disconnect();
     CalendarEventRepository().disconnect();
     ClinicalNotificationRepository().disconnect();
+    ClinicalReminderService.instance.disconnect();
     OfflineSyncService().stopAutoSyncTimer();
     DraftManagerService().clearAllDrafts();
     ProfileStore.instance.reset();

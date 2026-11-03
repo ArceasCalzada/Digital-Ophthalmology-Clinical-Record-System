@@ -21,9 +21,42 @@ class AddEventModal extends StatefulWidget {
   /// When set, the modal edits this event instead of creating a new one.
   final CalendarEvent? event;
 
-  const AddEventModal({super.key, this.initialDate, this.event});
+  /// Optional pre-selected patient when scheduling from a reminder or profile.
+  final Patient? initialPatient;
 
-  static Future<void> show(BuildContext context, {DateTime? initialDate, CalendarEvent? event}) async {
+  /// Optional initial title (e.g. follow-up check-up title).
+  final String? initialTitle;
+
+  /// Optional initial event type (e.g. 'Follow-up', 'Checkup').
+  final String? initialEventType;
+
+  /// Optional initial location.
+  final String? initialLocation;
+
+  /// Optional initial clinical notes.
+  final String? initialNotes;
+
+  const AddEventModal({
+    super.key,
+    this.initialDate,
+    this.event,
+    this.initialPatient,
+    this.initialTitle,
+    this.initialEventType,
+    this.initialLocation,
+    this.initialNotes,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    DateTime? initialDate,
+    CalendarEvent? event,
+    Patient? initialPatient,
+    String? initialTitle,
+    String? initialEventType,
+    String? initialLocation,
+    String? initialNotes,
+  }) async {
     final isMobile = MediaQuery.of(context).size.width < 600;
     if (isMobile) {
       await showModalBottomSheet(
@@ -34,7 +67,15 @@ class AddEventModal extends StatefulWidget {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
-          child: AddEventModal(initialDate: initialDate, event: event),
+          child: AddEventModal(
+            initialDate: initialDate,
+            event: event,
+            initialPatient: initialPatient,
+            initialTitle: initialTitle,
+            initialEventType: initialEventType,
+            initialLocation: initialLocation,
+            initialNotes: initialNotes,
+          ),
         ),
       );
     } else {
@@ -44,7 +85,15 @@ class AddEventModal extends StatefulWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 520),
-            child: AddEventModal(initialDate: initialDate, event: event),
+            child: AddEventModal(
+              initialDate: initialDate,
+              event: event,
+              initialPatient: initialPatient,
+              initialTitle: initialTitle,
+              initialEventType: initialEventType,
+              initialLocation: initialLocation,
+              initialNotes: initialNotes,
+            ),
           ),
         ),
       );
@@ -90,13 +139,26 @@ class _AddEventModalState extends State<AddEventModal> {
     }
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(Duration(hours: 1)));
+    if (widget.initialTitle != null && widget.initialTitle!.isNotEmpty) {
+      _titleController.text = widget.initialTitle!;
+    }
+    if (widget.initialNotes != null && widget.initialNotes!.isNotEmpty) {
+      _notesController.text = widget.initialNotes!;
+    }
+    if (widget.initialEventType != null && widget.initialEventType!.isNotEmpty) {
+      _selectedEventType = widget.initialEventType;
+    }
     final activeTeamLoc = TeamService.instance.activeTeam?.location;
-    if (activeTeamLoc != null && activeTeamLoc.trim().isNotEmpty) {
+    if (widget.initialLocation != null && widget.initialLocation!.isNotEmpty) {
+      _selectedLocation = widget.initialLocation;
+    } else if (activeTeamLoc != null && activeTeamLoc.trim().isNotEmpty) {
       _selectedLocation = activeTeamLoc.trim();
     } else {
       _selectedLocation = 'Metro Eye Center, Main Branch';
     }
-    if (patients.isNotEmpty) {
+    if (widget.initialPatient != null) {
+      _selectedPatient = widget.initialPatient;
+    } else if (patients.isNotEmpty) {
       _selectedPatient = patients.first;
     }
   }

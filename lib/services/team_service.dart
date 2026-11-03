@@ -11,6 +11,7 @@ import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../models/team.dart';
 import 'auth_service.dart';
+import 'clinical_reminder_service.dart';
 import 'firebase_gate.dart';
 import 'profile_store.dart';
 import 'workspace_store.dart';
@@ -236,6 +237,7 @@ class TeamService extends ChangeNotifier {
       PatientRepository.connect(_activeTeam!.id);
       CalendarEventRepository().connect(_activeTeam!.id);
       ClinicalNotificationRepository().connect(_activeTeam!.id);
+      ClinicalReminderService.instance.connect(_activeTeam!.id);
       ProfileStore.instance.loadFromFirestore(teamId: _activeTeam!.id);
       ProfileStore.instance.listenToBranches(_activeTeam!.id);
     }
@@ -272,6 +274,7 @@ class TeamService extends ChangeNotifier {
     PatientRepository.connect(defaultTeam.id);
     CalendarEventRepository().connect(defaultTeam.id);
     ClinicalNotificationRepository().connect(defaultTeam.id);
+    ClinicalReminderService.instance.connect(defaultTeam.id);
     ProfileStore.instance.loadFromFirestore(teamId: defaultTeam.id);
     ProfileStore.instance.listenToBranches(defaultTeam.id);
   }
@@ -876,6 +879,7 @@ class TeamService extends ChangeNotifier {
     PatientRepository.connect(teamId);
     CalendarEventRepository().connect(teamId);
     ClinicalNotificationRepository().connect(teamId);
+    ClinicalReminderService.instance.connect(teamId);
     ProfileStore.instance.loadFromFirestore(teamId: teamId);
     ProfileStore.instance.listenToBranches(teamId);
     notifyListeners();
@@ -961,6 +965,7 @@ class TeamService extends ChangeNotifier {
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
     PatientRepository.connect(_activeTeam?.id);
     CalendarEventRepository().connect(_activeTeam?.id);
+    ClinicalReminderService.instance.connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -1034,6 +1039,7 @@ class TeamService extends ChangeNotifier {
     _activeTeam = _teams.isNotEmpty ? _teams.first : null;
     PatientRepository.connect(_activeTeam?.id);
     CalendarEventRepository().connect(_activeTeam?.id);
+    ClinicalReminderService.instance.connect(_activeTeam?.id);
     notifyListeners();
   }
 
@@ -1319,6 +1325,7 @@ class TeamService extends ChangeNotifier {
     PatientRepository.disconnect();
     CalendarEventRepository().disconnect();
     ClinicalNotificationRepository().disconnect();
+    ClinicalReminderService.instance.disconnect();
     WorkspaceStore.instance.setActiveWorkspace(null, workspace: null);
     notifyListeners();
   }
