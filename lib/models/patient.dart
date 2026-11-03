@@ -7,6 +7,8 @@ import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
 import '../services/storage_optimization_service.dart';
 import '../services/team_service.dart';
+import '../services/audit_service.dart';
+import 'audit_log.dart';
 import 'encounter.dart';
 import 'prescription.dart';
 
@@ -962,11 +964,29 @@ class PatientRepository {
     if (isNew) {
       _patients.insert(0, newPatient);
       _pendingPatients[newPatient.id] = newPatient;
+      AuditService.instance.log(
+        actionType: AuditActionType.patientCreate,
+        actionCategory: AuditActionCategory.patientRecords,
+        resourceType: 'Patient',
+        resourceId: newPatient.id,
+        resourceName: newPatient.fullName,
+        details: 'Created new patient record (MRN: ${newPatient.mrn})',
+        teamId: newPatient.teamId,
+      );
     } else {
       final old = _patients[existingIdx];
       _patients[existingIdx] = newPatient.encounters.isEmpty && newPatient.prescriptions.isEmpty
           ? newPatient.copyWith(encounters: old.encounters, prescriptions: old.prescriptions)
           : newPatient;
+      AuditService.instance.log(
+        actionType: AuditActionType.patientEdit,
+        actionCategory: AuditActionCategory.patientRecords,
+        resourceType: 'Patient',
+        resourceId: newPatient.id,
+        resourceName: newPatient.fullName,
+        details: 'Updated patient information (MRN: ${newPatient.mrn})',
+        teamId: newPatient.teamId,
+      );
     }
     changeNotifier.value++;
 
@@ -1044,6 +1064,16 @@ class PatientRepository {
       ],
     );
     changeNotifier.value++;
+
+    AuditService.instance.log(
+      actionType: AuditActionType.prescriptionCreate,
+      actionCategory: AuditActionCategory.prescriptions,
+      resourceType: 'Prescription',
+      resourceId: prescription.id,
+      resourceName: p.fullName,
+      details: 'Generated prescription for ${p.fullName} (${prescription.items.length} items)',
+      teamId: effectiveTeamId,
+    );
 
     OfflineSyncService().enqueueMutation(
       id: prescription.id,

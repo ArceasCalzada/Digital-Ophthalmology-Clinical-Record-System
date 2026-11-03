@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/page_header.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/success_modal.dart';
+import 'audit_logs_view.dart';
 
 /// The Teams Management View: create teams, join via code, manage members, roles,
 /// ownership transfer, and view permission matrix.
@@ -33,6 +34,21 @@ class TeamsView extends StatelessWidget {
               PageHeader(
                 title: 'Teams & Collaboration',
                 subtitle: 'Manage your clinical teams, invite staff, and configure member access levels.',
+                action: (teamService.activeRole == TeamRole.owner || teamService.isMasterAdmin)
+                    ? OutlinedButton.icon(
+                        key: const Key('btn_open_audit_logs'),
+                        icon: const Icon(Icons.history_rounded, size: 16),
+                        label: const Text('Audit Trail'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AuditLogsView(),
+                            ),
+                          );
+                        },
+                      )
+                    : null,
               ),
               _TeamsListCard(teamService: teamService),
               SizedBox(height: 20),

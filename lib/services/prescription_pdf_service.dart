@@ -5,6 +5,8 @@ import 'package:printing/printing.dart';
 import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../models/audit_log.dart';
+import 'audit_service.dart';
 import 'profile_store.dart';
 
 class PrescriptionPdfService {
@@ -381,6 +383,15 @@ class PrescriptionPdfService {
       followUpDate: followUpDate,
     );
     final fileName = 'Prescription_${(patient?.fullName ?? "Patient").replaceAll(' ', '_')}.pdf';
+    AuditService.instance.log(
+      actionType: AuditActionType.prescriptionPrint,
+      actionCategory: AuditActionCategory.prescriptions,
+      resourceType: 'Prescription',
+      resourceId: patient?.id ?? 'rx-print',
+      resourceName: patient?.fullName ?? 'Prescription Document',
+      details: 'Printed clinical prescription (${items.length} items) for ${patient?.fullName ?? "patient"}',
+      teamId: patient?.teamId,
+    );
     await Printing.layoutPdf(
       onLayout: (format) async => bytes,
       name: fileName,

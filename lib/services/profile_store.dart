@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/clinic_branch.dart';
+import '../models/audit_log.dart';
+import 'audit_service.dart';
 import 'auth_service.dart';
 import 'firebase_gate.dart';
 import 'team_service.dart';
@@ -310,8 +312,19 @@ class ProfileStore extends ChangeNotifier {
 
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
+      final branchName = _branches[index].name;
+      final branchAddress = _branches[index].address;
       _branches[index].isArchived = true;
       _syncActiveBranchesToControllers();
+      AuditService.instance.log(
+        actionType: AuditActionType.branchArchive,
+        actionCategory: AuditActionCategory.branchClinic,
+        resourceType: 'Branch',
+        resourceId: branchId,
+        resourceName: branchName,
+        details: 'Archived clinic branch "$branchName" ($branchAddress)',
+        teamId: effTeamId,
+      );
       notifyListeners();
       await saveToPreferences();
 
@@ -344,8 +357,19 @@ class ProfileStore extends ChangeNotifier {
 
     final index = _branches.indexWhere((b) => b.id == branchId);
     if (index != -1) {
+      final branchName = _branches[index].name;
+      final branchAddress = _branches[index].address;
       _branches[index].isArchived = false;
       _syncActiveBranchesToControllers();
+      AuditService.instance.log(
+        actionType: AuditActionType.branchRestore,
+        actionCategory: AuditActionCategory.branchClinic,
+        resourceType: 'Branch',
+        resourceId: branchId,
+        resourceName: branchName,
+        details: 'Restored clinic branch "$branchName" ($branchAddress)',
+        teamId: effTeamId,
+      );
       notifyListeners();
       await saveToPreferences();
 

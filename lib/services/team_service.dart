@@ -10,6 +10,8 @@ import '../models/calendar_event.dart';
 import '../models/clinical_notification.dart';
 import '../models/patient.dart';
 import '../models/team.dart';
+import '../models/audit_log.dart';
+import 'audit_service.dart';
 import 'auth_service.dart';
 import 'clinical_reminder_service.dart';
 import 'firebase_gate.dart';
@@ -64,6 +66,9 @@ class TeamService extends ChangeNotifier {
   }
 
   bool get loading => _loading;
+  String? get uid => _uid;
+  String? get userEmail => _userEmail;
+  String? get displayName => _displayName;
   List<Team> get teams => List.unmodifiable(_teams.where((t) => !t.isArchived));
   List<Team> get archivedTeams => List.unmodifiable(_teams.where((t) => t.isArchived));
   List<Team> get allTeams => List.unmodifiable(_teams);
@@ -929,6 +934,15 @@ class TeamService extends ChangeNotifier {
         role: newRole,
         joinedAt: old.joinedAt,
       );
+      AuditService.instance.log(
+        actionType: AuditActionType.memberRoleUpdate,
+        actionCategory: AuditActionCategory.teamManagement,
+        resourceType: 'TeamMember',
+        resourceId: memberUid,
+        resourceName: old.displayName,
+        details: 'Changed role for ${old.displayName} (${old.email}) from ${old.role.label} to ${newRole.label}',
+        teamId: active.id,
+      );
       notifyListeners();
     }
   }
@@ -954,7 +968,17 @@ class TeamService extends ChangeNotifier {
           .delete();
     }
 
+    final removed = _members.where((m) => m.uid == memberUid).firstOrNull;
     _members.removeWhere((m) => m.uid == memberUid);
+    AuditService.instance.log(
+      actionType: AuditActionType.memberRemove,
+      actionCategory: AuditActionCategory.teamManagement,
+      resourceType: 'TeamMember',
+      resourceId: memberUid,
+      resourceName: removed?.displayName ?? 'Member',
+      details: 'Removed member ${removed?.displayName ?? memberUid} from team',
+      teamId: active.id,
+    );
     notifyListeners();
   }
 
@@ -1131,6 +1155,15 @@ class TeamService extends ChangeNotifier {
 
     _teams[idx] = updated;
     _registeredTeamsInMemory[existing.inviteCode] = updated;
+    AuditService.instance.log(
+      actionType: AuditActionType.teamArchive,
+      actionCategory: AuditActionCategory.branchClinic,
+      resourceType: 'Team',
+      resourceId: teamId,
+      resourceName: existing.name,
+      details: 'Archived clinic workspace "${existing.name}"',
+      teamId: teamId,
+    );
     notifyListeners();
   }
 
@@ -1159,6 +1192,15 @@ class TeamService extends ChangeNotifier {
 
     _teams[idx] = updated;
     _registeredTeamsInMemory[existing.inviteCode] = updated;
+    AuditService.instance.log(
+      actionType: AuditActionType.teamRestore,
+      actionCategory: AuditActionCategory.branchClinic,
+      resourceType: 'Team',
+      resourceId: teamId,
+      resourceName: existing.name,
+      details: 'Restored clinic workspace "${existing.name}"',
+      teamId: teamId,
+    );
     notifyListeners();
   }
 
@@ -1267,6 +1309,15 @@ class TeamService extends ChangeNotifier {
 
     _members.removeWhere((m) => m.uid == memberUid);
     _members.add(approvedMember);
+    AuditService.instance.log(
+      actionType: AuditActionType.memberApprove,
+      actionCategory: AuditActionCategory.teamManagement,
+      resourceType: 'TeamMember',
+      resourceId: memberUid,
+      resourceName: target.displayName,
+      details: 'Approved staff member "${target.displayName}" (${target.email}) with ${assignedRole.label} role',
+      teamId: active.id,
+    );
     notifyListeners();
   }
 
@@ -1319,6 +1370,13 @@ class TeamService extends ChangeNotifier {
   @visibleForTesting
   void addPendingMemberForTesting(TeamMember member) {
     _pendingMembers.add(member);
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void addMemberForTesting(TeamMember member) {
+    _members.removeWhere((m) => m.uid == member.uid);
+    _members.add(member);
     notifyListeners();
   }
 

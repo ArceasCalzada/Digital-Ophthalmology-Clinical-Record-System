@@ -33,6 +33,22 @@ rules_version = '2';
 //   - isArchived: bool (optional)
 //   - createdAt, updatedAt, archivedAt: string or timestamp
 //
+// Collection: teams/{teamId}/auditLogs/{logId}
+//   - id: string (required, max 128)
+//   - teamId: string (required, max 128)
+//   - timestamp: string or timestamp (required, max 64)
+//   - userId: string (required, max 128)
+//   - userEmail: string (required, max 200)
+//   - userName: string (optional, max 200)
+//   - userRole: string (optional, max 64)
+//   - actionType: string (required, max 64)
+//   - actionCategory: string (optional, max 64)
+//   - resourceType: string (optional, max 64)
+//   - resourceId: string (required, max 128)
+//   - resourceName: string (optional, max 200)
+//   - details: string (optional, max 2000)
+//   - metadata: map (optional)
+//
 // Collection: teams/{teamId}/pendingRequests/{uid}
 //   - uid: string (required, max 128)
 //   - email: string (optional, max 200)
@@ -303,6 +319,10 @@ service cloud.firestore {
       let v = d.get(k, null);
       return v == null || v is bool;
     }
+    function optMap(d, k) {
+      let v = d.get(k, null);
+      return v == null || v is map;
+    }
     function strList(l, maxItems, maxChars) {
       return l is list && l.size() <= maxItems && l.join(',').size() <= maxChars;
     }
@@ -498,6 +518,38 @@ service cloud.firestore {
         allow delete: if request.auth != null && (
           isMasterAdmin() || isTeamOwner(teamId) || isTeamAdmin(teamId)
         ) && !isTeamAssistant(teamId);
+      }
+
+      function validAuditLog(d, logId) {
+        return d.keys().hasOnly([
+            'id', 'teamId', 'timestamp', 'userId', 'userEmail', 'userName', 'userRole',
+            'actionType', 'actionCategory', 'resourceType', 'resourceId', 'resourceName',
+            'details', 'metadata'
+          ])
+          && d.keys().hasAll(['id', 'teamId', 'timestamp', 'userId', 'userEmail', 'actionType', 'resourceId'])
+          && d.id == logId
+          && sn(d, 'id', 128)
+          && sn(d, 'teamId', 128)
+          && (sn(d, 'timestamp', 64) || d.get('timestamp', null) is timestamp)
+          && sn(d, 'userId', 128)
+          && sn(d, 'userEmail', 200)
+          && sn(d, 'userName', 200)
+          && sn(d, 'userRole', 64)
+          && sn(d, 'actionType', 64)
+          && sn(d, 'actionCategory', 64)
+          && sn(d, 'resourceType', 64)
+          && sn(d, 'resourceId', 128)
+          && sn(d, 'resourceName', 200)
+          && (s(d, 'details', 2000) || sn(d, 'details', 2000))
+          && optMap(d, 'metadata');
+      }
+
+      match /auditLogs/{logId} {
+        allow get, list: if isMasterAdmin() || isTeamOwner(teamId);
+        allow create: if request.auth != null && (
+          isMasterAdmin() || isTeamOwner(teamId) || isTeamMember(teamId)
+        ) && validAuditLog(request.resource.data, logId);
+        allow update, delete: if false;
       }
     }
 

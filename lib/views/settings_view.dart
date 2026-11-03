@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/clinic_branch.dart';
 import '../models/patient.dart';
 import '../models/prescription.dart';
+import '../models/team.dart';
 import '../services/auth_service.dart';
 import '../services/profile_store.dart';
 import '../services/reminder_settings_store.dart';
@@ -15,6 +16,7 @@ import '../widgets/field_label.dart';
 import '../widgets/filter_pill.dart';
 import '../widgets/rx_pad_widget.dart';
 import '../widgets/success_modal.dart';
+import 'audit_logs_view.dart';
 
 /// SettingsView - Complete Settings & Workstation Configuration UI/UX for DOCRS
 /// Tailored specifically for a single attending ophthalmologist / physician.
@@ -99,9 +101,12 @@ class _SettingsViewState extends State<SettingsView> {
     _profile.listenToBranches(TeamService.instance.activeTeam?.id);
     if (mounted) {
       final isAssistant = TeamService.instance.isAssistant;
-      if (isAssistant &&
-          (_activeSection == 'prescription_settings' ||
-              _activeSection == 'backup_data')) {
+      final isOwner = TeamService.instance.activeRole == TeamRole.owner ||
+          TeamService.instance.isMasterAdmin;
+      if ((isAssistant &&
+              (_activeSection == 'prescription_settings' ||
+                  _activeSection == 'backup_data')) ||
+          (!isOwner && _activeSection == 'audit_logs')) {
         setState(() {
           _activeSection = 'security';
         });
@@ -401,6 +406,13 @@ class _SettingsViewState extends State<SettingsView> {
                 'Backup & Data',
                 Icons.backup_outlined,
               ),
+            if (TeamService.instance.activeRole == TeamRole.owner ||
+                TeamService.instance.isMasterAdmin)
+              _buildMobileNavItem(
+                'audit_logs',
+                'Audit Logs',
+                Icons.manage_search_rounded,
+              ),
             _buildMobileNavItem(
               'system_preferences',
               'Preferences',
@@ -482,6 +494,14 @@ class _SettingsViewState extends State<SettingsView> {
                 'Backup & Data',
                 Icons.backup_outlined,
                 Icons.backup_rounded,
+              ),
+            if (TeamService.instance.activeRole == TeamRole.owner ||
+                TeamService.instance.isMasterAdmin)
+              _buildNavItem(
+                'audit_logs',
+                'Audit Logs',
+                Icons.history_rounded,
+                Icons.manage_search_rounded,
               ),
             Padding(
               padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -567,6 +587,12 @@ class _SettingsViewState extends State<SettingsView> {
         return _buildSecuritySection();
       case 'backup_data':
         return _buildBackupDataSection();
+      case 'audit_logs':
+        final isOwner = TeamService.instance.activeRole == TeamRole.owner ||
+            TeamService.instance.isMasterAdmin;
+        return isOwner
+            ? const AuditLogsView(isEmbedded: true)
+            : _buildSecuritySection();
       case 'system_preferences':
         return _buildSystemPreferencesSection();
       default:

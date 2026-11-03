@@ -661,5 +661,57 @@ describe('Teams multi-tenancy and permission levels', () => {
       status: 'pending',
     }));
   });
+
+  test('Audit Logs: Members can create audit logs, only owner or master admin can read, updates and deletes are forbidden', async () => {
+    const log = {
+      id: 'log-1',
+      teamId: 'teamA',
+      timestamp: '2026-11-03T12:00:00.000Z',
+      userId: 'editorA',
+      userEmail: 'editorA@docrs.app',
+      userName: 'Dr. Editor A',
+      userRole: 'editor',
+      actionType: 'patient.create',
+      actionCategory: 'patient_records',
+      resourceType: 'patient',
+      resourceId: 'p-1',
+      resourceName: 'Patient One',
+      details: 'Created patient record',
+      metadata: { source: 'web' },
+    };
+
+    // Editor (member of teamA) can create audit log
+    const editorDb = as('editorA');
+    await assertSucceeds(editorDb.doc('teams/teamA/auditLogs/log-1').set(log));
+
+    // Owner can read/list audit logs
+    const ownerDb = as('ownerA');
+    await assertSucceeds(ownerDb.doc('teams/teamA/auditLogs/log-1').get());
+
+    // Regular member (editor or viewer) CANNOT read audit logs
+    await assertFails(editorDb.doc('teams/teamA/auditLogs/log-1').get());
+    const viewerDb = as('viewerA');
+    await assertFails(viewerDb.doc('teams/teamA/auditLogs/log-1').get());
+
+    // Non-member CANNOT read or write
+    const otherDb = as('ownerB');
+    await assertFails(otherDb.doc('teams/teamA/auditLogs/log-1').get());
+    await assertFails(otherDb.doc('teams/teamA/auditLogs/log-2').set({ ...log, id: 'log-2' }));
+
+    // Unauthenticated user CANNOT read or write
+    await assertFails(anon().doc('teams/teamA/auditLogs/log-1').get());
+    await assertFails(anon().doc('teams/teamA/auditLogs/log-2').set({ ...log, id: 'log-2' }));
+
+    // Update and delete are forbidden for everyone (even owner)
+    await assertFails(ownerDb.doc('teams/teamA/auditLogs/log-1').update({ details: 'Tampered details' }));
+    await assertFails(ownerDb.doc('teams/teamA/auditLogs/log-1').delete());
+
+    // Invalid audit log (e.g. mismatched ID, missing required field, unknown key) fails
+    await assertFails(editorDb.doc('teams/teamA/auditLogs/log-invalid-1').set({ ...log, id: 'mismatched-id' }));
+    const { actionType, ...missingReq } = log;
+    await assertFails(editorDb.doc('teams/teamA/auditLogs/log-invalid-2').set({ ...missingReq, id: 'log-invalid-2' }));
+    await assertFails(editorDb.doc('teams/teamA/auditLogs/log-invalid-3').set({ ...log, id: 'log-invalid-3', maliciousPayload: true }));
+  });
 });
+
 
