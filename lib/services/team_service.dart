@@ -73,17 +73,22 @@ class TeamService extends ChangeNotifier {
   List<TeamMember> get members => List.unmodifiable(_members);
   List<TeamMember> get pendingMembers => List.unmodifiable(_pendingMembers);
 
+  bool get isMasterAdmin =>
+      _userEmail?.toLowerCase() == 'admin.docrs@gmail.com' ||
+      AuthService.instance.user?.email?.toLowerCase() == 'admin.docrs@gmail.com';
+
   /// Whether the current active context is an Assistant role.
   bool get isAssistant =>
-      _activeRole == TeamRole.assistant ||
-      AuthService.instance.role == UserRole.staff;
+      !isMasterAdmin &&
+      (_activeRole == TeamRole.assistant ||
+          AuthService.instance.role == UserRole.staff);
 
   /// Helper permission getters based on active role
-  bool get canViewPatients => _activeRole.canViewPatients;
-  bool get canEditPatients => _activeRole.canEditPatients;
-  bool get canSeeVisits => !isAssistant && _activeRole.canSeeVisits;
-  bool get canWriteVisits => !isAssistant && _activeRole.canWriteVisits;
-  bool get canManageMembers => !isAssistant && (_activeRole.canManageMembers || _userEmail?.toLowerCase() == 'admin.docrs@gmail.com');
+  bool get canViewPatients => isMasterAdmin || _activeRole.canViewPatients;
+  bool get canEditPatients => isMasterAdmin || _activeRole.canEditPatients;
+  bool get canSeeVisits => isMasterAdmin || (!isAssistant && _activeRole.canSeeVisits);
+  bool get canWriteVisits => isMasterAdmin || (!isAssistant && _activeRole.canWriteVisits);
+  bool get canManageMembers => isMasterAdmin || (!isAssistant && _activeRole.canManageMembers);
 
   @visibleForTesting
   void setActiveRoleForTesting(TeamRole role) {
@@ -108,6 +113,9 @@ class TeamService extends ChangeNotifier {
     if (firestore == null) {
       // In unit test / offline non-Firebase environment, create a default in-memory team
       _setupDefaultFallbackTeam(uid);
+      if (isMasterAdmin) {
+        _activeRole = TeamRole.owner;
+      }
       _loading = false;
       notifyListeners();
       return;
@@ -190,7 +198,7 @@ class TeamService extends ChangeNotifier {
           final data = FirebaseGate.decode(doc.data()!);
           data['id'] = tId;
           final team = Team.fromJson(data);
-          if (team.ownerId == uid) {
+          if (team.ownerId == uid || isMasterAdmin) {
             teamMap[tId] = team;
           } else {
             // Check member subcollection doc
@@ -213,6 +221,8 @@ class TeamService extends ChangeNotifier {
     if (teamMap.isEmpty) {
       // First time user: auto create initial default team
       await _createInitialDefaultTeam(uid);
+      _loading = false;
+      notifyListeners();
       return;
     }
 
@@ -240,6 +250,10 @@ class TeamService extends ChangeNotifier {
       ClinicalReminderService.instance.connect(_activeTeam!.id);
       ProfileStore.instance.loadFromFirestore(teamId: _activeTeam!.id);
       ProfileStore.instance.listenToBranches(_activeTeam!.id);
+    }
+
+    if (isMasterAdmin) {
+      _activeRole = TeamRole.owner;
     }
 
     _loading = false;
@@ -299,7 +313,7 @@ class TeamService extends ChangeNotifier {
     final pendingUsersMap = <String, TeamMember>{};
 
     void recomputeAndNotify() {
-      TeamRole myRole = (_activeTeam != null && _activeTeam!.ownerId == _uid)
+      TeamRole myRole = (_activeTeam != null && (_activeTeam!.ownerId == _uid || isMasterAdmin))
           ? TeamRole.owner
           : TeamRole.viewer;
 
@@ -309,7 +323,7 @@ class TeamService extends ChangeNotifier {
         }
       }
 
-      if (_activeTeam != null && _activeTeam!.ownerId == _uid) {
+      if (isMasterAdmin || (_activeTeam != null && _activeTeam!.ownerId == _uid)) {
         myRole = TeamRole.owner;
       }
 
@@ -663,6 +677,8 @@ class TeamService extends ChangeNotifier {
     _teams = [..._teams, team];
     _registeredTeamsInMemory[team.inviteCode] = team;
     await switchTo(teamId);
+    _loading = false;
+    notifyListeners();
     return team;
   }
 

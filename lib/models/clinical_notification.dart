@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
+import '../services/team_service.dart';
 
 enum NotificationSeverity { urgent, warning, info }
 
@@ -140,13 +141,14 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) {
       if (teamChanged) {
         _notifications.clear();
       }
       if (_notifications.isEmpty) {
-        if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        if (!isMasterAdmin && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
           _notifications.addAll(_allMemoryNotifications.where((n) =>
               n.teamId == _activeTeamId ||
               n.teamId.isEmpty ||
@@ -167,7 +169,7 @@ class ClinicalNotificationRepository extends ChangeNotifier {
 
     _notifSub?.cancel();
     Query<Map<String, dynamic>> query = firestore.collection('notifications');
-    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+    if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
     }
     query = query.limit(500);
@@ -179,7 +181,8 @@ class ClinicalNotificationRepository extends ChangeNotifier {
           final data = FirebaseGate.decode(doc.data());
           data['id'] = doc.id;
           final n = ClinicalNotification.fromJson(data);
-          if (targetTeamId == null ||
+          if (isMasterAdmin ||
+              targetTeamId == null ||
               targetTeamId.isEmpty ||
               n.teamId.isEmpty ||
               n.teamId == targetTeamId) {
@@ -207,6 +210,17 @@ class ClinicalNotificationRepository extends ChangeNotifier {
   }
 
   List<ClinicalNotification> get notifications {
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    if (isMasterAdmin) {
+      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        final teamMatches = _notifications.where((n) =>
+            n.teamId == _activeTeamId ||
+            n.teamId.isEmpty ||
+            (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
+        if (teamMatches.isNotEmpty) return List.unmodifiable(teamMatches);
+      }
+      return List.unmodifiable(_notifications);
+    }
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_notifications.where((n) =>
           n.teamId == _activeTeamId ||
@@ -269,35 +283,39 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addNotification(ClinicalNotification notification) {
+  void addNotification(ClinicalNotification notification, {bool enqueueSync = true}) {
     final notifWithTeam = notification.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
         ? notification.copyWith(teamId: _activeTeamId)
         : notification;
 
     _allMemoryNotifications.insert(0, notifWithTeam);
-    if (_activeTeamId == null ||
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    if (isMasterAdmin ||
+        _activeTeamId == null ||
         _activeTeamId!.isEmpty ||
         notifWithTeam.teamId.isEmpty ||
         notifWithTeam.teamId == _activeTeamId) {
       _notifications.insert(0, notifWithTeam);
     }
-    OfflineSyncService().enqueueMutation(
-      id: notifWithTeam.id,
-      entityType: 'Notification',
-      action: 'CREATE',
-      payload: {
-        'id': notifWithTeam.id,
-        'title': notifWithTeam.title,
-        'message': notifWithTeam.message,
-        'category': notifWithTeam.category,
-        'severity': notifWithTeam.severity.name,
-        'timestamp': notifWithTeam.timestamp.toIso8601String(),
-        'patientName': notifWithTeam.patientName,
-        'patientId': notifWithTeam.patientId,
-        'teamId': notifWithTeam.teamId,
-        'isRead': notifWithTeam.isRead,
-      },
-    );
+    if (enqueueSync) {
+      OfflineSyncService().enqueueMutation(
+        id: notifWithTeam.id,
+        entityType: 'Notification',
+        action: 'CREATE',
+        payload: {
+          'id': notifWithTeam.id,
+          'title': notifWithTeam.title,
+          'message': notifWithTeam.message,
+          'category': notifWithTeam.category,
+          'severity': notifWithTeam.severity.name,
+          'timestamp': notifWithTeam.timestamp.toIso8601String(),
+          'patientName': notifWithTeam.patientName,
+          'patientId': notifWithTeam.patientId,
+          'teamId': notifWithTeam.teamId,
+          'isRead': notifWithTeam.isRead,
+        },
+      );
+    }
     notifyListeners();
   }
 

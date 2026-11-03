@@ -78,8 +78,12 @@ class _SettingsViewState extends State<SettingsView> {
     TeamService.instance.addListener(_onTeamChanged);
     ThemeController.instance.addListener(_onThemeChanged);
     _profile.addListener(_onProfileChanged);
-    _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
-    _profile.listenToBranches(TeamService.instance.activeTeam?.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _profile.loadFromFirestore(teamId: TeamService.instance.activeTeam?.id);
+        _profile.listenToBranches(TeamService.instance.activeTeam?.id);
+      }
+    });
 
     _autoLockEnabled = SecuritySettingsStore.instance.autoLockEnabled;
     _autoLockDuration = SecuritySettingsStore.instance.autoLockDuration;

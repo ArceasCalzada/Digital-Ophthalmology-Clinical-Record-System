@@ -186,6 +186,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   bool _isPatientValidForActiveTeam(Patient? patient) {
     if (patient == null) return false;
+    if (TeamService.instance.isMasterAdmin) return true;
     final activeTeamId = TeamService.instance.activeTeam?.id;
     if (activeTeamId != null && activeTeamId.isNotEmpty) {
       if (patient.teamId.isNotEmpty && patient.teamId != activeTeamId) {

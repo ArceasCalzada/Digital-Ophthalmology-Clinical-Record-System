@@ -6,7 +6,6 @@ import 'package:ophthalmology_clinical_record_system/models/follow_up_reminder.d
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/models/prescription.dart';
 import 'package:ophthalmology_clinical_record_system/services/clinical_reminder_service.dart';
-import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/add_event_modal.dart';
@@ -17,7 +16,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final today = DateTime.now();
-  final yesterday = today.subtract(const Duration(days: 1));
   final threeDaysAgo = today.subtract(const Duration(days: 3));
   final twoDaysLater = today.add(const Duration(days: 2));
   final tenDaysLater = today.add(const Duration(days: 10));
@@ -338,7 +336,6 @@ void main() {
       await ClinicalReminderService.instance.runScheduledCheck();
 
       Patient? selectedPatient;
-      DateTime? openedCalendarDate;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -347,7 +344,6 @@ void main() {
             body: SingleChildScrollView(
               child: FollowUpRemindersWidget(
                 onSelectPatient: (p) => selectedPatient = p,
-                onOpenCalendar: (d) => openedCalendarDate = d,
               ),
             ),
           ),
@@ -442,17 +438,11 @@ void main() {
       PatientRepository.addPatient(patient);
       await ClinicalReminderService.instance.runScheduledCheck();
 
-      Patient? selectedPatient;
-      DateTime? openedCalendarDate;
-
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
-          home: Scaffold(
-            body: DashboardScreen(
-              onSelectPatient: (p) => selectedPatient = p,
-              onOpenCalendar: (d) => openedCalendarDate = d,
-            ),
+          home: const Scaffold(
+            body: DashboardScreen(),
           ),
         ),
       );

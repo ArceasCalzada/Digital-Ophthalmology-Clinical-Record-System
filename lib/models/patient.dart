@@ -632,6 +632,7 @@ class PatientRepository {
     final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
     final firestore = FirebaseGate.firestoreIfReady();
 
     if (teamChanged) {
@@ -643,7 +644,7 @@ class PatientRepository {
 
     if (firestore == null) {
       _patients.clear();
-      if (targetTeamId != null && targetTeamId.isNotEmpty) {
+      if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
         _patients.addAll(_allMemoryPatients.where((p) =>
             p.teamId == targetTeamId ||
             p.teamId.isEmpty ||
@@ -659,7 +660,7 @@ class PatientRepository {
     _patientsSub?.cancel();
 
     Query<Map<String, dynamic>> query = firestore.collection('patients');
-    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+    if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
     }
     query = query.limit(AppLimits.patientListLimit);
@@ -804,6 +805,17 @@ class PatientRepository {
   }
 
   static List<Patient> getAllPatients() {
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    if (isMasterAdmin) {
+      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        final teamMatches = _patients.where((p) =>
+            p.teamId == _activeTeamId ||
+            p.teamId.isEmpty ||
+            (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
+        if (teamMatches.isNotEmpty) return List.unmodifiable(teamMatches);
+      }
+      return List.unmodifiable(_patients);
+    }
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_patients.where((p) =>
           p.teamId == _activeTeamId ||

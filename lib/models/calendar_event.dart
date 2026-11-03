@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
+import '../services/team_service.dart';
 
 class CalendarEvent {
   final String id;
@@ -121,13 +122,14 @@ class CalendarEventRepository extends ChangeNotifier {
     final teamChanged = _activeTeamId != targetTeamId;
     _activeTeamId = targetTeamId;
 
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) {
       if (teamChanged) {
         _events.clear();
       }
       if (_events.isEmpty) {
-        if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        if (!isMasterAdmin && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
           _events.addAll(_allMemoryEvents.where((e) =>
               e.teamId == _activeTeamId ||
               e.teamId.isEmpty ||
@@ -149,7 +151,7 @@ class CalendarEventRepository extends ChangeNotifier {
     _eventsSub?.cancel();
 
     Query<Map<String, dynamic>> query = firestore.collection('calendarEvents');
-    if (targetTeamId != null && targetTeamId.isNotEmpty) {
+    if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
     }
     query = query.limit(500);
@@ -162,7 +164,8 @@ class CalendarEventRepository extends ChangeNotifier {
           data['id'] = doc.id;
           final event = CalendarEvent.fromJson(data);
 
-          if (targetTeamId == null ||
+          if (isMasterAdmin ||
+              targetTeamId == null ||
               targetTeamId.isEmpty ||
               event.teamId.isEmpty ||
               event.teamId == targetTeamId) {
@@ -190,6 +193,17 @@ class CalendarEventRepository extends ChangeNotifier {
   }
 
   List<CalendarEvent> get events {
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    if (isMasterAdmin) {
+      if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+        final teamMatches = _events.where((e) =>
+            e.teamId == _activeTeamId ||
+            e.teamId.isEmpty ||
+            (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
+        if (teamMatches.isNotEmpty) return List.unmodifiable(teamMatches);
+      }
+      return List.unmodifiable(_events);
+    }
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_events.where((e) =>
           e.teamId == _activeTeamId ||
@@ -240,7 +254,9 @@ class CalendarEventRepository extends ChangeNotifier {
         : event;
 
     _allMemoryEvents.add(eventWithTeam);
-    if (_activeTeamId == null ||
+    final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    if (isMasterAdmin ||
+        _activeTeamId == null ||
         _activeTeamId!.isEmpty ||
         eventWithTeam.teamId.isEmpty ||
         eventWithTeam.teamId == _activeTeamId) {

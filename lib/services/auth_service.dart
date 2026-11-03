@@ -665,6 +665,9 @@ class FirebaseAuthBackend implements AuthBackend {
   @override
   Future<UserRole?> fetchRole(String uid) async {
     final u = _auth.currentUser;
+    if (u != null && u.email?.toLowerCase() == 'admin.docrs@gmail.com') {
+      return UserRole.admin;
+    }
     if (u != null && u.uid == uid) {
       try {
         final tokenResult = await u.getIdTokenResult();
@@ -852,7 +855,9 @@ class AuthService extends ChangeNotifier {
     try {
       _user = user;
       ProfileStore.instance.syncWithUser(user);
-      if (user.isEmailVerified) {
+      if (user.email?.toLowerCase() == 'admin.docrs@gmail.com') {
+        _role = UserRole.admin;
+      } else if (user.isEmailVerified) {
         _role = await _backend!.fetchRole(user.uid);
         if (_role == null) {
           final firestore = FirebaseGate.firestoreIfReady();
