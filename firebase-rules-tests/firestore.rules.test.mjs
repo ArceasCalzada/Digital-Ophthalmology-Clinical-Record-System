@@ -712,6 +712,88 @@ describe('Teams multi-tenancy and permission levels', () => {
     await assertFails(editorDb.doc('teams/teamA/auditLogs/log-invalid-2').set({ ...missingReq, id: 'log-invalid-2' }));
     await assertFails(editorDb.doc('teams/teamA/auditLogs/log-invalid-3').set({ ...log, id: 'log-invalid-3', maliciousPayload: true }));
   });
+
+  test('New physician onboarding: Can create practice workspace team, owner member, branch, and update user record', async () => {
+    const docUid = 'new-physician-uid';
+    const newTeamId = 'team-new-practice';
+    const now = '2026-11-08T10:00:00.000Z';
+    const docDb = as(docUid);
+
+    // 1. Create team workspace where user is designated as owner
+    await assertSucceeds(docDb.doc(`teams/${newTeamId}`).set({
+      id: newTeamId,
+      name: 'St. Luke Eye Specialty Clinic',
+      location: 'Medical Arts Building, Bonifacio Global City, Taguig',
+      ownerId: docUid,
+      inviteCode: 'SLK123',
+      createdAt: now,
+      patientCount: 0,
+      encounterCount: 0,
+      prescriptionCount: 0,
+      isArchived: false,
+    }));
+
+    // 2. Create owner member doc in the newly created team
+    await assertSucceeds(docDb.doc(`teams/${newTeamId}/members/${docUid}`).set({
+      uid: docUid,
+      email: 'doctor@practice.ph',
+      displayName: 'Dr. Maria Santos, MD',
+      firstName: 'Maria',
+      lastName: 'Santos',
+      role: 'owner',
+      joinedAt: now,
+      status: 'active',
+      isApproved: true,
+      workspaceId: newTeamId,
+      teamId: newTeamId,
+    }));
+
+    // 3. Create branch under the practice workspace
+    await assertSucceeds(docDb.doc(`teams/${newTeamId}/branches/branch-1`).set({
+      id: 'branch-1',
+      name: 'BGC Main Clinic',
+      address: 'Suite 502, Medical Arts Building, BGC, Taguig City',
+      days: 'Mon - Fri',
+      hours: '9:00 AM - 5:00 PM',
+      isArchived: false,
+      createdAt: now,
+    }));
+
+    // 4. Update physician user record
+    await assertSucceeds(docDb.doc(`users/${docUid}`).set({
+      role: 'physician',
+      status: 'active',
+      isApproved: true,
+      displayName: 'Dr. Maria Santos, MD',
+      fullName: 'Dr. Maria Santos, MD',
+      firstName: 'Maria',
+      lastName: 'Santos',
+      clinicName: 'St. Luke Eye Specialty Clinic',
+      specialization: 'Cornea and External Diseases',
+      workspaceId: newTeamId,
+      onboardingCompleted: true,
+      updatedAt: now,
+    }, merge));
+
+    // 5. Assistant cannot create a team or modify branch
+    const assistantDb = as('assistantA');
+    await assertFails(assistantDb.doc('teams/team-assistant-illegal').set({
+      id: 'team-assistant-illegal',
+      name: 'Illegal Assistant Clinic',
+      ownerId: 'assistantA',
+      inviteCode: 'HCK999',
+      createdAt: now,
+    }));
+    await assertFails(assistantDb.doc(`teams/${newTeamId}/branches/branch-2`).set({
+      id: 'branch-2',
+      name: 'Unauthorized Branch',
+      address: 'Test',
+      days: 'Mon',
+      hours: '8 AM',
+      isArchived: false,
+      createdAt: now,
+    }));
+  });
 });
 
 
