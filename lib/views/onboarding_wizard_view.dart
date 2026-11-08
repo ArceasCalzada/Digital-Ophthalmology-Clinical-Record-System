@@ -595,9 +595,9 @@ class _OnboardingWizardViewState extends State<OnboardingWizardView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: AppTheme.lightBg,
               borderRadius: BorderRadius.circular(10),
-              border: const Border.fromBorderSide(BorderSide(color: Color(0xFFE2E8F0))),
+              border: Border.fromBorderSide(BorderSide(color: AppTheme.borderColor)),
             ),
             child: Row(
               children: [
@@ -689,7 +689,7 @@ class _OnboardingWizardViewState extends State<OnboardingWizardView> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isNewPractice ? AppTheme.primaryBlue : const Color(0xFFF1F5F9),
+                    color: isNewPractice ? AppTheme.primaryBlue : AppTheme.lightBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -790,7 +790,7 @@ class _OnboardingWizardViewState extends State<OnboardingWizardView> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isJoinClinic ? AppTheme.primaryBlue : const Color(0xFFF1F5F9),
+                    color: isJoinClinic ? AppTheme.primaryBlue : AppTheme.lightBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(

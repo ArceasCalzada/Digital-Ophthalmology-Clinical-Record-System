@@ -88,7 +88,12 @@ class ClinicalDropdownField<T> extends StatelessWidget {
                 surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
                 elevation: WidgetStatePropertyAll(6),
                 padding: WidgetStatePropertyAll(EdgeInsets.zero),
-                shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                shape: WidgetStatePropertyAll(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: AppTheme.borderColor),
+                  ),
+                ),
               ),
               alignmentOffset: Offset(0, 4),
               menuChildren: [
@@ -118,7 +123,7 @@ class ClinicalDropdownField<T> extends StatelessWidget {
                       border: Border.all(
                         color: invalid
                             ? Color(0xFFDC2626)
-                            : (dense ? AppTheme.borderColor : Color(0xFFCBD5E1)),
+                            : AppTheme.borderColor,
                         width: invalid ? 1.5 : 1,
                       ),
                     ),
@@ -411,6 +416,16 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                   hintText: widget.searchHint,
                   hintStyle: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   isDense: true,
+                  filled: true,
+                  fillColor: AppTheme.lightBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppTheme.borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppTheme.borderColor),
+                  ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
@@ -443,7 +458,7 @@ class _DropdownListState<T> extends State<_DropdownList<T>> {
                         // A new key each time restarts the fade.
                         key: item.value == _flashValue ? ValueKey(_flashCount) : null,
                         active: item.value == _flashValue && _flashCount > 0,
-                        base: isSelected ? Color(0xFFE2E8F0) : null,
+                        base: isSelected ? (ThemeController.instance.isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0)) : null,
                         padding: EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           children: [

@@ -357,7 +357,7 @@ class _EyeDrawingCanvasState extends State<EyeDrawingCanvas> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Color(0xFFF1F5F9),
+                      color: AppTheme.lightBg,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.borderColor),
                     ),

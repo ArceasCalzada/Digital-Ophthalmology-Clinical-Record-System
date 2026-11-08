@@ -4,6 +4,9 @@ import 'package:ophthalmology_clinical_record_system/main.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/clinic_store.dart';
+import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
+import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
+import 'package:ophthalmology_clinical_record_system/services/workspace_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_backend.dart';
@@ -25,6 +28,7 @@ void main() {
   }
 
   tearDown(() async {
+    OfflineSyncService().stopAutoSyncTimer();
     await AuthService.instance.resetForTesting();
     ClinicStore.instance.resetForTesting();
   });
@@ -59,6 +63,7 @@ void main() {
   });
 
   testWidgets('Allows switching to Create Account tab and submitting registration', (WidgetTester tester) async {
+    addTearDown(() => OfflineSyncService().stopAutoSyncTimer());
     await attachFakeAuth();
     await tester.pumpWidget(const OphthalmologyApp());
     await tester.pump();
@@ -67,18 +72,23 @@ void main() {
     await tester.tap(createAccountTab);
     await tester.pump();
 
-    expect(find.text('Register Account'), findsOneWidget);
+    final registerButton = find.byKey(const Key('register-submit-button'));
+    expect(registerButton, findsOneWidget);
     await tester.enterText(find.byKey(const Key('signup-email-field')), 'sarah@clinic.test');
     await tester.enterText(find.byKey(const Key('signup-password-field')), 'password123');
     await tester.enterText(find.byKey(const Key('signup-confirm-password-field')), 'password123');
 
-    final registerButton = find.text('Register Account');
     await tester.ensureVisible(registerButton);
     await tester.tap(registerButton);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
 
-    expect(find.text('Welcome to Your Clinical Setup'), findsOneWidget);
+    expect(find.textContaining('Dr. sarah'), findsOneWidget);
+    expect(find.text('Clinical Patient Records'), findsOneWidget);
+
+    await AuthService.instance.signOut();
+    await tester.pump();
   });
 
   testWidgets('Opens Reset Password dialog and submits email request', (WidgetTester tester) async {

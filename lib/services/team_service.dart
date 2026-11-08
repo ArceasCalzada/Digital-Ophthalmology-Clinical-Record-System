@@ -223,7 +223,52 @@ class TeamService extends ChangeNotifier {
       debugPrint('all teams scan error: $e');
     }
 
+    // 4. Fallback: check users/{uid} workspaceId or requestedWorkspaceId
     if (teamMap.isEmpty) {
+      try {
+        final uDoc = await firestore.collection('users').doc(uid).get();
+        if (uDoc.exists && uDoc.data() != null) {
+          final wsId = uDoc.data()?['workspaceId'] as String? ??
+              uDoc.data()?['requestedWorkspaceId'] as String?;
+          if (wsId != null && wsId.isNotEmpty) {
+            final tDoc = await firestore.collection('teams').doc(wsId).get();
+            if (tDoc.exists && tDoc.data() != null) {
+              final data = FirebaseGate.decode(tDoc.data()!);
+              data['id'] = tDoc.id;
+              teamMap[tDoc.id] = Team.fromJson(data);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('user doc workspace check error: $e');
+      }
+    }
+
+    // 5. Fallback: check SharedPreferences saved active team
+    if (teamMap.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final savedActiveId = prefs.getString(_localKey(uid));
+        if (savedActiveId != null && savedActiveId.isNotEmpty) {
+          final tDoc = await firestore.collection('teams').doc(savedActiveId).get();
+          if (tDoc.exists && tDoc.data() != null) {
+            final data = FirebaseGate.decode(tDoc.data()!);
+            data['id'] = tDoc.id;
+            teamMap[tDoc.id] = Team.fromJson(data);
+          }
+        }
+      } catch (e) {
+        debugPrint('savedActiveId team check error: $e');
+      }
+    }
+
+    if (teamMap.isEmpty) {
+      if (_teams.isNotEmpty) {
+        // Retain existing loaded teams to avoid wiping active workspace context
+        _loading = false;
+        notifyListeners();
+        return;
+      }
       // First time user: auto create initial default team
       await _createInitialDefaultTeam(uid);
       _loading = false;
@@ -235,10 +280,15 @@ class TeamService extends ChangeNotifier {
     _teams.sort((a, b) => a.name.compareTo(b.name));
 
     // Restore active team preference
-    final prefs = await SharedPreferences.getInstance();
-    final savedActiveId = prefs.getString(_localKey(uid));
+    String? savedActiveId;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      savedActiveId = prefs.getString(_localKey(uid));
+    } catch (_) {}
     final nonArchived = _teams.where((t) => !t.isArchived).toList();
-    if (savedActiveId != null && nonArchived.any((t) => t.id == savedActiveId)) {
+    if (_activeTeam != null && nonArchived.any((t) => t.id == _activeTeam!.id)) {
+      _activeTeam = nonArchived.firstWhere((t) => t.id == _activeTeam!.id);
+    } else if (savedActiveId != null && nonArchived.any((t) => t.id == savedActiveId)) {
       _activeTeam = nonArchived.firstWhere((t) => t.id == savedActiveId);
     } else if (nonArchived.isNotEmpty) {
       _activeTeam = nonArchived.first;
@@ -1377,6 +1427,24 @@ class TeamService extends ChangeNotifier {
   void addMemberForTesting(TeamMember member) {
     _members.removeWhere((m) => m.uid == member.uid);
     _members.add(member);
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setTeamsForTesting(List<Team> teams) {
+    _teams = List.from(teams);
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setActiveTeamForTesting(Team? team) {
+    _activeTeam = team;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setLoadingForTesting(bool value) {
+    _loading = value;
     notifyListeners();
   }
 

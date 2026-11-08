@@ -468,7 +468,7 @@ class _AddEventModalState extends State<AddEventModal> {
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF1F5F9),
+                          color: AppTheme.lightBg,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
@@ -499,7 +499,7 @@ class _AddEventModalState extends State<AddEventModal> {
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF1F5F9),
+                          color: AppTheme.lightBg,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),

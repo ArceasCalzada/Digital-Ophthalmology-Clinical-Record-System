@@ -145,8 +145,29 @@ class AppTheme {
       splashFactory: InkRipple.splashFactory,
       scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       cardColor: const Color(0xFFFFFFFF),
+      canvasColor: const Color(0xFFFFFFFF),
       primaryColor: primaryBlue,
       dividerColor: const Color(0xFFE2E8F0),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Color(0xFFFFFFFF),
+        textStyle: TextStyle(color: Color(0xFF0F172A)),
+        surfaceTintColor: Colors.transparent,
+      ),
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        textStyle: TextStyle(color: Color(0xFF0F172A)),
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(Color(0xFFFFFFFF)),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFFFFFFFF),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF0F172A),
@@ -234,8 +255,56 @@ class AppTheme {
     return ThemeData.dark().copyWith(
       scaffoldBackgroundColor: darkBg,
       cardColor: darkCardBg,
+      canvasColor: darkCardBg,
       primaryColor: primaryBlue,
       dividerColor: darkBorder,
+      popupMenuTheme: const PopupMenuThemeData(
+        color: darkCardBg,
+        textStyle: TextStyle(color: darkTextPrimary),
+        surfaceTintColor: Colors.transparent,
+      ),
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        textStyle: TextStyle(color: darkTextPrimary),
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(darkCardBg),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: darkCardBg,
+        headerBackgroundColor: darkCardBg,
+        headerForegroundColor: darkTextPrimary,
+        surfaceTintColor: Colors.transparent,
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) return darkTextSecondary.withValues(alpha: 0.35);
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return darkTextPrimary;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return primaryBlue;
+          return null;
+        }),
+        yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) return darkTextSecondary.withValues(alpha: 0.35);
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return darkTextPrimary;
+        }),
+        yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return primaryBlue;
+          return null;
+        }),
+      ),
+      timePickerTheme: const TimePickerThemeData(
+        backgroundColor: darkCardBg,
+        hourMinuteColor: darkBg,
+        hourMinuteTextColor: darkTextPrimary,
+        dayPeriodColor: darkBg,
+        dayPeriodTextColor: darkTextPrimary,
+        dialBackgroundColor: darkBg,
+        dialHandColor: primaryBlue,
+        dialTextColor: darkTextPrimary,
+        entryModeIconColor: darkTextSecondary,
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: darkCardBg,
         foregroundColor: darkTextPrimary,

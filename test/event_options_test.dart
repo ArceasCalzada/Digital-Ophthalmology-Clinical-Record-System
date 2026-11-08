@@ -7,6 +7,7 @@ import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/calendar_page_view.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/filter_pill.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/add_event_modal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'add_event_modal_test.dart' show openModal;
 
@@ -15,7 +16,10 @@ Finder get _deleteButtons => find.byIcon(Icons.close_rounded);
 
 void main() {
   final options = EventOptionsStore.instance;
-  setUp(options.resetForTest);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    options.resetForTest();
+  });
   tearDown(options.resetForTest);
 
   group('the lists', () {

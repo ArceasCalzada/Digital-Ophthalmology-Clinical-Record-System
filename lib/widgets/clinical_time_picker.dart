@@ -148,7 +148,7 @@ class _ClinicalTimePickerDialogState extends State<ClinicalTimePickerDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.cardBg,
       insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 340),

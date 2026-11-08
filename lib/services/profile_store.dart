@@ -164,6 +164,13 @@ class ProfileStore extends ChangeNotifier {
   void _onBranchesSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
     _isBranchesLoading = false;
     _branchesError = null;
+    if (snapshot.docs.isEmpty) {
+      _branches = [];
+      _syncActiveBranchesToControllers();
+      saveToPreferences();
+      notifyListeners();
+      return;
+    }
     _branches = snapshot.docs.map((doc) {
       final data = FirebaseGate.decode(doc.data());
       if (!data.containsKey('id') || data['id'] == null || data['id'].toString().isEmpty) {
@@ -174,6 +181,30 @@ class ProfileStore extends ChangeNotifier {
     _syncActiveBranchesToControllers();
     saveToPreferences();
     notifyListeners();
+  }
+
+  Future<void> _seedBranchesToFirestore(String? teamId) async {
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null || effTeamId == null || effTeamId.isEmpty) return;
+    if (TeamService.instance.isAssistant) return;
+
+    try {
+      final batch = firestore.batch();
+      for (final branch in _branches) {
+        final bRef = firestore
+            .collection('teams')
+            .doc(effTeamId)
+            .collection('branches')
+            .doc(branch.id);
+        batch.set(bRef, FirebaseGate.encode(branch.toMap()), SetOptions(merge: true));
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Seeding clinic branches to Firestore: $e');
+    }
   }
 
   void stopListeningToBranches() {
@@ -570,32 +601,40 @@ class ProfileStore extends ChangeNotifier {
       if (data['clinic3Days'] != null) clinic3Days.text = data['clinic3Days'].toString();
       if (data['clinic3Hours'] != null) clinic3Hours.text = data['clinic3Hours'].toString();
 
-      _branches = [
-        ClinicBranch(
-          id: 'branch-1',
-          name: clinic1Name.text,
-          address: clinic1Location.text,
-          days: clinic1Days.text,
-          hours: clinic1Hours.text,
-          isArchived: false,
-        ),
-        ClinicBranch(
-          id: 'branch-2',
-          name: clinic2Name.text,
-          address: clinic2Location.text,
-          days: clinic2Days.text,
-          hours: clinic2Hours.text,
-          isArchived: false,
-        ),
-        ClinicBranch(
-          id: 'branch-3',
-          name: clinic3Name.text,
-          address: clinic3Location.text,
-          days: clinic3Days.text,
-          hours: clinic3Hours.text,
-          isArchived: false,
-        ),
-      ];
+      if (_branches.isNotEmpty &&
+          clinic1Name.text.trim().isEmpty &&
+          clinic2Name.text.trim().isEmpty &&
+          clinic3Name.text.trim().isEmpty) {
+        // Preserve existing valid branches rather than overwriting with empty defaults
+        _syncActiveBranchesToControllers();
+      } else {
+        _branches = [
+          ClinicBranch(
+            id: 'branch-1',
+            name: clinic1Name.text,
+            address: clinic1Location.text,
+            days: clinic1Days.text,
+            hours: clinic1Hours.text,
+            isArchived: false,
+          ),
+          ClinicBranch(
+            id: 'branch-2',
+            name: clinic2Name.text,
+            address: clinic2Location.text,
+            days: clinic2Days.text,
+            hours: clinic2Hours.text,
+            isArchived: false,
+          ),
+          ClinicBranch(
+            id: 'branch-3',
+            name: clinic3Name.text,
+            address: clinic3Location.text,
+            days: clinic3Days.text,
+            hours: clinic3Hours.text,
+            isArchived: false,
+          ),
+        ];
+      }
     }
 
     notifyListeners();

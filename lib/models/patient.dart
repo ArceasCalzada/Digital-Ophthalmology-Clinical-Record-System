@@ -683,17 +683,19 @@ class PatientRepository {
     if (firestore == null || teamId.isEmpty) return;
 
     try {
-      final unassigned = await firestore
-          .collection('patients')
-          .where('teamId', isEqualTo: '')
-          .get();
-      if (unassigned.docs.isNotEmpty) {
-        final batch = firestore.batch();
-        for (final doc in unassigned.docs) {
-          batch.update(doc.reference, {'teamId': teamId});
+      for (final checkId in ['', 'c-default-team', 'default']) {
+        final unassigned = await firestore
+            .collection('patients')
+            .where('teamId', isEqualTo: checkId)
+            .get();
+        if (unassigned.docs.isNotEmpty) {
+          final batch = firestore.batch();
+          for (final doc in unassigned.docs) {
+            batch.update(doc.reference, {'teamId': teamId});
+          }
+          await batch.commit();
+          debugPrint('Migrated ${unassigned.docs.length} ($checkId) unassigned patient records to team $teamId');
         }
-        await batch.commit();
-        debugPrint('Migrated ${unassigned.docs.length} unassigned patient records to team $teamId');
       }
     } catch (e) {
       debugPrint('Patient data migration check: $e');

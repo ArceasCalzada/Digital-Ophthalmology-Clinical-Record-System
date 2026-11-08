@@ -10,10 +10,18 @@ import 'package:ophthalmology_clinical_record_system/models/eye_exam.dart';
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
 import 'package:ophthalmology_clinical_record_system/views/teams_view.dart';
+import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
 import 'helpers/fake_auth_backend.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    OfflineSyncService().stopAutoSyncTimer();
+    TeamService.instance.unload();
+    PatientRepository.disconnect();
+  });
 
   group('TeamRole Permission Matrix Tests', () {
     test('Owner role has full permissions', () {
@@ -517,7 +525,8 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.textContaining('Pending Approvals (1)'), findsOneWidget);
       expect(find.text('Dr. New Registrant'), findsOneWidget);
@@ -529,12 +538,14 @@ void main() {
       // Tap Approve button
       await tester.ensureVisible(find.text('Approve'));
       await tester.tap(find.text('Approve'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Check success modal
       expect(find.text('User Approved Successfully'), findsOneWidget);
       await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(service.pendingMembers.isEmpty, isTrue);
       expect(service.members.any((m) => m.uid == 'user-widget-1'), isTrue);

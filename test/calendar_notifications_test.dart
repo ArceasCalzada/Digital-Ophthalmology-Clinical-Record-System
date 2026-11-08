@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/calendar_event.dart';
 import 'package:ophthalmology_clinical_record_system/models/clinical_notification.dart';
+import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
 import 'package:ophthalmology_clinical_record_system/views/calendar_page_view.dart';
 import 'package:ophthalmology_clinical_record_system/views/main_layout.dart';
 import 'package:ophthalmology_clinical_record_system/widgets/add_event_modal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,8 @@ void main() {
     late ClinicalNotificationRepository notifRepo;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      OfflineSyncService().stopAutoSyncTimer();
       eventRepo = CalendarEventRepository();
       notifRepo = ClinicalNotificationRepository();
     });
@@ -73,14 +77,16 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Clinical Calendar & Scheduling'), findsOneWidget);
 
       // Filters start collapsed; opening the section reveals the chips.
       expect(find.text('Type Filter:'), findsNothing);
       await tester.tap(find.text('Filters'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Type Filter:'), findsOneWidget);
       expect(find.text('Location:'), findsOneWidget);
       expect(find.text('Upcoming Master Schedule'), findsOneWidget);

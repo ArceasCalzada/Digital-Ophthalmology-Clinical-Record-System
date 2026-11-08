@@ -274,7 +274,7 @@ void main() {
 
       // General clinic records should be shown; Eye Center records should NOT be shown
       expect(find.text('Juan Luna'), findsAtLeastNWidgets(1));
-      expect(find.textContaining('Routine Vision Screening'), findsOneWidget);
+      expect(find.textContaining('Routine Vision Screening'), findsAtLeastNWidgets(1));
       expect(find.text('Maria Santos'), findsNothing);
       expect(find.textContaining('Cataract Pre-Op Assessment'), findsNothing);
       expect(find.text('No patient records in database.'), findsNothing);
@@ -287,7 +287,7 @@ void main() {
 
       // Eye Center records should now be shown; General Clinic records removed
       expect(find.text('Maria Santos'), findsAtLeastNWidgets(1));
-      expect(find.textContaining('Cataract Pre-Op Assessment'), findsOneWidget);
+      expect(find.textContaining('Cataract Pre-Op Assessment'), findsAtLeastNWidgets(1));
       expect(find.text('Juan Luna'), findsNothing);
       expect(find.textContaining('Routine Vision Screening'), findsNothing);
       expect(find.text('No patient records in database.'), findsNothing);

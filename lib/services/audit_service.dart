@@ -225,3 +225,4 @@ class AuditService extends ChangeNotifier {
     _memoryLogs.clear();
   }
 }
+

@@ -390,13 +390,15 @@ class _AuditLogsViewState extends State<AuditLogsView> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           key: const Key('dropdown_staff_filter'),
+                          dropdownColor: AppTheme.cardBg,
+                          iconEnabledColor: AppTheme.textPrimary,
                           value: staffList.contains(_selectedStaff) ? _selectedStaff : 'All Staff',
                           icon: const Icon(Icons.arrow_drop_down, size: 20),
                           style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                           items: staffList.map((email) {
                             return DropdownMenuItem<String>(
                               value: email,
-                              child: Text(email),
+                              child: Text(email, style: TextStyle(color: AppTheme.textPrimary)),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -436,15 +438,17 @@ class _AuditLogsViewState extends State<AuditLogsView> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           key: const Key('dropdown_date_filter'),
+                          dropdownColor: AppTheme.cardBg,
+                          iconEnabledColor: AppTheme.textPrimary,
                           value: _selectedDatePreset,
                           icon: const Icon(Icons.arrow_drop_down, size: 20),
                           style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-                          items: const [
-                            DropdownMenuItem(value: 'All Time', child: Text('All Time')),
-                            DropdownMenuItem(value: 'Today', child: Text('Today')),
-                            DropdownMenuItem(value: 'Last 7 Days', child: Text('Last 7 Days')),
-                            DropdownMenuItem(value: 'Last 30 Days', child: Text('Last 30 Days')),
-                            DropdownMenuItem(value: 'Custom', child: Text('Custom Range...')),
+                          items: [
+                            DropdownMenuItem(value: 'All Time', child: Text('All Time', style: TextStyle(color: AppTheme.textPrimary))),
+                            DropdownMenuItem(value: 'Today', child: Text('Today', style: TextStyle(color: AppTheme.textPrimary))),
+                            DropdownMenuItem(value: 'Last 7 Days', child: Text('Last 7 Days', style: TextStyle(color: AppTheme.textPrimary))),
+                            DropdownMenuItem(value: 'Last 30 Days', child: Text('Last 30 Days', style: TextStyle(color: AppTheme.textPrimary))),
+                            DropdownMenuItem(value: 'Custom', child: Text('Custom Range...', style: TextStyle(color: AppTheme.textPrimary))),
                           ],
                           onChanged: (val) async {
                             if (val == null) return;
@@ -601,12 +605,15 @@ class _AuditLogsViewState extends State<AuditLogsView> {
                       DropdownButtonHideUnderline(
                         child: DropdownButton<int>(
                           value: _pageSize,
-                          items: const [
-                            DropdownMenuItem(value: 10, child: Text('10')),
-                            DropdownMenuItem(value: 15, child: Text('15')),
-                            DropdownMenuItem(value: 25, child: Text('25')),
-                            DropdownMenuItem(value: 50, child: Text('50')),
-                          ],
+                          dropdownColor: AppTheme.cardBg,
+                          iconEnabledColor: AppTheme.textPrimary,
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                          items: [10, 15, 25, 50].map((size) {
+                            return DropdownMenuItem<int>(
+                              value: size,
+                              child: Text('$size', style: TextStyle(color: AppTheme.textPrimary)),
+                            );
+                          }).toList(),
                           onChanged: (val) {
                             if (val != null) {
                               setState(() {

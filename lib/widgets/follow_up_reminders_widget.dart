@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/follow_up_reminder.dart';
 import '../models/patient.dart';
 import '../services/clinical_reminder_service.dart';
+import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import 'add_event_modal.dart';
 import 'filter_pill.dart';
@@ -245,7 +246,9 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
               const SizedBox(height: 16),
 
               // 3. Reminder Items List
-              if (filtered.isEmpty)
+              if (service.isLoading || TeamService.instance.loading)
+                _buildLoadingState()
+              else if (filtered.isEmpty)
                 _buildEmptyState()
               else
                 ListView.separated(
@@ -291,6 +294,35 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
             Text(
               '$count $label',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Loading return check-up reminders...',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
           ],
         ),

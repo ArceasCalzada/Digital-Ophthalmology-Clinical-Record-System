@@ -119,12 +119,23 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
   }
 
   void _onAuthChanged() {
-    final signedIn = AuthService.instance.isSignedIn;
+    final auth = AuthService.instance;
+    // When actively resolving an existing user session or reloading auth state,
+    // do not prematurely clear local state or trigger a sign-out cascade.
+    if (auth.isResolving && auth.user != null) return;
+
+    if (auth.user == null && _wasSignedIn) {
+      _wasSignedIn = false;
+      _onSignedOut();
+      return;
+    }
+
+    final signedIn = auth.isSignedIn;
     if (signedIn == _wasSignedIn) return;
     _wasSignedIn = signedIn;
     if (signedIn) {
       _onSignedIn();
-    } else {
+    } else if (auth.user == null) {
       _onSignedOut();
     }
   }
@@ -182,6 +193,9 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
         builder: (context, child) {
           final auth = AuthService.instance;
           final security = SecuritySettingsStore.instance;
+          final team = TeamService.instance;
+          final isWorkspaceResolving = auth.isSignedIn &&
+              (team.loading || team.activeTeam == null || WorkspaceStore.instance.activeWorkspaceId == null);
 
           return MaterialApp(
             title: 'DOCRS — Digital Ophthalmology Clinical Record System',
@@ -189,10 +203,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeController.instance.themeMode,
-            home: (auth.isResolving ||
-                    (auth.isSignedIn &&
-                        TeamService.instance.loading &&
-                        TeamService.instance.activeTeam == null))
+            home: (auth.isResolving || isWorkspaceResolving)
                 ? Scaffold(
                     backgroundColor: AppTheme.lightBg,
                     body: Center(

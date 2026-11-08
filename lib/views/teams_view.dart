@@ -1989,6 +1989,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       dropdownColor: AppTheme.cardBg,
+                      iconEnabledColor: AppTheme.textPrimary,
                       value:
                           widget.teamService.teams.any(
                             (t) => t.id == targetWsId,
@@ -2033,6 +2034,7 @@ class _PendingApprovalsCardState extends State<_PendingApprovalsCard> {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<TeamRole>(
                 dropdownColor: AppTheme.cardBg,
+                iconEnabledColor: AppTheme.textPrimary,
                 value: selectedRole,
                 isDense: true,
                 style: TextStyle(

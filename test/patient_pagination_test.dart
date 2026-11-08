@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
+import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
 import 'package:ophthalmology_clinical_record_system/views/patients_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,6 +10,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    OfflineSyncService().stopAutoSyncTimer();
   });
 
   group('Patient Repository Pagination Unit Tests', () {
@@ -98,7 +100,8 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.textContaining('Showing 1–'), findsOneWidget);
       expect(find.textContaining('Rows per page:'), findsOneWidget);
@@ -138,14 +141,16 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       final nextPageBtn = find.byTooltip('Next Page');
       expect(nextPageBtn, findsOneWidget);
 
       await tester.ensureVisible(nextPageBtn);
       await tester.tap(nextPageBtn);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.textContaining('Page 2 of'), findsOneWidget);
 

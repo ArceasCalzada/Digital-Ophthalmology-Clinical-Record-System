@@ -1951,6 +1951,9 @@ class _SettingsViewState extends State<SettingsView> {
                           SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupFrequency,
+                            dropdownColor: AppTheme.cardBg,
+                            iconEnabledColor: AppTheme.textPrimary,
+                            style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -1963,7 +1966,7 @@ class _SettingsViewState extends State<SettingsView> {
                                     value: val,
                                     child: Text(
                                       val,
-                                      style: TextStyle(fontSize: 13),
+                                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                                     ),
                                   ),
                                 )
@@ -1993,6 +1996,9 @@ class _SettingsViewState extends State<SettingsView> {
                           SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             initialValue: _backupTime,
+                            dropdownColor: AppTheme.cardBg,
+                            iconEnabledColor: AppTheme.textPrimary,
+                            style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                             decoration: InputDecoration(
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -2006,7 +2012,7 @@ class _SettingsViewState extends State<SettingsView> {
                                         value: val,
                                         child: Text(
                                           val,
-                                          style: TextStyle(fontSize: 13),
+                                          style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                                         ),
                                       ),
                                     )
@@ -3680,14 +3686,22 @@ class _TwoFactorEnrollmentDialogState extends State<TwoFactorEnrollmentDialog> {
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
                           maxLength: 1,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
                           ),
                           decoration: InputDecoration(
                             counterText: '',
+                            filled: true,
+                            fillColor: AppTheme.lightBg,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppTheme.borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppTheme.borderColor),
                             ),
                             contentPadding: EdgeInsets.zero,
                           ),

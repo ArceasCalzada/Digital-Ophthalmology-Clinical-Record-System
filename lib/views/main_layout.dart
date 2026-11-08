@@ -603,7 +603,7 @@ class _MainLayoutState extends State<MainLayout> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Color(0xFFF1F5F9),
+                            color: AppTheme.lightBg,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(

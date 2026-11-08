@@ -189,14 +189,20 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   children: [
                     TextField(
                       autofocus: true,
+                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Type patient name, ID, or phone...',
-                        prefixIcon: Icon(Icons.search, size: 20),
+                        hintStyle: TextStyle(color: AppTheme.textSecondary),
+                        prefixIcon: Icon(Icons.search, size: 20, color: AppTheme.textSecondary),
                         filled: true,
-                        fillColor: Color(0xFFF1F5F9),
+                        fillColor: AppTheme.lightBg,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: AppTheme.borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppTheme.borderColor),
                         ),
                         contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       ),
@@ -377,7 +383,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
         TeamService.instance,
       ]),
       builder: (context, child) {
-        final isLoading = PatientRepository.isLoading.value;
+        final isLoading = PatientRepository.isLoading.value || TeamService.instance.loading;
         final query = _searchController.text.trim();
         final paginatedResult = PatientRepository.getPaginatedPatients(
           page: _currentPage,
@@ -1120,7 +1126,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: Color(0xFFF1F5F9),
+                    color: AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.borderColor),
                   ),
@@ -1128,10 +1134,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     child: DropdownButton<int>(
                       value: _pageSize,
                       isDense: true,
+                      dropdownColor: AppTheme.cardBg,
+                      iconEnabledColor: AppTheme.textPrimary,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                       items: const [10, 20, 50].map((size) {
                         return DropdownMenuItem<int>(
                           value: size,
-                          child: Text('$size', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: Text('$size', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                         );
                       }).toList(),
                       onChanged: (newSize) {

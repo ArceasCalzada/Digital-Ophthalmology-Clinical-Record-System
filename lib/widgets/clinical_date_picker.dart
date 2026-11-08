@@ -181,7 +181,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.cardBg,
       insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 350),
@@ -231,7 +231,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.chevron_left, size: 22),
-                      color: _canGoPrevious ? AppTheme.textPrimary : Colors.grey.shade300,
+                      color: _canGoPrevious ? AppTheme.textPrimary : AppTheme.textSecondary.withValues(alpha: 0.35),
                       onPressed: _canGoPrevious ? _previousMonth : null,
                       tooltip: 'Previous month',
                     ),
@@ -254,7 +254,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: Icon(Icons.chevron_right, size: 22),
-                      color: _canGoNext ? AppTheme.textPrimary : Colors.grey.shade300,
+                      color: _canGoNext ? AppTheme.textPrimary : AppTheme.textSecondary.withValues(alpha: 0.35),
                       onPressed: _canGoNext ? _nextMonth : null,
                       tooltip: 'Next month',
                     ),
@@ -347,7 +347,7 @@ class _ClinicalDatePickerDialogState extends State<ClinicalDatePickerDialog> {
                                 color: isSelected
                                     ? Colors.white
                                     : isDisabled
-                                        ? Colors.grey.shade300
+                                        ? AppTheme.textSecondary.withValues(alpha: 0.35)
                                         : isToday
                                             ? AppTheme.primaryBlue
                                             : AppTheme.textPrimary,

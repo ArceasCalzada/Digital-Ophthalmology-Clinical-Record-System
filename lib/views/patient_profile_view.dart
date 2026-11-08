@@ -556,7 +556,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                             children: _patient.medicalHistory.map((item) {
                               return Chip(
                                 label: Text(item, style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
-                                backgroundColor: Color(0xFFF1F5F9),
+                                backgroundColor: AppTheme.lightBg,
                                 side: BorderSide.none,
                               );
                             }).toList(),
@@ -676,7 +676,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                     Expanded(
                       child: Container(
                         padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
+                        decoration: BoxDecoration(color: AppTheme.lightBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
                         child: Text(
                           'OD: VA ${enc.examOD.acuity.uncorrected} | IOP ${enc.examOD.iop} mmHg',
                           style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
@@ -687,7 +687,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
                     Expanded(
                       child: Container(
                         padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
+                        decoration: BoxDecoration(color: AppTheme.lightBg, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.borderColor)),
                         child: Text(
                           'OS: VA ${enc.examOS.acuity.uncorrected} | IOP ${enc.examOS.iop} mmHg',
                           style: TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600),

@@ -734,7 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ValueListenableBuilder<bool>(
             valueListenable: PatientRepository.isLoading,
             builder: (context, isLoading, _) {
-              if (isLoading) {
+              if (isLoading || TeamService.instance.loading) {
                 return _buildSkeletonGrid();
               }
               if (_allPatients.isEmpty) {
@@ -1275,7 +1275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTodayQueueCard({bool isNarrow = false}) {
     final calRepo = CalendarEventRepository();
     final queue = calRepo.getEventsForDay(DateTime.now());
-    final isEventsLoading = calRepo.isLoading.value;
+    final isEventsLoading = calRepo.isLoading.value || TeamService.instance.loading;
     final queueItems = _buildQueueItems(queue);
 
     Widget emptyContent = isEventsLoading
