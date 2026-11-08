@@ -539,7 +539,7 @@ service cloud.firestore {
       }
 
       match /branches/{branchId} {
-        allow get, list: if isMasterAdmin() || isTeamMember(teamId);
+        allow get, list: if request.auth != null && (isMasterAdmin() || isTeamMember(teamId) || isTeamOwner(teamId) || isTeamAdmin(teamId) || teamOwnerId(teamId) == request.auth.uid);
         allow create: if request.auth != null && (
           isMasterAdmin() ||
           isTeamOwner(teamId) ||
@@ -607,6 +607,11 @@ service cloud.firestore {
 
     // Collection group rule for querying pending requests across teams
     match /{path=**}/pendingRequests/{uid} {
+      allow read: if request.auth != null;
+    }
+
+    // Collection group rule for querying clinic branches across teams
+    match /{path=**}/branches/{branchId} {
       allow read: if request.auth != null;
     }
 

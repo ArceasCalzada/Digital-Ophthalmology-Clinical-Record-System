@@ -794,6 +794,46 @@ describe('Teams multi-tenancy and permission levels', () => {
       createdAt: now,
     }));
   });
+
+  test('Clinic branches: authenticated users can read/list branches and collectionGroup branches', async () => {
+    const ownerUid = 'doc-owner-branch';
+    const teamId = 'team-branch-read';
+    const now = '2026-11-08T10:00:00.000Z';
+    const ownerDb = as(ownerUid);
+
+    await seed(async (db) => {
+      await db.doc(`teams/${teamId}`).set({
+        id: teamId,
+        name: 'Eye Care Branch Center',
+        ownerId: ownerUid,
+        inviteCode: 'BRN123',
+        createdAt: now,
+        isArchived: false,
+      });
+      await db.doc(`teams/${teamId}/branches/branch-1`).set({
+        id: 'branch-1',
+        name: 'Main Clinic',
+        address: '123 Medical Plaza',
+        days: 'Mon-Sat',
+        hours: '8:00 AM - 4:00 PM',
+        isArchived: false,
+        createdAt: now,
+      });
+    });
+
+    // Owner can read and list
+    await assertSucceeds(ownerDb.doc(`teams/${teamId}/branches/branch-1`).get());
+    await assertSucceeds(ownerDb.collection(`teams/${teamId}/branches`).get());
+
+    // Another authenticated member/user can read branches
+    const memberDb = as('staff-reader');
+    await assertSucceeds(memberDb.collectionGroup('branches').get());
+    await assertSucceeds(memberDb.doc(`teams/${teamId}/branches/branch-1`).get());
+
+    // Unauthenticated user CANNOT read branches
+    await assertFails(anon().doc(`teams/${teamId}/branches/branch-1`).get());
+    await assertFails(anon().collectionGroup('branches').get());
+  });
 });
 
 

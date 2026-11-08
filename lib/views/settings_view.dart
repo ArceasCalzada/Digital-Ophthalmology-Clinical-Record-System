@@ -866,7 +866,7 @@ class _SettingsViewState extends State<SettingsView> {
               ElevatedButton.icon(
                 key: const Key('add_branch_button'),
                 icon: const Icon(Icons.add, size: 14),
-                label: const Text('+ Add Branch'),
+                label: const Text('Add Branch'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
@@ -1034,7 +1034,7 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Click "+ Add Branch" above to register consultation locations and schedules for this clinic.',
+                            'Click "Add Branch" above to register consultation locations and schedules for this clinic.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
