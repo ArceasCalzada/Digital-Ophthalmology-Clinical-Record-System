@@ -1142,8 +1142,9 @@ class AuthService extends ChangeNotifier {
       inviteCode: inviteCode,
       workspaceId: workspaceId,
     );
-    if (requestedRole == 'physician') {
-      // Independent Physicians / Clinic Owners:
+    final hasCompletedProfile = (effFirst != null && effFirst.isNotEmpty) && (effLast != null && effLast.isNotEmpty);
+    if (requestedRole == 'physician' && hasCompletedProfile) {
+      // Independent Physicians / Clinic Owners with completed profile:
       // Automatically provision active workspace with Owner/Physician privileges upon sign-up,
       // bypassing the approval wall entirely!
       await autoProvisionPhysicianWorkspace(

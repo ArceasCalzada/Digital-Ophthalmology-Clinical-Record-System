@@ -174,11 +174,10 @@ class ClinicalNotificationRepository extends ChangeNotifier {
       }
       if (_notifications.isEmpty) {
         if (!isMasterAdmin && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
+          final isDefault = _activeTeamId == 'c-default-team' || _activeTeamId == 'default';
           _notifications.addAll(_allMemoryNotifications.where((n) =>
-              n.teamId == _activeTeamId ||
-              n.teamId.isEmpty ||
-              (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
-        } else {
+              n.teamId == _activeTeamId || (isDefault && n.teamId.isEmpty)));
+        } else if (isMasterAdmin) {
           _notifications.addAll(_allMemoryNotifications);
         }
       }
@@ -193,6 +192,14 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     }
 
     _notifSub?.cancel();
+
+    if (!isMasterAdmin && (targetTeamId == null || targetTeamId.isEmpty)) {
+      _notifications.clear();
+      isLoading.value = false;
+      notifyListeners();
+      return;
+    }
+
     Query<Map<String, dynamic>> query = firestore.collection('notifications');
     if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
@@ -220,11 +227,11 @@ class ClinicalNotificationRepository extends ChangeNotifier {
           final sig = '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').trim().toLowerCase()}|${n.category.toLowerCase()}';
           if (!seenSigs.add(sig)) continue;
 
+          final isDefault = targetTeamId == 'c-default-team' || targetTeamId == 'default';
           if (isMasterAdmin ||
-              targetTeamId == null ||
-              targetTeamId.isEmpty ||
-              n.teamId.isEmpty ||
-              n.teamId == targetTeamId) {
+              (targetTeamId != null &&
+                  targetTeamId.isNotEmpty &&
+                  (n.teamId == targetTeamId || (isDefault && n.teamId.isEmpty)))) {
             _notifications.add(n);
           }
         } catch (e) {

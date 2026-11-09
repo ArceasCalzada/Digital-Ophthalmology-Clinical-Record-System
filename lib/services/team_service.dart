@@ -156,95 +156,89 @@ class TeamService extends ChangeNotifier {
   Future<void> _fetchAndMergeUserTeams(dynamic firestore, String uid) async {
     final teamMap = <String, Team>{};
 
-    // 1. Fetch from collectionGroup('members')
+    // 1 & 2. Concurrently fetch teams owned by user, teams where user is a member, and user document
     try {
-      final memberSnap = await firestore
-          .collectionGroup('members')
-          .where('uid', isEqualTo: uid)
-          .get();
-      for (final doc in memberSnap.docs) {
-        final parentRef = doc.reference.parent.parent;
-        if (parentRef != null) {
-          final tDoc = await parentRef.get();
-          if (tDoc.exists && tDoc.data() != null) {
-            final data = FirebaseGate.decode(tDoc.data()!);
-            data['id'] = tDoc.id;
-            teamMap[tDoc.id] = Team.fromJson(data);
+      final futures = <Future<dynamic>>[
+        firestore.collection('teams').where('ownerId', isEqualTo: uid).get(),
+        firestore.collectionGroup('members').where('uid', isEqualTo: uid).get(),
+        firestore.collection('users').doc(uid).get(),
+      ];
+      final results = await Future.wait(futures.map((f) => f.catchError((e) {
+        debugPrint('[TeamService] Parallel team query exception: $e');
+        return null;
+      })));
+
+      final ownerSnap = results[0];
+      if (ownerSnap != null && ownerSnap.docs != null) {
+        for (final doc in ownerSnap.docs) {
+          if (doc.exists && doc.data() != null) {
+            final data = FirebaseGate.decode(doc.data()!);
+            data['id'] = doc.id;
+            teamMap[doc.id] = Team.fromJson(data);
           }
         }
       }
-    } catch (e) {
-      debugPrint('member cgroup fetch error: $e');
-    }
 
-    // 2. Fetch teams where ownerId == uid
-    try {
-      final ownerSnap = await firestore
-          .collection('teams')
-          .where('ownerId', isEqualTo: uid)
-          .get();
-      for (final doc in ownerSnap.docs) {
-        if (doc.exists && doc.data() != null) {
-          final data = FirebaseGate.decode(doc.data()!);
-          data['id'] = doc.id;
-          teamMap[doc.id] = Team.fromJson(data);
-        }
-      }
-    } catch (e) {
-      debugPrint('owner teams fetch error: $e');
-    }
-
-    // 3. Broad scan teams collection (up to 100) for membership or ownership
-    try {
-      final teamsSnap = await firestore.collection('teams').limit(100).get();
-      for (final doc in teamsSnap.docs) {
-        final tId = doc.id;
-        if (doc.exists && doc.data() != null && !teamMap.containsKey(tId)) {
-          final data = FirebaseGate.decode(doc.data()!);
-          data['id'] = tId;
-          final team = Team.fromJson(data);
-          if (team.ownerId == uid || isMasterAdmin) {
-            teamMap[tId] = team;
-          } else {
-            // Check member subcollection doc
-            final mDoc = await firestore
-                .collection('teams')
-                .doc(tId)
-                .collection('members')
-                .doc(uid)
-                .get();
-            if (mDoc.exists) {
-              teamMap[tId] = team;
-            }
+      final memberSnap = results[1];
+      if (memberSnap != null && memberSnap.docs != null) {
+        final parentGets = <Future<dynamic>>[];
+        for (final doc in memberSnap.docs) {
+          final parentRef = doc.reference.parent.parent;
+          if (parentRef != null && !teamMap.containsKey(parentRef.id)) {
+            parentGets.add(parentRef.get());
           }
         }
-      }
-    } catch (e) {
-      debugPrint('all teams scan error: $e');
-    }
-
-    // 4. Fallback: check users/{uid} workspaceId or requestedWorkspaceId
-    if (teamMap.isEmpty) {
-      try {
-        final uDoc = await firestore.collection('users').doc(uid).get();
-        if (uDoc.exists && uDoc.data() != null) {
-          final wsId = uDoc.data()?['workspaceId'] as String? ??
-              uDoc.data()?['requestedWorkspaceId'] as String?;
-          if (wsId != null && wsId.isNotEmpty) {
-            final tDoc = await firestore.collection('teams').doc(wsId).get();
-            if (tDoc.exists && tDoc.data() != null) {
+        if (parentGets.isNotEmpty) {
+          final parentDocs = await Future.wait(parentGets.map((f) => f.catchError((_) => null)));
+          for (final tDoc in parentDocs) {
+            if (tDoc != null && tDoc.exists && tDoc.data() != null) {
               final data = FirebaseGate.decode(tDoc.data()!);
               data['id'] = tDoc.id;
               teamMap[tDoc.id] = Team.fromJson(data);
             }
           }
         }
+      }
+
+      final uDoc = results[2];
+      if (uDoc != null && uDoc.exists && uDoc.data() != null) {
+        final wsId = uDoc.data()?['workspaceId'] as String? ??
+            uDoc.data()?['requestedWorkspaceId'] as String? ??
+            uDoc.data()?['targetWorkspaceId'] as String?;
+        if (wsId != null && wsId.isNotEmpty && !teamMap.containsKey(wsId)) {
+          try {
+            final tDoc = await firestore.collection('teams').doc(wsId).get();
+            if (tDoc.exists && tDoc.data() != null) {
+              final data = FirebaseGate.decode(tDoc.data()!);
+              data['id'] = tDoc.id;
+              teamMap[tDoc.id] = Team.fromJson(data);
+            }
+          } catch (e) {
+            debugPrint('[TeamService] Workspace doc fetch error: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[TeamService] Parallel user team retrieval error: $e');
+    }
+
+    // 3. For Master Admin only, load additional teams
+    if (isMasterAdmin) {
+      try {
+        final teamsSnap = await firestore.collection('teams').limit(50).get();
+        for (final doc in teamsSnap.docs) {
+          if (doc.exists && doc.data() != null && !teamMap.containsKey(doc.id)) {
+            final data = FirebaseGate.decode(doc.data()!);
+            data['id'] = doc.id;
+            teamMap[doc.id] = Team.fromJson(data);
+          }
+        }
       } catch (e) {
-        debugPrint('user doc workspace check error: $e');
+        debugPrint('[TeamService] Master admin teams fetch error: $e');
       }
     }
 
-    // 5. Fallback: check SharedPreferences saved active team
+    // 4. Fallback: check SharedPreferences saved active team
     if (teamMap.isEmpty) {
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -263,8 +257,8 @@ class TeamService extends ChangeNotifier {
     }
 
     if (teamMap.isEmpty) {
-      if (_teams.isNotEmpty) {
-        // Retain existing loaded teams to avoid wiping active workspace context
+      if (_teams.isNotEmpty && _teams.any((t) => t.ownerId == uid)) {
+        // Retain existing loaded teams strictly belonging to this user
         _loading = false;
         notifyListeners();
         return;

@@ -56,7 +56,9 @@ class FakeAuthBackend implements AuthBackend {
     if (accounts.containsKey(email)) {
       throw const AuthFailure('An account with this email address already exists.');
     }
-    final initialRole = requestedRole == 'physician' ? UserRole.physician : null;
+    final initialRole = (requestedRole == 'physician' && firstName != null && firstName.isNotEmpty && lastName != null && lastName.isNotEmpty)
+        ? UserRole.physician
+        : null;
     accounts[email] = (password: password, role: initialRole);
     _current = AuthUser(
       'uid-$email',

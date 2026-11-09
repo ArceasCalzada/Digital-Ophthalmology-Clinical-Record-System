@@ -538,10 +538,13 @@ class ProfileStore extends ChangeNotifier {
     if (data['clinicWebsite'] != null) clinicWebsite.text = data['clinicWebsite'].toString();
 
     if (data['branches'] != null) {
-      _branches = (data['branches'] as List)
-          .map((b) => ClinicBranch.fromMap(Map<String, dynamic>.from(b as Map)))
-          .toList();
-      _syncActiveBranchesToControllers();
+      final rawList = data['branches'] as List;
+      if (rawList.isNotEmpty || _branches.isEmpty) {
+        _branches = rawList
+            .map((b) => ClinicBranch.fromMap(Map<String, dynamic>.from(b as Map)))
+            .toList();
+        _syncActiveBranchesToControllers();
+      }
     } else {
       if (data['clinic1Name'] != null) clinic1Name.text = data['clinic1Name'].toString();
       if (data['clinic1Location'] != null) clinic1Location.text = data['clinic1Location'].toString();

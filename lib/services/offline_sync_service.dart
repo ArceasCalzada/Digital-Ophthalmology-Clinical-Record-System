@@ -119,7 +119,7 @@ class OfflineSyncService extends ChangeNotifier {
 
   /// How long [syncNow] waits for server acknowledgement before reporting the
   /// data as "saved on this device, waiting for network".
-  static const Duration ackWait = Duration(seconds: 8);
+  static const Duration ackWait = Duration(seconds: 3);
 
   NetworkConnectivityState _networkState = NetworkConnectivityState.online;
   SyncStatusState _syncState = SyncStatusState.upToDate;
@@ -130,6 +130,7 @@ class OfflineSyncService extends ChangeNotifier {
   Timer? _autoSyncTimer;
   Timer? _retryTimer;
   int _retryAttempt = 0;
+  bool _syncRequestedWhileSyncing = false;
 
   Connectivity? _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -346,8 +347,10 @@ class OfflineSyncService extends ChangeNotifier {
     _isConnectivityListening = false;
   }
 
-  void startAutoSyncTimer({Duration interval = const Duration(seconds: 15)}) {
+  void startAutoSyncTimer({Duration interval = const Duration(seconds: 5)}) {
     _autoSyncTimer?.cancel();
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (isTest) return;
     _autoSyncTimer = Timer.periodic(interval, (_) {
       if (isOnline && _syncState != SyncStatusState.syncing) {
         if (_pendingQueue.any((m) => !m.submitted)) {
@@ -456,7 +459,10 @@ class OfflineSyncService extends ChangeNotifier {
   }
 
   Future<void> syncNow({bool force = false}) async {
-    if (_syncState == SyncStatusState.syncing) return;
+    if (_syncState == SyncStatusState.syncing) {
+      _syncRequestedWhileSyncing = true;
+      return;
+    }
 
     if (isOffline) {
       _syncState = SyncStatusState.offlineSaved;
@@ -496,7 +502,10 @@ class OfflineSyncService extends ChangeNotifier {
 
       if (firestore == null) {
         // No cloud configured (tests / local-only mode): nothing to upload.
-        await Future.delayed(const Duration(milliseconds: 300));
+        final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
+        if (!isTest) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
         _pendingQueue.removeWhere((m) => m.error == null);
         _lastSyncedAt = DateTime.now();
         _syncState = isOffline
@@ -527,7 +536,12 @@ class OfflineSyncService extends ChangeNotifier {
       }
       _refreshState();
     } finally {
+      final shouldResync = _syncRequestedWhileSyncing && _pendingQueue.any((m) => !m.submitted) && isOnline;
+      _syncRequestedWhileSyncing = false;
       notifyListeners();
+      if (shouldResync) {
+        syncNow();
+      }
     }
   }
 

@@ -5,8 +5,6 @@ import 'package:ophthalmology_clinical_record_system/models/patient.dart';
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/clinic_store.dart';
 import 'package:ophthalmology_clinical_record_system/services/offline_sync_service.dart';
-import 'package:ophthalmology_clinical_record_system/services/team_service.dart';
-import 'package:ophthalmology_clinical_record_system/services/workspace_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_backend.dart';
@@ -84,8 +82,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
 
-    expect(find.textContaining('Dr. sarah'), findsOneWidget);
-    expect(find.text('Clinical Patient Records'), findsOneWidget);
+    expect(find.text('Welcome to Your Clinical Setup'), findsOneWidget);
 
     await AuthService.instance.signOut();
     await tester.pump();

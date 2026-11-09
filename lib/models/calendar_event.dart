@@ -130,11 +130,10 @@ class CalendarEventRepository extends ChangeNotifier {
       }
       if (_events.isEmpty) {
         if (!isMasterAdmin && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
+          final isDefault = _activeTeamId == 'c-default-team' || _activeTeamId == 'default';
           _events.addAll(_allMemoryEvents.where((e) =>
-              e.teamId == _activeTeamId ||
-              e.teamId.isEmpty ||
-              (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
-        } else {
+              e.teamId == _activeTeamId || (isDefault && e.teamId.isEmpty)));
+        } else if (isMasterAdmin) {
           _events.addAll(_allMemoryEvents);
         }
       }
@@ -150,6 +149,13 @@ class CalendarEventRepository extends ChangeNotifier {
 
     _eventsSub?.cancel();
 
+    if (!isMasterAdmin && (targetTeamId == null || targetTeamId.isEmpty)) {
+      _events.clear();
+      isLoading.value = false;
+      notifyListeners();
+      return;
+    }
+
     Query<Map<String, dynamic>> query = firestore.collection('calendarEvents');
     if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
@@ -164,11 +170,11 @@ class CalendarEventRepository extends ChangeNotifier {
           data['id'] = doc.id;
           final event = CalendarEvent.fromJson(data);
 
+          final isDefault = targetTeamId == 'c-default-team' || targetTeamId == 'default';
           if (isMasterAdmin ||
-              targetTeamId == null ||
-              targetTeamId.isEmpty ||
-              event.teamId.isEmpty ||
-              event.teamId == targetTeamId) {
+              (targetTeamId != null &&
+                  targetTeamId.isNotEmpty &&
+                  (event.teamId == targetTeamId || (isDefault && event.teamId.isEmpty)))) {
             _events.add(event);
           }
         } catch (e) {

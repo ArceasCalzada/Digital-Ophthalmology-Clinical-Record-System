@@ -648,19 +648,25 @@ class PatientRepository {
       _patients.clear();
       if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
         _patients.addAll(_allMemoryPatients.where((p) =>
-            p.teamId == targetTeamId ||
-            p.teamId.isEmpty ||
-            (targetTeamId == 'c-default-team' || targetTeamId == 'default')));
-      } else {
+            p.teamId == targetTeamId || p.teamId.isEmpty));
+      } else if (isMasterAdmin) {
         _patients.addAll(_allMemoryPatients);
       }
       isLoading.value = false;
       changeNotifier.value++;
       return;
     }
-    isLoading.value = true;
+
     _patientsSub?.cancel();
 
+    if (!isMasterAdmin && (targetTeamId == null || targetTeamId.isEmpty)) {
+      _patients.clear();
+      isLoading.value = false;
+      changeNotifier.value++;
+      return;
+    }
+
+    isLoading.value = true;
     Query<Map<String, dynamic>> query = firestore.collection('patients');
     if (!isMasterAdmin && targetTeamId != null && targetTeamId.isNotEmpty) {
       query = query.where('teamId', isEqualTo: targetTeamId);
@@ -671,35 +677,12 @@ class PatientRepository {
       debugPrint('Firestore patients stream error: $e');
       isLoading.value = false;
     });
-
-    if (targetTeamId != null && targetTeamId.isNotEmpty) {
-      migrateUnassignedPatientsToTeam(targetTeamId);
-    }
   }
 
-  /// Migrates legacy unassigned patient records into the given team ID.
+  /// Deprecated: Cross-account migrations are disabled to prevent data leakage between workspaces.
   static Future<void> migrateUnassignedPatientsToTeam(String teamId) async {
-    final firestore = FirebaseGate.firestoreIfReady();
-    if (firestore == null || teamId.isEmpty) return;
-
-    try {
-      for (final checkId in ['', 'c-default-team', 'default']) {
-        final unassigned = await firestore
-            .collection('patients')
-            .where('teamId', isEqualTo: checkId)
-            .get();
-        if (unassigned.docs.isNotEmpty) {
-          final batch = firestore.batch();
-          for (final doc in unassigned.docs) {
-            batch.update(doc.reference, {'teamId': teamId});
-          }
-          await batch.commit();
-          debugPrint('Migrated ${unassigned.docs.length} ($checkId) unassigned patient records to team $teamId');
-        }
-      }
-    } catch (e) {
-      debugPrint('Patient data migration check: $e');
-    }
+    // No-op: Each account holder's patient records remain strictly scoped to their workspace.
+    return;
   }
 
   /// Stops all listeners and drops patient data from memory (sign-out).
@@ -812,21 +795,21 @@ class PatientRepository {
     final isMasterAdmin = TeamService.instance.isMasterAdmin;
     if (isMasterAdmin) {
       if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-        final teamMatches = _patients.where((p) =>
-            p.teamId == _activeTeamId ||
-            p.teamId.isEmpty ||
-            (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
+        final teamMatches = _patients.where((p) => p.teamId == _activeTeamId).toList();
         if (teamMatches.isNotEmpty) return List.unmodifiable(teamMatches);
       }
       return List.unmodifiable(_patients);
     }
     if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
       return List.unmodifiable(_patients.where((p) =>
-          p.teamId == _activeTeamId ||
-          p.teamId.isEmpty ||
-          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
+          p.teamId == _activeTeamId || p.teamId.isEmpty));
     }
-    return List.unmodifiable(_patients);
+    final firestore = FirebaseGate.firestoreIfReady();
+    if (firestore == null) {
+      // In offline tests / in-memory mode without active team context:
+      return List.unmodifiable(_patients);
+    }
+    return const [];
   }
 
   static Patient? getPatientById(String id) {
@@ -999,7 +982,6 @@ class PatientRepository {
       payload: data,
       ops: [
         SyncOp.set('patients/${newPatient.id}', data),
-        if (isNew) const SyncOp.increment('meta/counters', {'patientCount': 1}),
       ],
       onRejected: (_) {
         if (isNew) {
@@ -1084,7 +1066,6 @@ class PatientRepository {
       payload: data,
       ops: [
         SyncOp.set(rxPath, data),
-        const SyncOp.increment('meta/counters', {'prescriptionCount': 1}),
       ],
       onRejected: (_) {
         final i = _patients.indexWhere((x) => x.id == patientId);
@@ -1189,7 +1170,6 @@ class PatientRepository {
           'totalVisits': summary['totalVisits'],
           'lastModified': summary['lastModified'],
         }),
-        const SyncOp.increment('meta/counters', {'encounterCount': 1}),
       ],
       onRejected: (_) {
         final i = _patients.indexWhere((p) => p.id == patientId);
