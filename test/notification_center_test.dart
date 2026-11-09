@@ -11,6 +11,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final repo = ClinicalNotificationRepository();
+    repo.seedDefaultNotificationsForTesting();
     expect(repo.unreadCount, greaterThan(0));
 
     await tester.pumpWidget(

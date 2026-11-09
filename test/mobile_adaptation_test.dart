@@ -42,11 +42,13 @@ void main() {
   group('ClinicalNotificationRepository Unit Tests', () {
     test('Initial seed notifications loaded', () {
       final repo = ClinicalNotificationRepository();
+      repo.seedDefaultNotificationsForTesting();
       expect(repo.notifications.isNotEmpty, isTrue);
     });
 
     test('Mark notification as read updates unread count', () {
       final repo = ClinicalNotificationRepository();
+      repo.seedDefaultNotificationsForTesting();
       final initialUnread = repo.unreadCount;
 
       if (initialUnread > 0) {
@@ -58,6 +60,7 @@ void main() {
 
     test('Dismiss notification removes item', () {
       final repo = ClinicalNotificationRepository();
+      repo.seedDefaultNotificationsForTesting();
       final notif = repo.notifications.first;
       final initialCount = repo.notifications.length;
 

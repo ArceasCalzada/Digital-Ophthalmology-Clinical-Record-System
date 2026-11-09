@@ -31,7 +31,20 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
         final repo = ClinicalNotificationRepository();
         final allNotifications = repo.notifications;
 
-        final filteredNotifications = allNotifications.where((n) {
+        // Deduplicate and filter out any invalid/placeholder mock entries
+        final seenIds = <String>{};
+        final seenSignatures = <String>{};
+        final cleanedNotifications = <ClinicalNotification>[];
+
+        for (final n in allNotifications) {
+          if (n.isPlaceholderOrEmpty) continue;
+          if (n.id.isNotEmpty && !seenIds.add(n.id)) continue;
+          final sig = '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').trim().toLowerCase()}|${n.category.toLowerCase()}';
+          if (!seenSignatures.add(sig)) continue;
+          cleanedNotifications.add(n);
+        }
+
+        final filteredNotifications = cleanedNotifications.where((n) {
           final catLower = n.category.toLowerCase();
           if (_selectedFilter == 'Urgent') {
             return n.severity == NotificationSeverity.urgent || catLower.contains('urgent');
@@ -53,7 +66,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           child: Scaffold(
             backgroundColor: Colors.transparent,
             body: SingleChildScrollView(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -61,14 +74,14 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,9 +90,9 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                               'Clinical Alerts & Notifications',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                              '${allNotifications.length} alert${allNotifications.length == 1 ? '' : 's'}',
+                              '${cleanedNotifications.length} alert${cleanedNotifications.length == 1 ? '' : 's'}',
                               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                             ),
                           ],
@@ -87,7 +100,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
                   // Filter Chips
                   SizedBox(
@@ -105,7 +118,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
                   // Notification List / Empty State
                   if (filteredNotifications.isEmpty)
@@ -113,9 +126,9 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                   else
                     ListView.separated(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: filteredNotifications.length,
-                      separatorBuilder: (context, index) => SizedBox(height: 12),
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, idx) {
                         final n = filteredNotifications[idx];
                         return _buildNotificationCard(n);
@@ -131,9 +144,11 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
   }
 
   Widget _buildEmptyState() {
+    final isFiltered = _selectedFilter != 'All';
     return Container(
+      key: const Key('notifications_empty_state'),
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -143,23 +158,23 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(18),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: AppTheme.primaryBlue.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.notifications_none_rounded, size: 40, color: AppTheme.primaryBlue),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
-            'All Alerts Clear!',
+            isFiltered ? 'No Matching Alerts' : 'All Caught Up!',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppTheme.textPrimary),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            _selectedFilter == 'All'
-                ? 'There are no clinical alerts or notifications at this time.'
-                : 'There are no clinical alerts matching this filter.',
+            isFiltered
+                ? 'There are no clinical alerts matching the "$_selectedFilter" filter.'
+                : 'No new alerts or pending reminders at this time.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
           ),
@@ -171,13 +186,14 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
   Widget _buildNotificationCard(ClinicalNotification n) {
     final isUrgent = n.severity == NotificationSeverity.urgent;
     final tagBg = isUrgent
-        ? Color(0xFFEF4444).withValues(alpha: 0.12)
+        ? const Color(0xFFEF4444).withValues(alpha: 0.12)
         : AppTheme.primaryBlue.withValues(alpha: 0.1);
-    final tagColor = isUrgent ? Color(0xFFEF4444) : AppTheme.primaryBlue;
+    final tagColor = isUrgent ? const Color(0xFFEF4444) : AppTheme.primaryBlue;
 
     return Container(
+      key: Key('notification_card_${n.id}'),
       width: double.infinity,
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -186,7 +202,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -196,7 +212,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: tagBg,
                   borderRadius: BorderRadius.circular(6),
@@ -211,7 +227,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
                   ),
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Text(
                 _formatTimeAgo(n.timestamp),
                 style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
@@ -219,21 +235,21 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
             ],
           ),
           if (n.title.isNotEmpty) ...[
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
               n.title,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary),
             ),
           ],
           if (n.message.isNotEmpty) ...[
-            SizedBox(height: 6),
+            const SizedBox(height: 6),
             Text(
               n.message,
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
             ),
           ],
           if (n.patientName != null && n.patientName!.isNotEmpty) ...[
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
               '${n.patientName}${n.patientId != null && n.patientId!.isNotEmpty ? " (${n.patientId})" : ""}',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
@@ -246,7 +262,7 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
 
   String _formatTimeAgo(DateTime dateTime) {
     final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.isNegative || diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';

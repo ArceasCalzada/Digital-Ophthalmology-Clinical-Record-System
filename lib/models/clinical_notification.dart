@@ -90,10 +90,14 @@ class ClinicalNotification {
         json['kind'] as String? ??
         (severity == NotificationSeverity.urgent ? 'Urgent Alert' : 'Reminder');
 
+    final resolvedTitle = title.trim().isNotEmpty
+        ? title.trim()
+        : (message.trim().isNotEmpty ? message.trim() : '');
+
     return ClinicalNotification(
       id: json['id'] as String? ?? '',
-      title: title.isNotEmpty ? title : (message.isNotEmpty ? message : 'Clinical Alert'),
-      message: message,
+      title: resolvedTitle,
+      message: message.trim(),
       category: category,
       severity: severity,
       timestamp: json['timestamp'] != null
@@ -104,6 +108,15 @@ class ClinicalNotification {
       teamId: json['teamId'] as String? ?? json['team_id'] as String? ?? '',
       isRead: json['isRead'] as bool? ?? json['read'] as bool? ?? false,
     );
+  }
+
+  /// Whether this notification is an empty, unconfigured, or dummy placeholder.
+  bool get isPlaceholderOrEmpty {
+    final t = title.trim();
+    final m = message.trim();
+    if (t.isEmpty && m.isEmpty) return true;
+    if ((t.toLowerCase() == 'clinical alert' || t.toLowerCase() == 'reminder') && m.isEmpty) return true;
+    return false;
   }
 
   Map<String, dynamic> toJson() => {
@@ -130,8 +143,20 @@ class ClinicalNotificationRepository extends ChangeNotifier {
   String? _activeTeamId;
   final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
 
-  ClinicalNotificationRepository._internal() {
+  ClinicalNotificationRepository._internal();
+
+  /// Populates standard demo notifications for testing environments.
+  void seedDefaultNotificationsForTesting() {
     _initSeedData();
+    notifyListeners();
+  }
+
+  /// Clears notifications for testing environments.
+  void clearForTesting() {
+    _notifications.clear();
+    _allMemoryNotifications.clear();
+    _activeTeamId = null;
+    notifyListeners();
   }
 
   String? get activeTeamId => _activeTeamId;
@@ -176,11 +201,25 @@ class ClinicalNotificationRepository extends ChangeNotifier {
 
     _notifSub = query.snapshots().listen((snapshot) {
       _notifications.clear();
+      final seenIds = <String>{};
+      final seenSigs = <String>{};
+
       for (final doc in snapshot.docs) {
         try {
           final data = FirebaseGate.decode(doc.data());
           data['id'] = doc.id;
           final n = ClinicalNotification.fromJson(data);
+
+          // Discard empty, placeholder, or unconfigured entries
+          if (n.isPlaceholderOrEmpty) continue;
+
+          // Deduplicate by id
+          if (n.id.isNotEmpty && !seenIds.add(n.id)) continue;
+
+          // Deduplicate by content signature
+          final sig = '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').trim().toLowerCase()}|${n.category.toLowerCase()}';
+          if (!seenSigs.add(sig)) continue;
+
           if (isMasterAdmin ||
               targetTeamId == null ||
               targetTeamId.isEmpty ||
@@ -211,23 +250,54 @@ class ClinicalNotificationRepository extends ChangeNotifier {
 
   List<ClinicalNotification> get notifications {
     final isMasterAdmin = TeamService.instance.isMasterAdmin;
+    List<ClinicalNotification> raw;
     if (isMasterAdmin) {
       if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
         final teamMatches = _notifications.where((n) =>
             n.teamId == _activeTeamId ||
             n.teamId.isEmpty ||
             (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
-        if (teamMatches.isNotEmpty) return List.unmodifiable(teamMatches);
+        raw = teamMatches.isNotEmpty ? teamMatches : _notifications;
+      } else {
+        raw = _notifications;
       }
-      return List.unmodifiable(_notifications);
-    }
-    if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
-      return List.unmodifiable(_notifications.where((n) =>
+    } else if (_activeTeamId != null && _activeTeamId!.isNotEmpty) {
+      raw = _notifications.where((n) =>
           n.teamId == _activeTeamId ||
           n.teamId.isEmpty ||
-          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')));
+          (_activeTeamId == 'c-default-team' || _activeTeamId == 'default')).toList();
+    } else {
+      raw = _notifications;
     }
-    return List.unmodifiable(_notifications);
+
+    // Filter out dummy placeholders and deduplicate
+    final seen = <String>{};
+    final result = <ClinicalNotification>[];
+    for (final n in raw) {
+      if (n.isPlaceholderOrEmpty) continue;
+      final key = n.id.isNotEmpty
+          ? n.id
+          : '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').toLowerCase()}|${n.category.toLowerCase()}';
+      if (seen.add(key)) {
+        result.add(n);
+      }
+    }
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return List.unmodifiable(result);
+  }
+
+  static bool _isDuplicate(ClinicalNotification a, ClinicalNotification b) {
+    if (a.id.isNotEmpty && b.id.isNotEmpty && a.id == b.id) return true;
+    final aTitle = a.title.trim().toLowerCase();
+    final bTitle = b.title.trim().toLowerCase();
+    final aMsg = a.message.trim().toLowerCase();
+    final bMsg = b.message.trim().toLowerCase();
+    final aPid = (a.patientId ?? '').trim().toLowerCase();
+    final bPid = (b.patientId ?? '').trim().toLowerCase();
+    return aTitle == bTitle &&
+        aMsg == bMsg &&
+        aPid == bPid &&
+        a.category.toLowerCase() == b.category.toLowerCase();
   }
 
   int get unreadCount => notifications.where((n) => !n.isRead).length;
@@ -283,19 +353,47 @@ class ClinicalNotificationRepository extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearAllNotifications() {
+    for (final n in List.of(_notifications)) {
+      OfflineSyncService().enqueueMutation(
+        id: n.id,
+        entityType: 'Notification',
+        action: 'DELETE',
+        payload: {'id': n.id},
+      );
+    }
+    _notifications.clear();
+    _allMemoryNotifications.clear();
+    notifyListeners();
+  }
+
   void addNotification(ClinicalNotification notification, {bool enqueueSync = true}) {
+    if (notification.isPlaceholderOrEmpty) return;
+
     final notifWithTeam = notification.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty
         ? notification.copyWith(teamId: _activeTeamId)
         : notification;
 
-    _allMemoryNotifications.insert(0, notifWithTeam);
+    // Deduplicate in _allMemoryNotifications
+    final memIdx = _allMemoryNotifications.indexWhere((n) => _isDuplicate(n, notifWithTeam));
+    if (memIdx != -1) {
+      _allMemoryNotifications[memIdx] = notifWithTeam;
+    } else {
+      _allMemoryNotifications.insert(0, notifWithTeam);
+    }
+
     final isMasterAdmin = TeamService.instance.isMasterAdmin;
     if (isMasterAdmin ||
         _activeTeamId == null ||
         _activeTeamId!.isEmpty ||
         notifWithTeam.teamId.isEmpty ||
         notifWithTeam.teamId == _activeTeamId) {
-      _notifications.insert(0, notifWithTeam);
+      final notifIdx = _notifications.indexWhere((n) => _isDuplicate(n, notifWithTeam));
+      if (notifIdx != -1) {
+        _notifications[notifIdx] = notifWithTeam;
+      } else {
+        _notifications.insert(0, notifWithTeam);
+      }
     }
     if (enqueueSync) {
       OfflineSyncService().enqueueMutation(
@@ -367,7 +465,13 @@ class ClinicalNotificationRepository extends ChangeNotifier {
         teamId: 'c-default-team',
       ),
     ];
-    _allMemoryNotifications.addAll(seeds);
-    _notifications.addAll(seeds);
+    for (final s in seeds) {
+      if (!_allMemoryNotifications.any((n) => n.id == s.id)) {
+        _allMemoryNotifications.add(s);
+      }
+      if (!_notifications.any((n) => n.id == s.id)) {
+        _notifications.add(s);
+      }
+    }
   }
 }
