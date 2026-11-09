@@ -564,7 +564,6 @@ class _TeamsListCard extends StatelessWidget {
 
   void _showEditTeamDialog(BuildContext context, Team team) {
     final nameController = TextEditingController(text: team.name);
-    final locationController = TextEditingController(text: team.location);
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -578,7 +577,7 @@ class _TeamsListCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Modify the clinic workspace name and physical address below. Changes will be saved across the system.',
+                'Modify the clinic workspace name below. Clinic branch locations and schedules are configured in the Clinic Branches module.',
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
               ),
               SizedBox(height: 16),
@@ -597,15 +596,6 @@ class _TeamsListCard extends StatelessWidget {
                 },
                 autofocus: true,
               ),
-              SizedBox(height: 14),
-              TextFormField(
-                controller: locationController,
-                decoration: InputDecoration(
-                  labelText: 'Clinic Location',
-                  hintText: 'e.g. Suite 402, Davao City',
-                  border: OutlineInputBorder(),
-                ),
-              ),
             ],
           ),
         ),
@@ -618,13 +608,11 @@ class _TeamsListCard extends StatelessWidget {
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               final newName = nameController.text.trim();
-              final newLocation = locationController.text.trim();
               Navigator.pop(ctx);
               try {
                 await teamService.updateTeam(
                   team.id,
                   name: newName,
-                  location: newLocation,
                 );
                 if (context.mounted) {
                   showActionSuccessModal(

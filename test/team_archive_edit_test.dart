@@ -276,7 +276,7 @@ void main() {
     testWidgets('Clicking Edit opens modal dialog and updates team details', (tester) async {
       final service = TeamService.instance;
       await service.load('owner-1', userEmail: 'doc@docrs.app', displayName: 'Dr. Jane');
-      await service.createTeam('Editable Eye Clinic');
+      final teamToEdit = await service.createTeam('Editable Eye Clinic', location: 'Location Alpha');
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -296,6 +296,12 @@ void main() {
       // Verify modal dialog appeared
       expect(find.text('Edit Team Details'), findsOneWidget);
       expect(find.text('Save Changes'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Team / Clinic Name'), findsOneWidget);
+
+      // Verify Clinic Location input field is completely removed
+      expect(find.text('Clinic Location'), findsNothing);
+      expect(find.widgetWithText(TextFormField, 'Clinic Location'), findsNothing);
 
       // Modify team name
       final nameField = find.widgetWithText(TextFormField, 'Editable Eye Clinic');
@@ -315,6 +321,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Renamed Eye Specialist Center'), findsWidgets);
+      // Location data is retained intact
+      expect(service.teams.firstWhere((t) => t.id == teamToEdit.id).location, 'Location Alpha');
     });
 
     testWidgets('Attempting to archive active workspace displays warning dialog and blocks archiving', (tester) async {
