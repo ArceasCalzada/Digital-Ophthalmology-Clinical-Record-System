@@ -111,8 +111,20 @@ class CalendarEventRepository extends ChangeNotifier {
   String? _activeTeamId;
   final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
 
-  CalendarEventRepository._internal() {
+  CalendarEventRepository._internal();
+
+  /// Populates standard demo events for explicit testing environments only.
+  void seedDefaultEventsForTesting() {
     _initSeedData();
+    notifyListeners();
+  }
+
+  /// Clears in-memory events for testing environments.
+  void clearForTesting() {
+    _events.clear();
+    _allMemoryEvents.clear();
+    _activeTeamId = null;
+    notifyListeners();
   }
 
   String? get activeTeamId => _activeTeamId;

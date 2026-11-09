@@ -6,6 +6,14 @@ import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/dashboard_screen.dart';
 
 void main() {
+  setUp(() {
+    CalendarEventRepository().seedDefaultEventsForTesting();
+  });
+
+  tearDown(() {
+    CalendarEventRepository().clearForTesting();
+  });
+
   testWidgets('Dashboard renders greeting, queue, calendar and patient records', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1.0;

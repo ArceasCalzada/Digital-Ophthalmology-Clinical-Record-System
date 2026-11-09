@@ -773,19 +773,21 @@ class _MainLayoutState extends State<MainLayout> {
               ? AppBar(
                   backgroundColor: Theme.of(context).cardColor,
                   elevation: 0.5,
-                  title: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 20),
-                      SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
+                  centerTitle: false,
+                  title: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.remove_red_eye, color: AppTheme.primaryBlue, size: 20),
+                        SizedBox(width: 6),
+                        Text(
                           'DOCRS',
-                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   actions: [
                     Padding(
@@ -794,6 +796,7 @@ class _MainLayoutState extends State<MainLayout> {
                         child: SyncStatusIndicator(
                           key: const Key('header-sync-status-indicator'),
                           compact: true,
+                          iconOnly: true,
                         ),
                       ),
                     ),

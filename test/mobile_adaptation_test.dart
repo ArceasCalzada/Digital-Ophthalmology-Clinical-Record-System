@@ -7,6 +7,14 @@ import 'package:ophthalmology_clinical_record_system/widgets/add_event_modal.dar
 
 void main() {
   group('CalendarEventRepository Unit Tests', () {
+    setUp(() {
+      CalendarEventRepository().seedDefaultEventsForTesting();
+    });
+
+    tearDown(() {
+      CalendarEventRepository().clearForTesting();
+    });
+
     test('Initial seed events loaded', () {
       final repo = CalendarEventRepository();
       expect(repo.events.isNotEmpty, isTrue);

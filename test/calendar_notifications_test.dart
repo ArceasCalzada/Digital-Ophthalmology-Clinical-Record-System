@@ -19,7 +19,16 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       OfflineSyncService().stopAutoSyncTimer();
       eventRepo = CalendarEventRepository();
+      eventRepo.clearForTesting();
+      eventRepo.seedDefaultEventsForTesting();
       notifRepo = ClinicalNotificationRepository();
+      notifRepo.clearForTesting();
+      notifRepo.seedDefaultNotificationsForTesting();
+    });
+
+    tearDown(() {
+      eventRepo.clearForTesting();
+      notifRepo.clearForTesting();
     });
 
     test('CalendarEventRepository stores and filters events correctly', () {

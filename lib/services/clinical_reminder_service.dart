@@ -103,9 +103,7 @@ class ClinicalReminderService extends ChangeNotifier {
       if (_activeTeamId != null &&
           _activeTeamId!.isNotEmpty &&
           patient.teamId.isNotEmpty &&
-          patient.teamId != _activeTeamId &&
-          _activeTeamId != 'c-default-team' &&
-          _activeTeamId != 'default') {
+          patient.teamId != _activeTeamId) {
         continue;
       }
 
@@ -158,9 +156,7 @@ class ClinicalReminderService extends ChangeNotifier {
       if (_activeTeamId != null &&
           _activeTeamId!.isNotEmpty &&
           event.teamId.isNotEmpty &&
-          event.teamId != _activeTeamId &&
-          _activeTeamId != 'c-default-team' &&
-          _activeTeamId != 'default') {
+          event.teamId != _activeTeamId) {
         continue;
       }
 
