@@ -44,47 +44,22 @@ class ProfileStore extends ChangeNotifier {
   final clinicWebsite = TextEditingController(text: 'www.metroeyecenter.com');
 
   // Clinic Header Schedule Columns (3 branches for Rx pad)
-  final clinic1Name = TextEditingController(text: 'St. Joseph Southern Bukidnon Hosp.');
-  final clinic1Location = TextEditingController(text: 'Maramag, Bukidnon');
-  final clinic1Days = TextEditingController(text: 'Monday & Tuesday');
-  final clinic1Hours = TextEditingController(text: '9am - 12nn');
+  final clinic1Name = TextEditingController();
+  final clinic1Location = TextEditingController();
+  final clinic1Days = TextEditingController();
+  final clinic1Hours = TextEditingController();
 
-  final clinic2Name = TextEditingController(text: 'Malta Medical Center');
-  final clinic2Location = TextEditingController(text: 'Toril, Davao City');
-  final clinic2Days = TextEditingController(text: 'Thursday & Saturday');
-  final clinic2Hours = TextEditingController(text: '10am - 12nn');
+  final clinic2Name = TextEditingController();
+  final clinic2Location = TextEditingController();
+  final clinic2Days = TextEditingController();
+  final clinic2Hours = TextEditingController();
 
-  final clinic3Name = TextEditingController(text: 'Adventist Hospital Davao');
-  final clinic3Location = TextEditingController(text: 'Bangkal, Davao City');
-  final clinic3Days = TextEditingController(text: 'Friday');
-  final clinic3Hours = TextEditingController(text: '10am - 12nn');
+  final clinic3Name = TextEditingController();
+  final clinic3Location = TextEditingController();
+  final clinic3Days = TextEditingController();
+  final clinic3Hours = TextEditingController();
 
-  List<ClinicBranch> _branches = [
-    ClinicBranch(
-      id: 'branch-1',
-      name: 'St. Joseph Southern Bukidnon Hosp.',
-      address: 'Maramag, Bukidnon',
-      days: 'Monday & Tuesday',
-      hours: '9am - 12nn',
-      isArchived: false,
-    ),
-    ClinicBranch(
-      id: 'branch-2',
-      name: 'Malta Medical Center',
-      address: 'Toril, Davao City',
-      days: 'Thursday & Saturday',
-      hours: '10am - 12nn',
-      isArchived: false,
-    ),
-    ClinicBranch(
-      id: 'branch-3',
-      name: 'Adventist Hospital Davao',
-      address: 'Bangkal, Davao City',
-      days: 'Friday',
-      hours: '10am - 12nn',
-      isArchived: false,
-    ),
-  ];
+  List<ClinicBranch> _branches = [];
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _branchesSub;
   String? _listeningTeamId;
@@ -128,6 +103,8 @@ class ProfileStore extends ChangeNotifier {
     _listeningTeamId = effTeamId;
     _isBranchesLoading = true;
     _branchesError = null;
+    _branches = [];
+    _syncActiveBranchesToControllers();
     notifyListeners();
 
     if (branchStream != null) {
@@ -167,7 +144,7 @@ class ProfileStore extends ChangeNotifier {
     if (snapshot.docs.isEmpty) {
       _branches = [];
       _syncActiveBranchesToControllers();
-      saveToPreferences();
+      saveToPreferences(teamId: _listeningTeamId);
       notifyListeners();
       return;
     }
@@ -176,35 +153,14 @@ class ProfileStore extends ChangeNotifier {
       if (!data.containsKey('id') || data['id'] == null || data['id'].toString().isEmpty) {
         data['id'] = doc.id;
       }
+      if (!data.containsKey('teamId') || data['teamId'] == null) {
+        data['teamId'] = _listeningTeamId;
+      }
       return ClinicBranch.fromMap(data);
     }).toList();
     _syncActiveBranchesToControllers();
-    saveToPreferences();
+    saveToPreferences(teamId: _listeningTeamId);
     notifyListeners();
-  }
-
-  Future<void> _seedBranchesToFirestore(String? teamId) async {
-    final effTeamId = (teamId != null && teamId.isNotEmpty)
-        ? teamId
-        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
-    final firestore = FirebaseGate.firestoreIfReady();
-    if (firestore == null || effTeamId == null || effTeamId.isEmpty) return;
-    if (TeamService.instance.isAssistant) return;
-
-    try {
-      final batch = firestore.batch();
-      for (final branch in _branches) {
-        final bRef = firestore
-            .collection('teams')
-            .doc(effTeamId)
-            .collection('branches')
-            .doc(branch.id);
-        batch.set(bRef, FirebaseGate.encode(branch.toMap()), SetOptions(merge: true));
-      }
-      await batch.commit();
-    } catch (e) {
-      debugPrint('Seeding clinic branches to Firestore: $e');
-    }
   }
 
   void stopListeningToBranches() {
@@ -305,6 +261,7 @@ class ProfileStore extends ChangeNotifier {
       days: days.trim(),
       hours: hours.trim(),
       isArchived: false,
+      teamId: effTeamId,
       createdAt: DateTime.now(),
     );
     final existingIndex = _branches.indexWhere((b) => b.id == newBranch.id);
@@ -315,7 +272,7 @@ class ProfileStore extends ChangeNotifier {
     }
     _syncActiveBranchesToControllers();
     notifyListeners();
-    await saveToPreferences();
+    await saveToPreferences(teamId: effTeamId);
 
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
@@ -357,7 +314,7 @@ class ProfileStore extends ChangeNotifier {
         teamId: effTeamId,
       );
       notifyListeners();
-      await saveToPreferences();
+      await saveToPreferences(teamId: effTeamId);
 
       final firestore = FirebaseGate.firestoreIfReady();
       if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
@@ -402,7 +359,7 @@ class ProfileStore extends ChangeNotifier {
         teamId: effTeamId,
       );
       notifyListeners();
-      await saveToPreferences();
+      await saveToPreferences(teamId: effTeamId);
 
       final firestore = FirebaseGate.firestoreIfReady();
       if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
@@ -430,15 +387,15 @@ class ProfileStore extends ChangeNotifier {
 
     final index = _branches.indexWhere((b) => b.id == updated.id);
     if (index != -1) {
-      _branches[index] = updated;
+      _branches[index] = updated.copyWith(teamId: updated.teamId ?? effTeamId);
       _syncActiveBranchesToControllers();
       notifyListeners();
-      await saveToPreferences();
+      await saveToPreferences(teamId: effTeamId);
 
       final firestore = FirebaseGate.firestoreIfReady();
       if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
         try {
-          final bData = FirebaseGate.encode(updated.toMap());
+          final bData = FirebaseGate.encode(_branches[index].toMap());
           await firestore
               .collection('teams')
               .doc(effTeamId)
@@ -463,7 +420,7 @@ class ProfileStore extends ChangeNotifier {
     _branches.removeWhere((b) => b.id == branchId);
     _syncActiveBranchesToControllers();
     notifyListeners();
-    await saveToPreferences();
+    await saveToPreferences(teamId: effTeamId);
 
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore != null && effTeamId != null && effTeamId.isNotEmpty) {
@@ -580,7 +537,7 @@ class ProfileStore extends ChangeNotifier {
     if (data['clinicEmail'] != null) clinicEmail.text = data['clinicEmail'].toString();
     if (data['clinicWebsite'] != null) clinicWebsite.text = data['clinicWebsite'].toString();
 
-    if (data['branches'] != null && (data['branches'] as List).isNotEmpty) {
+    if (data['branches'] != null) {
       _branches = (data['branches'] as List)
           .map((b) => ClinicBranch.fromMap(Map<String, dynamic>.from(b as Map)))
           .toList();
@@ -601,59 +558,82 @@ class ProfileStore extends ChangeNotifier {
       if (data['clinic3Days'] != null) clinic3Days.text = data['clinic3Days'].toString();
       if (data['clinic3Hours'] != null) clinic3Hours.text = data['clinic3Hours'].toString();
 
-      if (_branches.isNotEmpty &&
-          clinic1Name.text.trim().isEmpty &&
-          clinic2Name.text.trim().isEmpty &&
-          clinic3Name.text.trim().isEmpty) {
-        // Preserve existing valid branches rather than overwriting with empty defaults
-        _syncActiveBranchesToControllers();
-      } else {
-        _branches = [
-          ClinicBranch(
+      final hasLegacyClinicData = clinic1Name.text.trim().isNotEmpty ||
+          clinic2Name.text.trim().isNotEmpty ||
+          clinic3Name.text.trim().isNotEmpty;
+
+      if (hasLegacyClinicData) {
+        final legacyBranches = <ClinicBranch>[];
+        if (clinic1Name.text.trim().isNotEmpty) {
+          legacyBranches.add(ClinicBranch(
             id: 'branch-1',
             name: clinic1Name.text,
             address: clinic1Location.text,
             days: clinic1Days.text,
             hours: clinic1Hours.text,
             isArchived: false,
-          ),
-          ClinicBranch(
+          ));
+        }
+        if (clinic2Name.text.trim().isNotEmpty) {
+          legacyBranches.add(ClinicBranch(
             id: 'branch-2',
             name: clinic2Name.text,
             address: clinic2Location.text,
             days: clinic2Days.text,
             hours: clinic2Hours.text,
             isArchived: false,
-          ),
-          ClinicBranch(
+          ));
+        }
+        if (clinic3Name.text.trim().isNotEmpty) {
+          legacyBranches.add(ClinicBranch(
             id: 'branch-3',
             name: clinic3Name.text,
             address: clinic3Location.text,
             days: clinic3Days.text,
             hours: clinic3Hours.text,
             isArchived: false,
-          ),
-        ];
+          ));
+        }
+        _branches = legacyBranches;
+        _syncActiveBranchesToControllers();
+      } else {
+        _branches = [];
+        _syncActiveBranchesToControllers();
       }
     }
 
     notifyListeners();
   }
 
-  Future<void> saveToPreferences() async {
+  String _prefsKeyForTeam([String? teamId]) {
+    final tId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+    if (tId != null && tId.isNotEmpty) {
+      return '${_prefsKey}_$tId';
+    }
+    return _prefsKey;
+  }
+
+  Future<void> saveToPreferences({String? teamId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefsKey, jsonEncode(toMap()));
+      final key = _prefsKeyForTeam(teamId);
+      await prefs.setString(key, jsonEncode(toMap()));
     } catch (_) {}
   }
 
-  Future<void> loadFromPreferences() async {
+  Future<void> loadFromPreferences({String? teamId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
+      final key = _prefsKeyForTeam(teamId);
+      final raw = prefs.getString(key);
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
         fromMap(decoded);
+      } else if (key != _prefsKey) {
+        _branches = [];
+        _syncActiveBranchesToControllers();
       }
     } catch (_) {}
   }
@@ -663,7 +643,11 @@ class ProfileStore extends ChangeNotifier {
     if (TeamService.instance.isAssistant) {
       return; // Assistants cannot execute write operations on prescription layouts, doctor profiles, or clinic branch configurations
     }
-    await saveToPreferences();
+    final effTeamId = (teamId != null && teamId.isNotEmpty)
+        ? teamId
+        : (_listeningTeamId ?? TeamService.instance.activeTeam?.id);
+
+    await saveToPreferences(teamId: effTeamId);
     notifyListeners();
 
     final firestore = FirebaseGate.firestoreIfReady();
@@ -671,20 +655,20 @@ class ProfileStore extends ChangeNotifier {
 
     try {
       final data = FirebaseGate.encode(toMap());
-      // Save to global prescription settings
-      await firestore.collection('settings').doc('prescription').set(data, SetOptions(merge: true));
 
-      // Also save to active team's settings if teamId is provided
-      if (teamId != null && teamId.isNotEmpty) {
+      // Save to active team's settings if effTeamId is provided
+      if (effTeamId != null && effTeamId.isNotEmpty) {
         await firestore
             .collection('teams')
-            .doc(teamId)
+            .doc(effTeamId)
             .collection('settings')
             .doc('prescription')
             .set(data, SetOptions(merge: true));
-        await firestore.collection('teams').doc(teamId).set({
+        await firestore.collection('teams').doc(effTeamId).set({
           'prescriptionSettings': data,
         }, SetOptions(merge: true));
+      } else {
+        await firestore.collection('settings').doc('prescription').set(data, SetOptions(merge: true));
       }
     } catch (_) {}
   }
@@ -694,14 +678,15 @@ class ProfileStore extends ChangeNotifier {
     _isProfileLoading = true;
     notifyListeners();
 
-    await loadFromPreferences();
-
     final effTeamId = (teamId != null && teamId.isNotEmpty)
         ? teamId
         : TeamService.instance.activeTeam?.id;
 
     if (effTeamId != null && effTeamId.isNotEmpty) {
+      await loadFromPreferences(teamId: effTeamId);
       listenToBranches(effTeamId);
+    } else {
+      await loadFromPreferences();
     }
 
     final firestore = FirebaseGate.firestoreIfReady();
@@ -725,15 +710,21 @@ class ProfileStore extends ChangeNotifier {
           if (teamSnap.exists && teamSnap.data()?['prescriptionSettings'] != null) {
             final tData = FirebaseGate.decode(teamSnap.data()!['prescriptionSettings'] as Map<String, dynamic>);
             fromMap(tData);
-            await saveToPreferences();
+            await saveToPreferences(teamId: effTeamId);
             return;
           }
         }
+        if (snap.exists && snap.data() != null) {
+          final decoded = FirebaseGate.decode(snap.data()!);
+          fromMap(decoded);
+          await saveToPreferences(teamId: effTeamId);
+          return;
+        }
+        // When scoped to a team workspace, never fall back to global /settings/prescription
+        return;
       }
 
-      if (snap == null || !snap.exists) {
-        snap = await firestore.collection('settings').doc('prescription').get();
-      }
+      snap = await firestore.collection('settings').doc('prescription').get();
 
       if (snap.exists && snap.data() != null) {
         final decoded = FirebaseGate.decode(snap.data()!);
@@ -773,13 +764,15 @@ class ProfileStore extends ChangeNotifier {
 
   /// Resets user profile details on logout.
   void reset() {
+    stopListeningToBranches();
     doctorName.text = 'Dr. Sigrid Robillos, MD';
     doctorEmail.text = 'dr.robillos@metroeye.com';
     firstName = null;
     lastName = null;
     middleName = null;
     suffix = null;
-    _resetBranches();
+    _branches = [];
+    _syncActiveBranchesToControllers();
     notifyListeners();
   }
 

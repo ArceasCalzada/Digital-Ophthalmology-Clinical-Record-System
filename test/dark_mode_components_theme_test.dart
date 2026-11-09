@@ -8,9 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    ProfileStore.instance.resetToDefaultBranches();
   });
 
   tearDown(() {
+    ProfileStore.instance.resetToDefaultBranches();
     ThemeController.instance.setThemeMode(ThemeMode.light);
   });
 

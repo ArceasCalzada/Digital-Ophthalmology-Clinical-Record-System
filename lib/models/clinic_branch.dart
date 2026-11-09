@@ -7,6 +7,7 @@ class ClinicBranch {
   String hours;
   bool isArchived;
   DateTime? createdAt;
+  final String? teamId;
 
   ClinicBranch({
     required this.id,
@@ -16,6 +17,7 @@ class ClinicBranch {
     required this.hours,
     this.isArchived = false,
     this.createdAt,
+    this.teamId,
   });
 
   Map<String, dynamic> toMap() => {
@@ -26,6 +28,7 @@ class ClinicBranch {
         'hours': hours,
         'isArchived': isArchived,
         if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+        if (teamId != null && teamId!.isNotEmpty) 'teamId': teamId,
       };
 
   factory ClinicBranch.fromMap(Map<String, dynamic> map) => ClinicBranch(
@@ -36,6 +39,7 @@ class ClinicBranch {
         hours: map['hours']?.toString() ?? '',
         isArchived: map['isArchived'] == true,
         createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt'].toString()) : null,
+        teamId: map['teamId']?.toString(),
       );
 
   ClinicBranch copyWith({
@@ -46,6 +50,7 @@ class ClinicBranch {
     String? hours,
     bool? isArchived,
     DateTime? createdAt,
+    String? teamId,
   }) {
     return ClinicBranch(
       id: id ?? this.id,
@@ -55,6 +60,7 @@ class ClinicBranch {
       hours: hours ?? this.hours,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
+      teamId: teamId ?? this.teamId,
     );
   }
 }
