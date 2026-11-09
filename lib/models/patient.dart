@@ -7,6 +7,7 @@ import '../services/firebase_gate.dart';
 import '../services/offline_sync_service.dart';
 import '../services/storage_optimization_service.dart';
 import '../services/team_service.dart';
+import '../services/workspace_store.dart';
 import '../services/audit_service.dart';
 import 'audit_log.dart';
 import 'encounter.dart';
@@ -923,8 +924,16 @@ class PatientRepository {
   /// Throws [PatientLimitReachedException] when the clinic is full, and
   /// [FormatException] when a field is over its length limit.
   static void addPatient(Patient newPatient) {
-    if (newPatient.teamId.isEmpty && _activeTeamId != null && _activeTeamId!.isNotEmpty) {
-      newPatient = newPatient.copyWith(teamId: _activeTeamId);
+    if (newPatient.teamId.isEmpty) {
+      final fallbackTeamId = (_activeTeamId != null && _activeTeamId!.isNotEmpty)
+          ? _activeTeamId
+          : (TeamService.instance.activeWorkspaceId ?? WorkspaceStore.instance.activeWorkspaceId);
+      if (fallbackTeamId != null && fallbackTeamId.isNotEmpty) {
+        newPatient = newPatient.copyWith(teamId: fallbackTeamId);
+      }
+    }
+    if ((_activeTeamId == null || _activeTeamId!.isEmpty) && newPatient.teamId.isNotEmpty) {
+      _activeTeamId = newPatient.teamId;
     }
     final existingIdx = _patients.indexWhere((p) => p.id == newPatient.id || p.mrn == newPatient.mrn);
     final isNew = existingIdx == -1;
@@ -1024,7 +1033,9 @@ class PatientRepository {
     final p = _patients[idx];
     final effectiveTeamId = prescription.teamId.isNotEmpty
         ? prescription.teamId
-        : (p.teamId.isNotEmpty ? p.teamId : (_activeTeamId ?? ''));
+        : (p.teamId.isNotEmpty
+            ? p.teamId
+            : (_activeTeamId ?? TeamService.instance.activeWorkspaceId ?? WorkspaceStore.instance.activeWorkspaceId ?? ''));
 
     final data = prescription.toJson()
       ..['patientId'] = patientId
@@ -1122,7 +1133,9 @@ class PatientRepository {
     final existing = _patients[patientIndex];
     final effectiveTeamId = encounter.teamId.isNotEmpty
         ? encounter.teamId
-        : (existing.teamId.isNotEmpty ? existing.teamId : (_activeTeamId ?? ''));
+        : (existing.teamId.isNotEmpty
+            ? existing.teamId
+            : (_activeTeamId ?? TeamService.instance.activeWorkspaceId ?? WorkspaceStore.instance.activeWorkspaceId ?? ''));
 
     if (existing.encounters.length >= maxEncountersPerPatient) {
       throw const FormatException(

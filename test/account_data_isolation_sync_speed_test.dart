@@ -39,14 +39,14 @@ void main() {
     PatientRepository.clearForTesting();
     CalendarEventRepository().disconnect();
     ClinicalNotificationRepository().disconnect();
-    OfflineSyncService().stopAutoSyncTimer();
-    OfflineSyncService().discardFailed();
+    OfflineSyncService().resetForTesting();
   });
 
   tearDown(() {
     PatientRepository.clearForTesting();
     CalendarEventRepository().disconnect();
     ClinicalNotificationRepository().disconnect();
+    OfflineSyncService().resetForTesting();
   });
 
   group('Cross-Account Data Isolation Tests', () {

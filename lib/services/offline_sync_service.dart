@@ -119,7 +119,7 @@ class OfflineSyncService extends ChangeNotifier {
 
   /// How long [syncNow] waits for server acknowledgement before reporting the
   /// data as "saved on this device, waiting for network".
-  static const Duration ackWait = Duration(seconds: 3);
+  static const Duration ackWait = Duration(seconds: 15);
 
   NetworkConnectivityState _networkState = NetworkConnectivityState.online;
   SyncStatusState _syncState = SyncStatusState.upToDate;
@@ -131,6 +131,7 @@ class OfflineSyncService extends ChangeNotifier {
   Timer? _retryTimer;
   int _retryAttempt = 0;
   bool _syncRequestedWhileSyncing = false;
+  Future<void>? _inFlightSync;
 
   Connectivity? _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -459,11 +460,26 @@ class OfflineSyncService extends ChangeNotifier {
   }
 
   Future<void> syncNow({bool force = false}) async {
-    if (_syncState == SyncStatusState.syncing) {
+    if (_inFlightSync != null) {
       _syncRequestedWhileSyncing = true;
-      return;
+      if (force) {
+        for (final m in _pendingQueue) {
+          m.submitted = false;
+        }
+      }
+      return _inFlightSync!;
     }
 
+    final future = _performSync(force: force);
+    _inFlightSync = future;
+    try {
+      await future;
+    } finally {
+      _inFlightSync = null;
+    }
+  }
+
+  Future<void> _performSync({bool force = false}) async {
     if (isOffline) {
       _syncState = SyncStatusState.offlineSaved;
       notifyListeners();
@@ -502,10 +518,7 @@ class OfflineSyncService extends ChangeNotifier {
 
       if (firestore == null) {
         // No cloud configured (tests / local-only mode): nothing to upload.
-        final isTest = WidgetsBinding.instance.runtimeType.toString().contains('Test');
-        if (!isTest) {
-          await Future.delayed(const Duration(milliseconds: 100));
-        }
+        await Future.delayed(Duration.zero);
         _pendingQueue.removeWhere((m) => m.error == null);
         _lastSyncedAt = DateTime.now();
         _syncState = isOffline
@@ -574,6 +587,7 @@ class OfflineSyncService extends ChangeNotifier {
     mutation.submitted = true;
 
     return batch.commit().then<void>((_) {
+      debugPrint('[OfflineSyncService] Successfully synced ${mutation.entityType} ${mutation.id} to Firestore.');
       _pendingQueue.remove(mutation);
       _lastSyncedAt = DateTime.now();
       _retryAttempt = 0;
@@ -585,11 +599,13 @@ class OfflineSyncService extends ChangeNotifier {
     }).catchError((Object e) {
       final transient = isTransientError(e);
       if (transient) {
+        debugPrint('[OfflineSyncService] Transient sync error for ${mutation.entityType} ${mutation.id}: $e');
         mutation.submitted = false; // safe: the failed batch was not applied
         _refreshState();
         _scheduleRetry();
       } else {
         final errMsg = e is FirebaseException ? '${e.code}: ${e.message}' : e.toString();
+        debugPrint('[OfflineSyncService] Permanent sync failure for ${mutation.entityType} ${mutation.id}: $errMsg');
         final lower = errMsg.toLowerCase();
         if (lower.contains('permission-denied') || lower.contains('insufficient permissions')) {
           _fail(mutation, 'permission-denied: Your account does not have write access to this workspace.');
@@ -693,6 +709,8 @@ class OfflineSyncService extends ChangeNotifier {
   void resetForTesting() {
     stopAutoSyncTimer();
     stopConnectivityListener();
+    _inFlightSync = null;
+    _syncRequestedWhileSyncing = false;
     _pendingQueue.clear();
     _failed.clear();
     _retryAttempt = 0;
