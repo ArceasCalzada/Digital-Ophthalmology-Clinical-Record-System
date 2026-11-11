@@ -346,7 +346,9 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            child: NotificationCenterView(),
+            child: NotificationCenterView(
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
           ),
         ),
       );
@@ -359,7 +361,9 @@ class _MainLayoutState extends State<MainLayout> {
           clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: 680, maxHeight: 720),
-            child: NotificationCenterView(),
+            child: NotificationCenterView(
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
           ),
         ),
       );
@@ -517,7 +521,9 @@ class _MainLayoutState extends State<MainLayout> {
       case 1:
         return _buildMobileAgendaTab();
       case 2:
-        return NotificationCenterView();
+        return NotificationCenterView(
+          onClose: () => setState(() => _mobileTabIndex = 0),
+        );
       case 3:
       default:
         if (_selectedPatient != null) {

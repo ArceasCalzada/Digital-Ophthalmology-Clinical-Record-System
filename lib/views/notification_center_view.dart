@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/clinical_notification.dart';
 import '../services/workspace_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_pill.dart';
 
 class NotificationCenterView extends StatefulWidget {
-  const NotificationCenterView({super.key});
+  final VoidCallback? onClose;
+  final bool showCloseButton;
+
+  const NotificationCenterView({
+    super.key,
+    this.onClose,
+    this.showCloseButton = true,
+  });
 
   @override
   State<NotificationCenterView> createState() => _NotificationCenterViewState();
@@ -13,6 +21,14 @@ class NotificationCenterView extends StatefulWidget {
 
 class _NotificationCenterViewState extends State<NotificationCenterView> {
   String _selectedFilter = 'All';
+
+  void _handleClose() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   void initState() {
@@ -25,82 +41,96 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([ClinicalNotificationRepository(), WorkspaceStore.instance]),
-      builder: (context, child) {
-        final repo = ClinicalNotificationRepository();
-        final allNotifications = repo.notifications;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): _handleClose,
+      },
+      child: Focus(
+        autofocus: true,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([ClinicalNotificationRepository(), WorkspaceStore.instance]),
+          builder: (context, child) {
+            final repo = ClinicalNotificationRepository();
+            final allNotifications = repo.notifications;
 
-        // Deduplicate and filter out any invalid/placeholder mock entries
-        final seenIds = <String>{};
-        final seenSignatures = <String>{};
-        final cleanedNotifications = <ClinicalNotification>[];
+            // Deduplicate and filter out any invalid/placeholder mock entries
+            final seenIds = <String>{};
+            final seenSignatures = <String>{};
+            final cleanedNotifications = <ClinicalNotification>[];
 
-        for (final n in allNotifications) {
-          if (n.isPlaceholderOrEmpty) continue;
-          if (n.id.isNotEmpty && !seenIds.add(n.id)) continue;
-          final sig = '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').trim().toLowerCase()}|${n.category.toLowerCase()}';
-          if (!seenSignatures.add(sig)) continue;
-          cleanedNotifications.add(n);
-        }
+            for (final n in allNotifications) {
+              if (n.isPlaceholderOrEmpty) continue;
+              if (n.id.isNotEmpty && !seenIds.add(n.id)) continue;
+              final sig = '${n.title.trim().toLowerCase()}|${n.message.trim().toLowerCase()}|${(n.patientId ?? '').trim().toLowerCase()}|${n.category.toLowerCase()}';
+              if (!seenSignatures.add(sig)) continue;
+              cleanedNotifications.add(n);
+            }
 
-        final filteredNotifications = cleanedNotifications.where((n) {
-          final catLower = n.category.toLowerCase();
-          if (_selectedFilter == 'Urgent') {
-            return n.severity == NotificationSeverity.urgent || catLower.contains('urgent');
-          }
-          if (_selectedFilter == 'Reminders') {
-            return catLower.contains('reminder');
-          }
-          if (_selectedFilter == 'Refills') {
-            return catLower.contains('refill');
-          }
-          return true;
-        }).toList();
+            final filteredNotifications = cleanedNotifications.where((n) {
+              final catLower = n.category.toLowerCase();
+              if (_selectedFilter == 'Urgent') {
+                return n.severity == NotificationSeverity.urgent || catLower.contains('urgent');
+              }
+              if (_selectedFilter == 'Reminders') {
+                return catLower.contains('reminder');
+              }
+              if (_selectedFilter == 'Refills') {
+                return catLower.contains('refill');
+              }
+              return true;
+            }).toList();
 
-        return Container(
-          decoration: BoxDecoration(
-            color: AppTheme.cardBg,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Bar
-                  Row(
+            return Container(
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Clinical Alerts & Notifications',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      // Header Bar
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${cleanedNotifications.length} alert${cleanedNotifications.length == 1 ? '' : 's'}',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                            child: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryBlue, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Clinical Alerts & Notifications',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${cleanedNotifications.length} alert${cleanedNotifications.length == 1 ? '' : 's'}',
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          if (widget.showCloseButton)
+                            IconButton(
+                              key: const Key('notification_center_close_button'),
+                              icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 22),
+                              tooltip: 'Close',
+                              splashRadius: 20,
+                              onPressed: _handleClose,
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                   // Filter Chips
                   SizedBox(
@@ -140,6 +170,8 @@ class _NotificationCenterViewState extends State<NotificationCenterView> {
           ),
         );
       },
+    ),
+    ),
     );
   }
 

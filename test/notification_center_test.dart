@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/clinical_notification.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
@@ -27,7 +28,94 @@ void main() {
     expect(find.text('Mark all read'), findsNothing);
     expect(find.text('Dismiss'), findsNothing);
 
-    // Only the header bell remains; cards carry no icons.
-    expect(find.byType(Icon), findsOneWidget);
+    // Header has the notification bell and close 'X' icon; cards carry no icons.
+    expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+    expect(find.byKey(const Key('notification_center_close_button')), findsOneWidget);
+  });
+
+  testWidgets('Clicking header close icon invokes onClose callback', (tester) async {
+    bool closed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: NotificationCenterView(
+            onClose: () => closed = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final closeButtonFinder = find.byKey(const Key('notification_center_close_button'));
+    expect(closeButtonFinder, findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
+
+    await tester.tap(closeButtonFinder);
+    await tester.pumpAndSettle();
+
+    expect(closed, isTrue);
+  });
+
+  testWidgets('Pressing Escape key closes the modal via keyboard shortcut', (tester) async {
+    bool closed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: NotificationCenterView(
+            onClose: () => closed = true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(closed, isTrue);
+  });
+
+  testWidgets('Close icon dismisses modal dialog when popped via Navigator', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => Dialog(
+                    child: NotificationCenterView(
+                      onClose: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Open Alerts'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Open dialog
+    await tester.tap(find.text('Open Alerts'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Clinical Alerts & Notifications'), findsOneWidget);
+    expect(find.byKey(const Key('notification_center_close_button')), findsOneWidget);
+
+    // Dismiss using close button
+    await tester.tap(find.byKey(const Key('notification_center_close_button')));
+    await tester.pumpAndSettle();
+
+    // Modal dialog is dismissed
+    expect(find.text('Clinical Alerts & Notifications'), findsNothing);
   });
 }
