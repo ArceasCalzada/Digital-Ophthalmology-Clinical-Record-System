@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/follow_up_reminder.dart';
 import '../models/patient.dart';
 import '../services/clinical_reminder_service.dart';
@@ -11,13 +12,92 @@ class FollowUpRemindersWidget extends StatefulWidget {
   final Function(Patient)? onSelectPatient;
   final ValueChanged<DateTime?>? onOpenCalendar;
   final String? initialFilter;
+  final VoidCallback? onClose;
+  final bool showCloseButton;
+  final bool isModal;
 
   const FollowUpRemindersWidget({
     super.key,
     this.onSelectPatient,
     this.onOpenCalendar,
     this.initialFilter,
+    this.onClose,
+    this.showCloseButton = false,
+    this.isModal = false,
   });
+
+  /// Opens the Patient Follow-Up & Return Queue in a modal dialog or bottom sheet
+  static Future<void> showModal(
+    BuildContext context, {
+    Function(Patient)? onSelectPatient,
+    ValueChanged<DateTime?>? onOpenCalendar,
+    String? initialFilter,
+  }) async {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+    if (isMobile) {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          height: MediaQuery.of(ctx).size.height * 0.88,
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: FollowUpRemindersWidget(
+                initialFilter: initialFilter,
+                showCloseButton: true,
+                isModal: true,
+                onClose: () => Navigator.of(ctx).pop(),
+                onSelectPatient: (patient) {
+                  Navigator.of(ctx).pop();
+                  onSelectPatient?.call(patient);
+                },
+                onOpenCalendar: (date) {
+                  Navigator.of(ctx).pop();
+                  onOpenCalendar?.call(date);
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      await showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: AppTheme.cardBg,
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 840, maxHeight: 760),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8),
+              child: FollowUpRemindersWidget(
+                initialFilter: initialFilter,
+                showCloseButton: true,
+                isModal: true,
+                onClose: () => Navigator.of(ctx).pop(),
+                onSelectPatient: (patient) {
+                  Navigator.of(ctx).pop();
+                  onSelectPatient?.call(patient);
+                },
+                onOpenCalendar: (date) {
+                  Navigator.of(ctx).pop();
+                  onOpenCalendar?.call(date);
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   State<FollowUpRemindersWidget> createState() => _FollowUpRemindersWidgetState();
@@ -26,10 +106,28 @@ class FollowUpRemindersWidget extends StatefulWidget {
 class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
   late String _selectedFilter;
 
+  void _handleClose() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedFilter = widget.initialFilter ?? 'All';
+  }
+
+  @override
+  void didUpdateWidget(covariant FollowUpRemindersWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialFilter != null && widget.initialFilter != oldWidget.initialFilter) {
+      setState(() {
+        _selectedFilter = widget.initialFilter!;
+      });
+    }
   }
 
   @override
@@ -62,20 +160,34 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
         final dueSoonCount = service.dueSoonCount;
         final unscheduledCount = service.unscheduledReminders.length;
 
-        return Container(
+        final closeButton = widget.showCloseButton
+            ? IconButton(
+                key: const Key('follow_up_queue_close_button'),
+                icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 22),
+                tooltip: 'Close',
+                splashRadius: 20,
+                onPressed: _handleClose,
+              )
+            : null;
+
+        Widget content = Container(
           key: const Key('follow_up_reminders_widget'),
-          decoration: BoxDecoration(
-            color: AppTheme.cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+          decoration: widget.isModal
+              ? BoxDecoration(
+                  color: AppTheme.cardBg,
+                )
+              : BoxDecoration(
+                  color: AppTheme.cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
           padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +297,13 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        titleSection,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: titleSection),
+                            ?closeButton,
+                          ],
+                        ),
                         if (overdueCount > 0 || dueTodayCount > 0 || dueSoonCount > 0) ...[
                           const SizedBox(height: 10),
                           badges,
@@ -200,6 +318,10 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
                       Expanded(child: titleSection),
                       const SizedBox(width: 12),
                       badges,
+                      if (closeButton != null) ...[
+                        const SizedBox(width: 8),
+                        closeButton,
+                      ],
                     ],
                   );
                 },
@@ -261,6 +383,19 @@ class _FollowUpRemindersWidgetState extends State<FollowUpRemindersWidget> {
             ],
           ),
         );
+
+        if (widget.showCloseButton) {
+          return CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.escape): _handleClose,
+            },
+            child: Focus(
+              autofocus: true,
+              child: content,
+            ),
+          );
+        }
+        return content;
       },
     );
   }

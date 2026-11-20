@@ -144,7 +144,13 @@ class _CalendarPageViewState extends State<CalendarPageView> {
     final repo = CalendarEventRepository();
 
     return ListenableBuilder(
-      listenable: Listenable.merge([repo, EventOptionsStore.instance, TeamService.instance, WorkspaceStore.instance]),
+      listenable: Listenable.merge([
+        repo,
+        EventOptionsStore.instance,
+        TeamService.instance,
+        WorkspaceStore.instance,
+        ThemeController.instance,
+      ]),
       builder: (context, child) {
         // A filter whose type or location was just deleted goes back to showing everything.
         if (!_typeFilters.contains(_selectedTypeFilter)) _selectedTypeFilter = 'All';
@@ -688,7 +694,7 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                         width: double.infinity,
                         padding: EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF8FAFC),
+                          color: ThemeController.instance.isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.borderColor),
                         ),
@@ -753,13 +759,16 @@ class _CalendarPageViewState extends State<CalendarPageView> {
               final dateStr = formatScheduleDate(evt.dateTime);
               final timeStr = TimeOfDay.fromDateTime(evt.dateTime).format(context);
               // Only today's events keep their colour, so what is coming next stands out.
+              final isDark = ThemeController.instance.isDarkMode;
               final now = DateTime.now();
               final isToday = evt.dateTime.year == now.year && evt.dateTime.month == now.month && evt.dateTime.day == now.day;
-              final tagColor = isToday ? _getEventTypeColor(evt.eventType) : Color(0xFFCBD5E1);
+              final tagColor = isToday
+                  ? _getEventTypeColor(evt.eventType)
+                  : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1));
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFF8FAFC),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.borderColor),
                 ),
@@ -819,15 +828,22 @@ class _CalendarPageViewState extends State<CalendarPageView> {
   }
 
   Widget _buildAgendaItemCard(BuildContext context, CalendarEvent evt, CalendarEventRepository repo) {
+    final isDark = ThemeController.instance.isDarkMode;
     final tagColor = _getEventTypeColor(evt.eventType);
     final formattedTime = TimeOfDay.fromDateTime(evt.dateTime).format(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
+        color: isDark ? const Color(0xFF0F172A) : AppTheme.cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.borderColor),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : Colors.black12,
+            blurRadius: 3,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       // The whole card is the edit button: tapping it opens the event for editing.
       child: Material(
@@ -881,7 +897,11 @@ class _CalendarPageViewState extends State<CalendarPageView> {
                             Flexible(
                               child: Text(
                                 evt.location,
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),

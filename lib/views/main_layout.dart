@@ -574,22 +574,43 @@ class _MainLayoutState extends State<MainLayout> {
           ),
           SizedBox(height: 14),
 
-          ListView.separated(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: queue.length,
-            separatorBuilder: (context, index) => SizedBox(height: 10),
-            itemBuilder: (context, idx) {
-              final item = queue[idx];
-              return Container(
-                padding: EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.borderColor),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
-                ),
-                child: Column(
+          if (queue.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.event_available_rounded, size: 36, color: AppTheme.textSecondary),
+                  SizedBox(height: 8),
+                  Text(
+                    'No consultations scheduled for today',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: queue.length,
+              separatorBuilder: (context, index) => SizedBox(height: 10),
+              itemBuilder: (context, idx) {
+                final item = queue[idx];
+                return Container(
+                  padding: EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.borderColor),
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
+                  ),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(

@@ -467,5 +467,92 @@ void main() {
       expect(find.byType(AddEventModal), findsOneWidget);
       expect(find.text('Add Clinical Event'), findsOneWidget);
     });
+
+    testWidgets('Clicking View Queue on banner opens follow-up queue modal pre-filtered to Overdue', (tester) async {
+      PatientRepository.clearForTesting();
+      ClinicalReminderService.instance.clearForTesting();
+
+      Patient? selectedPatient;
+
+      final patient = Patient(
+        id: 'p-dash-viewqueue',
+        mrn: 'MRN-VQ-1',
+        fullName: 'Dr. Gregory House',
+        dateOfBirth: '1970-01-01',
+        gender: 'Male',
+        phone: '09171112222',
+        address: 'Davao City',
+        medicalHistory: const [],
+        allergies: const [],
+        encounters: const [],
+        lastVisitDate: '2026-10-01',
+        totalVisits: 1,
+        prescriptions: [
+          Prescription(
+            id: 'rx-vq',
+            patientId: 'p-dash-viewqueue',
+            encounterId: 'enc-vq',
+            doctorName: 'Dr. Robillos',
+            date: formatDateIso(threeDaysAgo.subtract(const Duration(days: 14))),
+            items: [
+              PrescriptionItem(
+                id: 'i-vq',
+                medicationName: 'Timolol',
+                strength: '0.5%',
+                dosage: '1 drop',
+                frequency: 'BID',
+                duration: '30 days',
+                instructions: 'OD',
+              ),
+            ],
+            followUpDate: formatDateIso(threeDaysAgo),
+            notes: 'IOP Check overdue',
+          ),
+        ],
+      );
+
+      PatientRepository.addPatient(patient);
+      await ClinicalReminderService.instance.runScheduledCheck();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: Scaffold(
+            body: DashboardScreen(
+              onSelectPatient: (p) => selectedPatient = p,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Ensure the banner and "View Queue" button exist
+      final viewQueueBtn = find.byKey(const Key('dashboard_view_follow_up_queue_button'));
+      expect(viewQueueBtn, findsOneWidget);
+
+      // Tap "View Queue"
+      await tester.tap(viewQueueBtn);
+      await tester.pumpAndSettle();
+
+      // Verify that the Follow-Up Return Queue modal opened
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byKey(const Key('follow_up_queue_close_button')), findsOneWidget);
+      expect(find.text('Patient Follow-Up & Return Queue'), findsWidgets);
+      expect(find.text('Dr. Gregory House'), findsWidgets);
+      expect(find.text('Overdue by 3 days'), findsWidgets);
+
+      // Test "View Chart" action inside the modal
+      final modalChartBtn = find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byKey(const Key('btn_view_chart_rx-p-dash-viewqueue-rx-vq')),
+      );
+      expect(modalChartBtn, findsOneWidget);
+      await tester.tap(modalChartBtn);
+      await tester.pumpAndSettle();
+
+      // Dialog should be dismissed and onSelectPatient invoked
+      expect(find.byType(Dialog), findsNothing);
+      expect(selectedPatient?.fullName, 'Dr. Gregory House');
+    });
   });
 }

@@ -42,6 +42,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isSearching = false;
   Timer? _clockTimer;
   String _currentTime = '';
+  String _dashboardQueueFilter = 'All';
+
+  void _openFollowUpQueue(ClinicalReminderService service) {
+    final targetFilter = service.overdueCount > 0
+        ? 'Overdue'
+        : (service.dueTodayCount > 0 ? 'Due Today' : (service.dueSoonCount > 0 ? 'Due in 3 Days' : 'All'));
+
+    setState(() {
+      _dashboardQueueFilter = targetFilter;
+    });
+
+    FollowUpRemindersWidget.showModal(
+      context,
+      initialFilter: targetFilter,
+      onSelectPatient: widget.onSelectPatient,
+      onOpenCalendar: widget.onOpenCalendar,
+    );
+  }
 
   @override
   void initState() {
@@ -495,6 +513,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // 2.5 Automated Follow-Up Reminders & Return Queue
           FollowUpRemindersWidget(
+            initialFilter: _dashboardQueueFilter,
             onSelectPatient: widget.onSelectPatient,
             onOpenCalendar: widget.onOpenCalendar,
           ),
@@ -1061,15 +1080,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.15),
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            child: InkWell(
+              key: const Key('dashboard_view_follow_up_queue_button'),
               borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              'View Queue',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor),
+              onTap: () => _openFollowUpQueue(service),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: iconColor.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'View Queue',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_rounded, size: 12, color: textColor),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
