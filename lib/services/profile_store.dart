@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import '../models/audit_log.dart';
 import 'audit_service.dart';
 import 'auth_service.dart';
 import 'firebase_gate.dart';
+import 'offline_sync_service.dart';
 import 'team_service.dart';
 
 /// The signed-in doctor's profile and the clinic details printed on prescriptions.
@@ -35,6 +37,34 @@ class ProfileStore extends ChangeNotifier {
   String? lastName;
   String? middleName;
   String? suffix;
+
+  // Doctor Signature
+  String? _signatureBase64;
+  String? get signatureBase64 => _signatureBase64;
+  bool get hasSignature => _signatureBase64 != null && _signatureBase64!.trim().isNotEmpty;
+  Uint8List? get signatureBytes {
+    if (!hasSignature) return null;
+    try {
+      return base64Decode(_signatureBase64!);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void setSignatureBase64(String? base64) {
+    _signatureBase64 = base64;
+    notifyListeners();
+  }
+
+  void removeSignature() {
+    _signatureBase64 = null;
+    notifyListeners();
+  }
+
+  void clearSignatureForTesting() {
+    _signatureBase64 = null;
+    notifyListeners();
+  }
 
   // Clinic information.
   final clinicName = TextEditingController(text: 'Metro Eye Center & Refractive Surgery');
@@ -501,6 +531,7 @@ class ProfileStore extends ChangeNotifier {
       'specialization': specialization.text.trim(),
       'license': license.text.trim(),
       'ptrNo': ptrNo.text.trim(),
+      'signatureBase64': _signatureBase64,
       'clinicName': clinicName.text.trim(),
       'clinicAddress': clinicAddress.text.trim(),
       'clinicPhone': clinicPhone.text.trim(),
@@ -531,6 +562,9 @@ class ProfileStore extends ChangeNotifier {
     if (data['specialization'] != null) specialization.text = data['specialization'].toString();
     if (data['license'] != null) license.text = data['license'].toString();
     if (data['ptrNo'] != null) ptrNo.text = data['ptrNo'].toString();
+    if (data.containsKey('signatureBase64')) {
+      _signatureBase64 = data['signatureBase64'] as String?;
+    }
     if (data['clinicName'] != null) clinicName.text = data['clinicName'].toString();
     if (data['clinicAddress'] != null) clinicAddress.text = data['clinicAddress'].toString();
     if (data['clinicPhone'] != null) clinicPhone.text = data['clinicPhone'].toString();
@@ -653,11 +687,20 @@ class ProfileStore extends ChangeNotifier {
     await saveToPreferences(teamId: effTeamId);
     notifyListeners();
 
+    final data = FirebaseGate.encode(toMap());
+
+    // Enqueue to offline synchronization queue
+    OfflineSyncService().enqueueMutation(
+      id: 'prescription',
+      entityType: 'PrescriptionSettings',
+      action: 'UPDATE',
+      payload: data,
+    );
+
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
 
     try {
-      final data = FirebaseGate.encode(toMap());
 
       // Save to active team's settings if effTeamId is provided
       if (effTeamId != null && effTeamId.isNotEmpty) {

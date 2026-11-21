@@ -102,6 +102,9 @@ class SyncMutation {
       'Notification' => 'notifications/$id',
       'Encounter' when payload['patientId'] is String => 'patients/${payload['patientId']}/encounters/$id',
       'Prescription' when payload['patientId'] is String => 'patients/${payload['patientId']}/prescriptions/$id',
+      'PrescriptionSettings' => TeamService.instance.activeTeam?.id != null
+          ? 'teams/${TeamService.instance.activeTeam!.id}/settings/prescription'
+          : 'settings/prescription',
       _ => null,
     };
     if (path == null) {

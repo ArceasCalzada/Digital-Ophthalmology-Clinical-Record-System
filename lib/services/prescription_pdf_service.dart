@@ -19,6 +19,7 @@ class PrescriptionPdfService {
     String? specialization,
     String? licenseNo,
     String? ptrNo,
+    Uint8List? signatureImageBytes,
     String followUpDate = '_________________',
     String? clinic1Name,
     String? clinic1Location,
@@ -46,6 +47,7 @@ class PrescriptionPdfService {
     final effPtrNo = (ptrNo != null && ptrNo.isNotEmpty)
         ? ptrNo
         : (profile.ptrNo.text.isNotEmpty ? profile.ptrNo.text : '_________________');
+    final effSignatureBytes = signatureImageBytes ?? profile.signatureBytes;
 
     final effClinic1Name = (clinic1Name != null && clinic1Name.isNotEmpty)
         ? clinic1Name
@@ -319,6 +321,15 @@ class PrescriptionPdfService {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
+                        if (effSignatureBytes != null)
+                          pw.Container(
+                            height: 38,
+                            margin: const pw.EdgeInsets.only(bottom: 2),
+                            child: pw.Image(
+                              pw.MemoryImage(effSignatureBytes),
+                              fit: pw.BoxFit.contain,
+                            ),
+                          ),
                         pw.Text(
                           effDoctorName,
                           style: pw.TextStyle(

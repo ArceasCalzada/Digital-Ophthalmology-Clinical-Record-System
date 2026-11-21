@@ -486,17 +486,27 @@ class RxPadWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      effDoctorName,
-                      style: TextStyle(
-                        fontFamily: 'serif',
-                        fontStyle: FontStyle.italic,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                    if (ProfileStore.instance.hasSignature && ProfileStore.instance.signatureBytes != null)
+                      Container(
+                        height: 38,
+                        margin: const EdgeInsets.only(bottom: 2),
+                        child: Image.memory(
+                          ProfileStore.instance.signatureBytes!,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    else
+                      Text(
+                        effDoctorName,
+                        style: TextStyle(
+                          fontFamily: 'serif',
+                          fontStyle: FontStyle.italic,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade900,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     Container(
                       width: 180,
                       height: 1,

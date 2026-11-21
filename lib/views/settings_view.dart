@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../models/clinic_branch.dart';
@@ -8,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/profile_store.dart';
 import '../services/reminder_settings_store.dart';
 import '../services/security_settings_store.dart';
+import '../services/signature_service.dart';
 import '../services/team_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clinical_dropdown_field.dart';
@@ -37,7 +39,88 @@ class _SettingsViewState extends State<SettingsView> {
   final _profile = ProfileStore.instance;
 
   // 3. Prescription Settings State
-  bool _hasSignature = true;
+  bool _isUploadingSignature = false;
+  String? _signatureError;
+
+  Future<void> _handleUploadSignature() async {
+    setState(() {
+      _signatureError = null;
+      _isUploadingSignature = true;
+    });
+
+    try {
+      final result = await SignatureService.pickAndValidateSignature();
+      if (!mounted) return;
+
+      if (result == null) {
+        setState(() => _isUploadingSignature = false);
+        return;
+      }
+
+      if (!result.isValid) {
+        setState(() {
+          _isUploadingSignature = false;
+          _signatureError = result.errorMessage;
+        });
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(result.errorMessage ?? 'Invalid signature file.')),
+              ],
+            ),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final base64Str = base64Encode(result.bytes!);
+      _profile.setSignatureBase64(base64Str);
+      await _profile.saveToFirestore(teamId: TeamService.instance.activeTeam?.id);
+
+      if (mounted) {
+        setState(() {
+          _isUploadingSignature = false;
+          _signatureError = null;
+        });
+        _showSaveFeedback('Doctor signature uploaded and saved successfully.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingSignature = false;
+          _signatureError = 'Failed to upload signature: $e';
+        });
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload signature: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRemoveSignature() async {
+    setState(() {
+      _signatureError = null;
+    });
+
+    _profile.removeSignature();
+    await _profile.saveToFirestore(teamId: TeamService.instance.activeTeam?.id);
+
+    if (mounted) {
+      setState(() {});
+      _showSaveFeedback('Doctor signature removed successfully.');
+    }
+  }
   bool _isEditingDoctorInfo = false;
   bool _isEditingClinicHeaders = false;
 
@@ -766,6 +849,7 @@ class _SettingsViewState extends State<SettingsView> {
               Row(
                 children: [
                   Container(
+                    key: const Key('signature_preview_box'),
                     width: 180,
                     height: 80,
                     decoration: BoxDecoration(
@@ -773,40 +857,30 @@ class _SettingsViewState extends State<SettingsView> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppTheme.borderColor),
                     ),
-                    child: _hasSignature
+                    padding: const EdgeInsets.all(8),
+                    child: _profile.hasSignature && _profile.signatureBytes != null
                         ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Sarah Jenkins',
-                                  style: TextStyle(
-                                    fontFamily: 'serif',
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: _isDark
-                                        ? AppTheme.accentCyan
-                                        : Colors.blue.shade900,
-                                  ),
-                                ),
-                                Container(
-                                  width: 100,
-                                  height: 1,
-                                  color: _isDark
-                                      ? AppTheme.accentCyan
-                                      : Colors.blue.shade900,
-                                ),
-                              ],
+                            child: Image.memory(
+                              _profile.signatureBytes!,
+                              key: const Key('signature_image_preview'),
+                              fit: BoxFit.contain,
                             ),
                           )
                         : Center(
-                            child: Text(
-                              'No Signature Uploaded',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.textSecondary,
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.draw_outlined, size: 24, color: AppTheme.textSecondary),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'No Signature Uploaded',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                   ),
@@ -820,20 +894,23 @@ class _SettingsViewState extends State<SettingsView> {
                           runSpacing: 8,
                           children: [
                             ElevatedButton.icon(
-                              icon: Icon(Icons.draw, size: 16),
-                              label: Text('Upload Signature Image'),
-                              onPressed: () {
-                                setState(() => _hasSignature = true);
-                                _showSaveFeedback('Signature uploaded.');
-                              },
+                              key: const Key('btn_upload_signature'),
+                              icon: _isUploadingSignature
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Icon(Icons.draw, size: 16),
+                              label: Text(_isUploadingSignature ? 'Uploading...' : 'Upload Signature Image'),
+                              onPressed: _isUploadingSignature ? null : _handleUploadSignature,
                             ),
-                            if (_hasSignature)
-                              OutlinedButton(
-                                onPressed: () {
-                                  setState(() => _hasSignature = false);
-                                  _showSaveFeedback('Signature removed.');
-                                },
-                                child: Text('Remove Signature'),
+                            if (_profile.hasSignature)
+                              OutlinedButton.icon(
+                                key: const Key('btn_remove_signature'),
+                                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                                label: const Text('Remove Signature', style: TextStyle(color: Colors.redAccent)),
+                                onPressed: _handleRemoveSignature,
                               ),
                           ],
                         ),
@@ -845,6 +922,26 @@ class _SettingsViewState extends State<SettingsView> {
                             color: AppTheme.textSecondary,
                           ),
                         ),
+                        if (_signatureError != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, size: 14, color: Color(0xFFDC2626)),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _signatureError!,
+                                  key: const Key('signature_error_text'),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
