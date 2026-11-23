@@ -1573,6 +1573,10 @@ class _SettingsViewState extends State<SettingsView> {
                             label: '30 minutes',
                           ),
                           ClinicalPickerItem<String>(
+                            value: '1 hour',
+                            label: '1 hour',
+                          ),
+                          ClinicalPickerItem<String>(
                             value: 'Never',
                             label: 'Never',
                           ),

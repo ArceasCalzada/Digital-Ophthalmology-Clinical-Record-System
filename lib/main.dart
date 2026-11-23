@@ -203,6 +203,36 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeController.instance.themeMode,
+            navigatorObservers: [
+              InactivityRouteObserver(),
+            ],
+            builder: (context, child) {
+              final content = child ?? const SizedBox.shrink();
+              if (!auth.isSignedIn || auth.isResolving || isWorkspaceResolving) {
+                return content;
+              }
+              return InactivityGuard(
+                timeout: security.timeoutDuration,
+                isLocked: security.isLocked,
+                onTimeout: () => security.lockScreen(),
+                child: Stack(
+                  children: [
+                    content,
+                    if (security.isLocked)
+                      Overlay(
+                        initialEntries: [
+                          OverlayEntry(
+                            builder: (_) => SessionLockOverlay(
+                              onUnlock: (password) => security.unlockSession(password),
+                              onLogout: _handleLogout,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            },
             home: (auth.isResolving || isWorkspaceResolving)
                 ? Scaffold(
                     backgroundColor: AppTheme.lightBg,
@@ -227,21 +257,8 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
                     ),
                   )
                 : (auth.isSignedIn
-                    ? InactivityGuard(
-                        timeout: security.timeoutDuration,
-                        onTimeout: () => security.lockScreen(),
-                        child: Stack(
-                          children: [
-                            MainLayout(
-                              onLogout: _handleLogout,
-                            ),
-                            if (security.isLocked)
-                              SessionLockOverlay(
-                                onUnlock: (password) => security.unlockSession(password),
-                                onLogout: _handleLogout,
-                              ),
-                          ],
-                        ),
+                    ? MainLayout(
+                        onLogout: _handleLogout,
                       )
                     : (auth.needsOnboarding || auth.hasSubmittedJoinRequest
                         ? OnboardingWizardView(

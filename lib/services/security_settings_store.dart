@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/inactivity_guard.dart';
 import 'auth_service.dart';
 import 'firebase_gate.dart';
 import 'sms_otp_service.dart';
@@ -63,8 +64,11 @@ class SecuritySettingsStore extends ChangeNotifier {
 
   Future<void> loadLocal([String? uid]) async {
     try {
+      final effectiveUid = uid ?? AuthService.instance.user?.uid;
       final prefs = await SharedPreferences.getInstance();
-      final key = uid != null ? '$_prefsKeyPrefix$uid' : 'security_settings_default';
+      final key = (effectiveUid != null && effectiveUid.isNotEmpty)
+          ? '$_prefsKeyPrefix$effectiveUid'
+          : 'security_settings_default';
       final raw = prefs.getString(key) ?? prefs.getString('security_settings_default');
       if (raw != null && raw.isNotEmpty) {
         final data = jsonDecode(raw) as Map<String, dynamic>;
@@ -99,24 +103,30 @@ class SecuritySettingsStore extends ChangeNotifier {
 
   Future<void> saveLocal([String? uid]) async {
     try {
+      final effectiveUid = uid ?? AuthService.instance.user?.uid;
       final prefs = await SharedPreferences.getInstance();
       final raw = jsonEncode(toMap());
-      if (uid != null) {
-        await prefs.setString('$_prefsKeyPrefix$uid', raw);
+      if (effectiveUid != null && effectiveUid.isNotEmpty) {
+        await prefs.setString('$_prefsKeyPrefix$effectiveUid', raw);
       }
       await prefs.setString('security_settings_default', raw);
     } catch (_) {}
   }
 
   /// Loads security preferences from Firestore for [uid] and falls back to local cache.
-  Future<void> loadFromFirestore(String uid) async {
-    await loadLocal(uid);
+  Future<void> loadFromFirestore([String? uid]) async {
+    final effectiveUid = uid ?? AuthService.instance.user?.uid;
+    if (effectiveUid == null || effectiveUid.isEmpty) {
+      await loadLocal();
+      return;
+    }
+    await loadLocal(effectiveUid);
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
     try {
       final doc = await firestore
           .collection('users')
-          .doc(uid)
+          .doc(effectiveUid)
           .collection('settings')
           .doc('security')
           .get()
@@ -124,8 +134,11 @@ class SecuritySettingsStore extends ChangeNotifier {
 
       if (doc.exists && doc.data() != null) {
         _applyMap(doc.data()!);
-        await saveLocal(uid);
+        await saveLocal(effectiveUid);
         notifyListeners();
+      } else {
+        // Document does not exist yet; persist current preferences to the cloud
+        await saveToFirestore(effectiveUid);
       }
     } catch (e) {
       debugPrint('SecuritySettingsStore loadFromFirestore notice: $e');
@@ -133,15 +146,18 @@ class SecuritySettingsStore extends ChangeNotifier {
   }
 
   /// Persists current security preferences to Firestore for [uid].
-  Future<void> saveToFirestore(String uid) async {
-    await saveLocal(uid);
+  Future<void> saveToFirestore([String? uid]) async {
+    final effectiveUid = uid ?? AuthService.instance.user?.uid;
+    await saveLocal(effectiveUid);
+    if (effectiveUid == null || effectiveUid.isEmpty) return;
+
     final firestore = FirebaseGate.firestoreIfReady();
     if (firestore == null) return;
     try {
       final data = FirebaseGate.encode(toMap());
       await firestore
           .collection('users')
-          .doc(uid)
+          .doc(effectiveUid)
           .collection('settings')
           .doc('security')
           .set(data, SetOptions(merge: true))
@@ -160,9 +176,10 @@ class SecuritySettingsStore extends ChangeNotifier {
     _autoLockEnabled = enabled;
     _autoLockDuration = duration;
     notifyListeners();
-    await saveLocal(uid);
-    if (uid != null && uid.isNotEmpty) {
-      await saveToFirestore(uid);
+    final effectiveUid = uid ?? AuthService.instance.user?.uid;
+    await saveLocal(effectiveUid);
+    if (effectiveUid != null && effectiveUid.isNotEmpty) {
+      await saveToFirestore(effectiveUid);
     }
   }
 
@@ -179,15 +196,23 @@ class SecuritySettingsStore extends ChangeNotifier {
       _twoFactorPhoneNumber = null;
     }
     notifyListeners();
-    await saveLocal(uid);
-    if (uid != null && uid.isNotEmpty) {
-      await saveToFirestore(uid);
+    final effectiveUid = uid ?? AuthService.instance.user?.uid;
+    await saveLocal(effectiveUid);
+    if (effectiveUid != null && effectiveUid.isNotEmpty) {
+      await saveToFirestore(effectiveUid);
     }
   }
 
+  /// Records active user interaction to reset inactivity countdown.
+  void recordUserActivity() {
+    InactivityGuard.recordActivity();
+  }
+
   /// Triggers a workstation session lock screen.
-  void lockScreen() {
-    if (!_autoLockEnabled || _isLocked) return;
+  /// When triggered by auto-lock, [force] is false and respects [_autoLockEnabled].
+  /// When triggered manually (e.g. from lock action), [force] can be true.
+  void lockScreen({bool force = false}) {
+    if ((!_autoLockEnabled && !force) || _isLocked) return;
     _isLocked = true;
     notifyListeners();
   }
@@ -203,8 +228,8 @@ class SecuritySettingsStore extends ChangeNotifier {
     return false;
   }
 
-  /// Alias for lockScreen.
-  void lock() => lockScreen();
+  /// Alias for lockScreen (manual).
+  void lock() => lockScreen(force: true);
 
   /// Alias for unlockSession.
   Future<bool> unlockWithPassword(String password) => unlockSession(password);
