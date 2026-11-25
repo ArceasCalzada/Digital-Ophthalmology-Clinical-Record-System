@@ -28,6 +28,7 @@ class PaperSheetCanvas extends StatefulWidget {
   final String? occupation;
   final String? phicNumber;
   final String? birthDate;
+  final String drawingTemplate;
 
   const PaperSheetCanvas({
     super.key,
@@ -44,6 +45,7 @@ class PaperSheetCanvas extends StatefulWidget {
     this.occupation,
     this.phicNumber,
     this.birthDate,
+    this.drawingTemplate = 'Fundus / Retina Map',
   });
 
   @override
@@ -316,6 +318,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                                 occupation: widget.occupation,
                                 phicNumber: widget.phicNumber,
                                 birthDate: widget.birthDate,
+                                drawingTemplate: widget.drawingTemplate,
                               ),
                             ),
 
@@ -342,6 +345,37 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                                       currentTool: _activeTool,
                                     ),
                                   ),
+                                ),
+                              ),
+                            ),
+
+                            // Floating Template Badge
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                key: const Key('paper_sheet_template_badge'),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.remove_red_eye_outlined, size: 11, color: AppTheme.primaryBlue),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.drawingTemplate,
+                                      style: TextStyle(
+                                        color: AppTheme.primaryBlue,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -852,6 +886,7 @@ class PrintedPaperSheetPainter extends CustomPainter {
   final String? birthDate;
   final Encounter? encounter;
   final List<String> medicalHistory;
+  final String drawingTemplate;
 
   PrintedPaperSheetPainter({
     required this.width,
@@ -867,6 +902,7 @@ class PrintedPaperSheetPainter extends CustomPainter {
     this.birthDate,
     this.encounter,
     this.medicalHistory = const [],
+    this.drawingTemplate = 'Fundus / Retina Map',
   });
 
   @override
@@ -1216,7 +1252,13 @@ class PrintedPaperSheetPainter extends CustomPainter {
     final osCircleCenter = pt(753, 426);
     canvas.drawCircle(osCircleCenter, 17.0 * scaleX, borderPaint);
 
-    drawText('Dilated Fundus Exam', 580, 485, fontSize: 11.0);
+    final isAnterior = drawingTemplate == 'Anterior Segment / Cornea';
+    final isExternal = drawingTemplate == 'External Eye & Lids';
+    final templateTitle = isAnterior
+        ? 'Cornea & Anterior Segment Exam'
+        : (isExternal ? 'External Eye & Lids Exam' : 'Dilated Fundus Exam');
+
+    drawText(templateTitle, 580, 485, fontSize: 11.0);
 
     void drawFundusDiagram(Offset center, double radius, bool isOD) {
       canvas.drawCircle(center, radius, borderPaint);

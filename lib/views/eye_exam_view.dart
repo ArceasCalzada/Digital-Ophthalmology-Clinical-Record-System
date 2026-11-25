@@ -11,6 +11,7 @@ import '../widgets/success_modal.dart';
 import '../widgets/sync_status_indicator.dart';
 import 'prescription_view.dart';
 import '../services/drawing_codec.dart';
+import '../services/examination_preferences_store.dart';
 import '../services/profile_store.dart';
 import '../services/draft_manager_service.dart';
 
@@ -19,6 +20,8 @@ class EyeExamView extends StatefulWidget {
   final Encounter? encounter;
   final Function(Patient)? onExamComplete;
   final Function(Patient)? onOpenPrescription;
+  final String? initialLayout;
+  final String? initialTemplate;
 
   const EyeExamView({
     super.key,
@@ -26,6 +29,8 @@ class EyeExamView extends StatefulWidget {
     this.encounter,
     this.onExamComplete,
     this.onOpenPrescription,
+    this.initialLayout,
+    this.initialTemplate,
   });
 
   @override
@@ -34,6 +39,8 @@ class EyeExamView extends StatefulWidget {
 
 class _EyeExamViewState extends State<EyeExamView> {
   late Patient _activePatient;
+  late String _currentLayout;
+  late String _drawingTemplate;
 
   // Digital Ink Strokes over the Paper Sheet
   List<VectorStroke> _paperStrokes = [];
@@ -101,6 +108,9 @@ class _EyeExamViewState extends State<EyeExamView> {
   @override
   void initState() {
     super.initState();
+    _currentLayout = widget.initialLayout ?? ExaminationPreferencesStore.instance.defaultExamLayout;
+    _drawingTemplate = widget.initialTemplate ?? ExaminationPreferencesStore.instance.defaultDrawingTemplate;
+
     if (widget.encounter != null) {
       final p = widget.patient ?? PatientRepository.getPatientById(widget.encounter!.patientId);
       if (p != null) {
@@ -680,6 +690,73 @@ class _EyeExamViewState extends State<EyeExamView> {
             padding: EdgeInsets.only(right: 8),
             child: Center(child: SyncStatusIndicator(compact: true)),
           ),
+          // Drawing Template Indicator
+          Container(
+            key: const Key('exam_template_indicator'),
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.remove_red_eye_outlined, size: 14, color: AppTheme.primaryBlue),
+                const SizedBox(width: 4),
+                Text(
+                  _drawingTemplate,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                ),
+              ],
+            ),
+          ),
+
+          // Examination Layout Indicator & Switcher
+          PopupMenuButton<String>(
+            key: const Key('exam_layout_indicator'),
+            tooltip: 'Change Examination Layout',
+            initialValue: _currentLayout,
+            onSelected: (layout) => setState(() => _currentLayout = layout),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: ExaminationPreferencesStore.layoutStandard2Column,
+                child: Text('Standard 2-Column'),
+              ),
+              const PopupMenuItem(
+                value: ExaminationPreferencesStore.layoutExpandedSingleCanvas,
+                child: Text('Expanded Single Canvas'),
+              ),
+              const PopupMenuItem(
+                value: ExaminationPreferencesStore.layoutClinicalTabbed,
+                child: Text('Clinical Tabbed'),
+              ),
+            ],
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.lightBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.view_quilt_outlined, size: 14, color: AppTheme.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    _currentLayout,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(Icons.arrow_drop_down, size: 16, color: AppTheme.textSecondary),
+                ],
+              ),
+            ),
+          ),
+
           // Prescription Writer
           OutlinedButton.icon(
             key: const Key('btn_add_prescription'),
@@ -717,22 +794,372 @@ class _EyeExamViewState extends State<EyeExamView> {
           SizedBox(width: 16),
         ],
       ),
-      body: PaperSheetCanvas(
-        initialStrokes: _paperStrokes,
-        patientName: _nameController.text,
-        middleName: _middleNameController.text,
-        date: _dateController.text,
-        ageSex: _ageSexController.text,
-        address: _addressController.text,
-        contactNumber: _contactController.text,
-        occupation: _occupationController.text,
-        phicNumber: _phicController.text,
-        birthDate: _birthDateController.text,
-        onStrokesChanged: (updatedStrokes) {
-          _paperStrokes = updatedStrokes;
-        },
-        onSave: _isSaving ? null : _saveConsultationRecord,
-        onPrint: _showPdfPreview,
+      body: _buildLayoutBody(),
+    );
+  }
+
+  Widget _buildPaperCanvas() {
+    return PaperSheetCanvas(
+      key: const Key('eye_exam_paper_canvas'),
+      initialStrokes: _paperStrokes,
+      drawingTemplate: _drawingTemplate,
+      patientName: _nameController.text,
+      middleName: _middleNameController.text,
+      date: _dateController.text,
+      ageSex: _ageSexController.text,
+      address: _addressController.text,
+      contactNumber: _contactController.text,
+      occupation: _occupationController.text,
+      phicNumber: _phicController.text,
+      birthDate: _birthDateController.text,
+      onStrokesChanged: (updatedStrokes) {
+        _paperStrokes = updatedStrokes;
+      },
+      onSave: _isSaving ? null : _saveConsultationRecord,
+      onPrint: _showPdfPreview,
+    );
+  }
+
+  Widget _buildLayoutBody() {
+    switch (_currentLayout) {
+      case ExaminationPreferencesStore.layoutExpandedSingleCanvas:
+        return Container(
+          key: const Key('exam_layout_expanded_single_canvas'),
+          child: _buildPaperCanvas(),
+        );
+
+      case ExaminationPreferencesStore.layoutClinicalTabbed:
+        return Container(
+          key: const Key('exam_layout_clinical_tabbed'),
+          child: DefaultTabController(
+            length: 3,
+            child: Column(
+              children: [
+                Container(
+                  color: AppTheme.cardBg,
+                  child: TabBar(
+                    labelColor: AppTheme.primaryBlue,
+                    unselectedLabelColor: AppTheme.textSecondary,
+                    indicatorColor: AppTheme.primaryBlue,
+                    tabs: const [
+                      Tab(
+                        key: Key('tab_exam_paper_chart'),
+                        icon: Icon(Icons.draw_outlined, size: 16),
+                        text: 'Paper Chart & Drawing',
+                      ),
+                      Tab(
+                        key: Key('tab_exam_acuity_refraction'),
+                        icon: Icon(Icons.remove_red_eye_outlined, size: 16),
+                        text: 'Visual Acuity & Refraction',
+                      ),
+                      Tab(
+                        key: Key('tab_exam_findings'),
+                        icon: Icon(Icons.assignment_outlined, size: 16),
+                        text: 'Diagnostics & Assessment',
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildPaperCanvas(),
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: _buildVisualAcuitySection(),
+                      ),
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTonometrySection(),
+                            const SizedBox(height: 20),
+                            _buildNotesSection(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+      case ExaminationPreferencesStore.layoutStandard2Column:
+      default:
+        return Container(
+          key: const Key('exam_layout_standard_2_column'),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 950) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 750,
+                        child: _buildPaperCanvas(),
+                      ),
+                      _buildClinicalFindingsPanel(),
+                    ],
+                  ),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: _buildPaperCanvas(),
+                  ),
+                  Container(
+                    width: 1,
+                    color: AppTheme.borderColor,
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: _buildClinicalFindingsPanel(),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+    }
+  }
+
+  Widget _buildClinicalFindingsPanel() {
+    return Container(
+      key: const Key('exam_clinical_findings_panel'),
+      color: AppTheme.cardBg,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.assignment_turned_in_outlined, color: AppTheme.primaryBlue, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Clinical Examination Findings',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildVisualAcuitySection(),
+            const SizedBox(height: 20),
+            _buildTonometrySection(),
+            const SizedBox(height: 20),
+            _buildNotesSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisualAcuitySection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Visual Acuity & Refraction',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _vaODController,
+                  decoration: const InputDecoration(
+                    labelText: 'VA (OD - Right Eye)',
+                    hintText: 'e.g. 20/20',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _vaOSController,
+                  decoration: const InputDecoration(
+                    labelText: 'VA (OS - Left Eye)',
+                    hintText: 'e.g. 20/25',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _phODController,
+                  decoration: const InputDecoration(
+                    labelText: 'Pinhole OD',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _phOSController,
+                  decoration: const InputDecoration(
+                    labelText: 'Pinhole OS',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTonometrySection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tonometry & Biomicroscopy',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _iopODController,
+                  decoration: const InputDecoration(
+                    labelText: 'IOP (OD) mmHg',
+                    hintText: '16',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _iopOSController,
+                  decoration: const InputDecoration(
+                    labelText: 'IOP (OS) mmHg',
+                    hintText: '15',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _cdrODController,
+                  decoration: const InputDecoration(
+                    labelText: 'C/D Ratio (OD)',
+                    hintText: '0.3',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _cdrOSController,
+                  decoration: const InputDecoration(
+                    labelText: 'C/D Ratio (OS)',
+                    hintText: '0.3',
+                    isDense: true,
+                  ),
+                  onChanged: (_) => _saveLocalDraft(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Diagnosis & Plan',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _chiefComplaintController,
+            decoration: const InputDecoration(
+              labelText: 'Chief Complaint',
+              hintText: 'Blurry vision, eye strain...',
+              isDense: true,
+            ),
+            onChanged: (_) => _saveLocalDraft(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _assessmentController,
+            decoration: const InputDecoration(
+              labelText: 'Assessment / Diagnosis',
+              hintText: 'Primary Open Angle Glaucoma...',
+              isDense: true,
+            ),
+            onChanged: (_) => _saveLocalDraft(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _planController,
+            decoration: const InputDecoration(
+              labelText: 'Treatment Plan',
+              hintText: 'Latanoprost 0.005% QHS, follow up in 2 weeks...',
+              isDense: true,
+            ),
+            onChanged: (_) => _saveLocalDraft(),
+          ),
+        ],
       ),
     );
   }

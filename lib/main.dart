@@ -13,6 +13,7 @@ import 'services/clinic_store.dart';
 import 'services/clinical_reminder_service.dart';
 import 'services/dev_auth_backend.dart';
 import 'services/draft_manager_service.dart';
+import 'services/examination_preferences_store.dart';
 import 'services/offline_sync_service.dart';
 import 'services/profile_store.dart';
 import 'services/security_settings_store.dart';
@@ -146,6 +147,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
       ClinicStore.instance.load(user.uid);
       ProfileStore.instance.syncWithUser(user);
       SecuritySettingsStore.instance.loadFromFirestore(user.uid);
+      ExaminationPreferencesStore.instance.loadFromFirestore(user.uid);
       TeamService.instance.load(
         user.uid,
         userEmail: user.email,
@@ -173,6 +175,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
     DraftManagerService().clearAllDrafts();
     ProfileStore.instance.reset();
     SecuritySettingsStore.instance.reset();
+    ExaminationPreferencesStore.instance.reset();
     WorkspaceStore.instance.clear();
   }
 
@@ -188,6 +191,7 @@ class _OphthalmologyAppState extends State<OphthalmologyApp> {
           AuthService.instance,
           TeamService.instance,
           SecuritySettingsStore.instance,
+          ExaminationPreferencesStore.instance,
           WorkspaceStore.instance,
         ]),
         builder: (context, child) {

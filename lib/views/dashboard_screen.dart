@@ -826,45 +826,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                          child: Text(
-                            patient.fullName.isNotEmpty ? patient.fullName[0] : 'P',
-                            style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        if (widget.onSelectPatient != null) {
+                          widget.onSelectPatient!(patient);
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PatientProfileView(patientId: patient.id),
+                            ),
+                          );
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                            child: Text(
+                              patient.fullName.isNotEmpty ? patient.fullName[0] : 'P',
+                              style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                patient.fullName,
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                '${patient.mrn} â€¢ ${patient.gender}, ${patient.age}y',
-                                style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                              ),
-                            ],
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  patient.fullName,
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${patient.mrn} • ${patient.gender}, ${patient.age}y',
+                                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${patient.totalVisits} Visits',
+                              style: TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
                           ),
-                          child: Text(
-                            '${patient.totalVisits} Visits',
-                            style: TextStyle(color: AppTheme.primaryBlue, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
                     SizedBox(height: 6),
@@ -872,14 +887,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
-                            SizedBox(width: 4),
-                            Text(patient.phone, style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                          ],
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
+                              SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  patient.phone,
+                                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.history_outlined, size: 12, color: AppTheme.textSecondary),
                             SizedBox(width: 4),

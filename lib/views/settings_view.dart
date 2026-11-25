@@ -6,6 +6,7 @@ import '../models/patient.dart';
 import '../models/prescription.dart';
 import '../models/team.dart';
 import '../services/auth_service.dart';
+import '../services/examination_preferences_store.dart';
 import '../services/profile_store.dart';
 import '../services/reminder_settings_store.dart';
 import '../services/security_settings_store.dart';
@@ -174,9 +175,16 @@ class _SettingsViewState extends State<SettingsView> {
     _autoLockDuration = SecuritySettingsStore.instance.autoLockDuration;
     _twoFactorEnabled = SecuritySettingsStore.instance.twoFactorEnabled;
     SecuritySettingsStore.instance.addListener(_onSecuritySettingsChanged);
+
+    _defaultExamLayout = ExaminationPreferencesStore.instance.defaultExamLayout;
+    _defaultDrawingTemplate = ExaminationPreferencesStore.instance.defaultDrawingTemplate;
+    _defaultPatientView = ExaminationPreferencesStore.instance.defaultPatientView;
+    ExaminationPreferencesStore.instance.addListener(_onExamPreferencesChanged);
+
     final currentUid = AuthService.instance.user?.uid;
     if (currentUid != null) {
       SecuritySettingsStore.instance.loadFromFirestore(currentUid);
+      ExaminationPreferencesStore.instance.loadFromFirestore(currentUid);
     }
   }
 
@@ -213,12 +221,23 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
+  void _onExamPreferencesChanged() {
+    if (mounted) {
+      setState(() {
+        _defaultExamLayout = ExaminationPreferencesStore.instance.defaultExamLayout;
+        _defaultDrawingTemplate = ExaminationPreferencesStore.instance.defaultDrawingTemplate;
+        _defaultPatientView = ExaminationPreferencesStore.instance.defaultPatientView;
+      });
+    }
+  }
+
   @override
   void dispose() {
     TeamService.instance.removeListener(_onTeamChanged);
     ThemeController.instance.removeListener(_onThemeChanged);
     _profile.removeListener(_onProfileChanged);
     SecuritySettingsStore.instance.removeListener(_onSecuritySettingsChanged);
+    ExaminationPreferencesStore.instance.removeListener(_onExamPreferencesChanged);
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -2667,7 +2686,17 @@ class _SettingsViewState extends State<SettingsView> {
                     'Expanded Single Canvas',
                     'Clinical Tabbed',
                   ],
-                  (val) => setState(() => _defaultExamLayout = val!),
+                  (val) async {
+                    if (val == null) return;
+                    setState(() => _defaultExamLayout = val);
+                    final uid = AuthService.instance.user?.uid;
+                    await ExaminationPreferencesStore.instance.updatePreferences(
+                      examLayout: val,
+                      uid: uid,
+                    );
+                    _showSaveFeedback('Default examination layout updated to $val.');
+                  },
+                  key: const Key('dropdown_default_exam_layout'),
                 ),
                 SizedBox(height: 16),
                 _buildDropdownField(
@@ -2678,7 +2707,17 @@ class _SettingsViewState extends State<SettingsView> {
                     'Anterior Segment / Cornea',
                     'External Eye & Lids',
                   ],
-                  (val) => setState(() => _defaultDrawingTemplate = val!),
+                  (val) async {
+                    if (val == null) return;
+                    setState(() => _defaultDrawingTemplate = val);
+                    final uid = AuthService.instance.user?.uid;
+                    await ExaminationPreferencesStore.instance.updatePreferences(
+                      drawingTemplate: val,
+                      uid: uid,
+                    );
+                    _showSaveFeedback('Default eye drawing template updated to $val.');
+                  },
+                  key: const Key('dropdown_default_drawing_template'),
                 ),
                 SizedBox(height: 16),
                 _buildDropdownField(
@@ -2688,8 +2727,19 @@ class _SettingsViewState extends State<SettingsView> {
                     'Patient EHR Profile',
                     'New Eye Exam Workstation',
                     'Past Encounters Timeline',
+                    'Prescriptions',
                   ],
-                  (val) => setState(() => _defaultPatientView = val!),
+                  (val) async {
+                    if (val == null) return;
+                    setState(() => _defaultPatientView = val);
+                    final uid = AuthService.instance.user?.uid;
+                    await ExaminationPreferencesStore.instance.updatePreferences(
+                      patientView: val,
+                      uid: uid,
+                    );
+                    _showSaveFeedback('Default patient view updated to $val.');
+                  },
+                  key: const Key('dropdown_default_patient_view'),
                 ),
               ],
             ),
@@ -2699,7 +2749,16 @@ class _SettingsViewState extends State<SettingsView> {
 
         _buildActionButtons(
           saveLabel: 'Save Preferences',
-          onSave: () => _showSaveFeedback('System preferences saved.'),
+          onSave: () async {
+            final uid = AuthService.instance.user?.uid;
+            await ExaminationPreferencesStore.instance.updatePreferences(
+              examLayout: _defaultExamLayout,
+              drawingTemplate: _defaultDrawingTemplate,
+              patientView: _defaultPatientView,
+              uid: uid,
+            );
+            _showSaveFeedback('Examination and system preferences saved successfully.');
+          },
         ),
       ],
     );
@@ -3494,9 +3553,11 @@ class _SettingsViewState extends State<SettingsView> {
     String label,
     String value,
     List<String> items,
-    ValueChanged<String?> onChanged,
-  ) {
+    ValueChanged<String?> onChanged, {
+    Key? key,
+  }) {
     return ClinicalDropdownField<String>(
+      key: key,
       label: FieldLabel(label, fontSize: 12),
       placeholder: 'Select option...',
       value: value,

@@ -20,6 +20,7 @@ class PatientProfileView extends StatefulWidget {
   final Patient? patient;
   final VoidCallback? onBack;
   final VoidCallback? onStartNewExam;
+  final int initialTabIndex;
 
   const PatientProfileView({
     super.key,
@@ -27,6 +28,7 @@ class PatientProfileView extends StatefulWidget {
     this.patient,
     this.onBack,
     this.onStartNewExam,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -507,6 +509,7 @@ class _PatientProfileViewState extends State<PatientProfileView> {
     if (canSeeVisits) {
       return DefaultTabController(
         length: 3,
+        initialIndex: widget.initialTabIndex.clamp(0, 2),
         child: contentWidget,
       );
     }

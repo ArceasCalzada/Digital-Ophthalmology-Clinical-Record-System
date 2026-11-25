@@ -6,6 +6,7 @@ import '../widgets/account_menu.dart';
 import '../widgets/clinic_dialogs.dart';
 import '../widgets/add_event_modal.dart';
 import '../widgets/sync_status_indicator.dart';
+import '../services/examination_preferences_store.dart';
 import '../services/offline_sync_service.dart';
 import '../services/team_service.dart';
 import '../services/workspace_store.dart';
@@ -198,13 +199,38 @@ class _MainLayoutState extends State<MainLayout> {
     return patient.id.isNotEmpty && (patient.teamId.isEmpty || patient.teamId == activeTeamId);
   }
 
+  int _patientProfileInitialTab = 0;
+
   void _navigateToPatientProfile(Patient patient) {
-    setState(() {
-      _selectedPatient = patient;
-      _isExamMode = false;
-      _selectedIndex = 2; // Desktop Patients/Records tab
-      _mobileTabIndex = 3; // Mobile Records tab
-    });
+    final defaultView = ExaminationPreferencesStore.instance.defaultPatientView;
+    switch (defaultView) {
+      case ExaminationPreferencesStore.viewNewExam:
+      case 'Clinical Examination':
+        _startExamForPatient(patient, isMobileScreen: false);
+        break;
+      case ExaminationPreferencesStore.viewPrescriptions:
+        _openPrescriptionForPatient(patient, isMobileScreen: false);
+        break;
+      case ExaminationPreferencesStore.viewEncountersTimeline:
+        setState(() {
+          _selectedPatient = patient;
+          _patientProfileInitialTab = 1;
+          _isExamMode = false;
+          _selectedIndex = 2; // Desktop Patients/Records tab
+          _mobileTabIndex = 3; // Mobile Records tab
+        });
+        break;
+      case ExaminationPreferencesStore.viewEhrProfile:
+      default:
+        setState(() {
+          _selectedPatient = patient;
+          _patientProfileInitialTab = 0;
+          _isExamMode = false;
+          _selectedIndex = 2; // Desktop Patients/Records tab
+          _mobileTabIndex = 3; // Mobile Records tab
+        });
+        break;
+    }
   }
 
   Future<void> _startExamForPatient(Patient? patient, {bool isMobileScreen = false}) async {
@@ -466,6 +492,7 @@ class _MainLayoutState extends State<MainLayout> {
             return PatientProfileView(
               patientId: _selectedPatient!.id,
               patient: _selectedPatient,
+              initialTabIndex: _patientProfileInitialTab,
               onBack: () => setState(() => _selectedPatient = null),
               onStartNewExam: () => _startExamForPatient(_selectedPatient, isMobileScreen: false),
             );
@@ -530,6 +557,7 @@ class _MainLayoutState extends State<MainLayout> {
           return PatientProfileView(
             patientId: _selectedPatient!.id,
             patient: _selectedPatient,
+            initialTabIndex: _patientProfileInitialTab,
             onBack: () => setState(() => _selectedPatient = null),
             onStartNewExam: () => _showMobileExamNotice(),
           );
