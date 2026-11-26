@@ -14,6 +14,7 @@ import '../services/drawing_codec.dart';
 import '../services/examination_preferences_store.dart';
 import '../services/profile_store.dart';
 import '../services/draft_manager_service.dart';
+import '../services/auth_service.dart';
 
 class EyeExamView extends StatefulWidget {
   final Patient? patient;
@@ -110,6 +111,7 @@ class _EyeExamViewState extends State<EyeExamView> {
     super.initState();
     _currentLayout = widget.initialLayout ?? ExaminationPreferencesStore.instance.defaultExamLayout;
     _drawingTemplate = widget.initialTemplate ?? ExaminationPreferencesStore.instance.defaultDrawingTemplate;
+    ExaminationPreferencesStore.instance.addListener(_onPreferencesChanged);
 
     if (widget.encounter != null) {
       final p = widget.patient ?? PatientRepository.getPatientById(widget.encounter!.patientId);
@@ -126,6 +128,55 @@ class _EyeExamViewState extends State<EyeExamView> {
       _clearAllFieldsForNewPatient();
     }
     _checkAndRestoreDraft();
+  }
+
+  @override
+  void dispose() {
+    ExaminationPreferencesStore.instance.removeListener(_onPreferencesChanged);
+    _nameController.dispose();
+    _middleNameController.dispose();
+    _dateController.dispose();
+    _ageSexController.dispose();
+    _addressController.dispose();
+    _contactController.dispose();
+    _occupationController.dispose();
+    _phicController.dispose();
+    _birthDateController.dispose();
+    _vaODController.dispose();
+    _vaOSController.dispose();
+    _phODController.dispose();
+    _phOSController.dispose();
+    _ccODController.dispose();
+    _ccOSController.dispose();
+    _oldCcODController.dispose();
+    _oldCcOSController.dispose();
+    _arODController.dispose();
+    _arOSController.dispose();
+    _akODController.dispose();
+    _akOSController.dispose();
+    _colorODController.dispose();
+    _colorOSController.dispose();
+    _iopODController.dispose();
+    _iopOSController.dispose();
+    _cdrODController.dispose();
+    _cdrOSController.dispose();
+    _chiefComplaintController.dispose();
+    _assessmentController.dispose();
+    _planController.dispose();
+    super.dispose();
+  }
+
+  void _onPreferencesChanged() {
+    if (widget.initialLayout == null && mounted) {
+      final storeLayout = ExaminationPreferencesStore.instance.defaultExamLayout;
+      final storeTemplate = ExaminationPreferencesStore.instance.defaultDrawingTemplate;
+      if (_currentLayout != storeLayout || _drawingTemplate != storeTemplate) {
+        setState(() {
+          _currentLayout = storeLayout;
+          _drawingTemplate = storeTemplate;
+        });
+      }
+    }
   }
 
   void _initEmptyPatient() {
@@ -656,6 +707,9 @@ class _EyeExamViewState extends State<EyeExamView> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVeryNarrow = screenWidth < 780;
+
     return Scaffold(
       backgroundColor: AppTheme.lightBg,
       appBar: AppBar(
@@ -691,34 +745,42 @@ class _EyeExamViewState extends State<EyeExamView> {
             child: Center(child: SyncStatusIndicator(compact: true)),
           ),
           // Drawing Template Indicator
-          Container(
-            key: const Key('exam_template_indicator'),
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+          if (!isVeryNarrow)
+            Container(
+              key: const Key('exam_template_indicator'),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.remove_red_eye_outlined, size: 14, color: AppTheme.primaryBlue),
+                  const SizedBox(width: 4),
+                  Text(
+                    _drawingTemplate,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.remove_red_eye_outlined, size: 14, color: AppTheme.primaryBlue),
-                const SizedBox(width: 4),
-                Text(
-                  _drawingTemplate,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                ),
-              ],
-            ),
-          ),
 
           // Examination Layout Indicator & Switcher
           PopupMenuButton<String>(
             key: const Key('exam_layout_indicator'),
             tooltip: 'Change Examination Layout',
             initialValue: _currentLayout,
-            onSelected: (layout) => setState(() => _currentLayout = layout),
+            onSelected: (layout) async {
+              setState(() => _currentLayout = layout);
+              final user = AuthService.instance.user;
+              await ExaminationPreferencesStore.instance.updatePreferences(
+                examLayout: layout,
+                uid: user?.uid,
+              );
+            },
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: ExaminationPreferencesStore.layoutStandard2Column,
@@ -745,11 +807,13 @@ class _EyeExamViewState extends State<EyeExamView> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.view_quilt_outlined, size: 14, color: AppTheme.textSecondary),
-                  const SizedBox(width: 4),
-                  Text(
-                    _currentLayout,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                  ),
+                  if (!isVeryNarrow) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      _currentLayout,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    ),
+                  ],
                   const SizedBox(width: 2),
                   Icon(Icons.arrow_drop_down, size: 16, color: AppTheme.textSecondary),
                 ],
@@ -758,16 +822,24 @@ class _EyeExamViewState extends State<EyeExamView> {
           ),
 
           // Prescription Writer
-          OutlinedButton.icon(
-            key: const Key('btn_add_prescription'),
-            onPressed: _openPrescriptionsWorkspace,
-            icon: Icon(Icons.medication, size: 16, color: AppTheme.primaryBlue),
-            label: Text('+ Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppTheme.primaryBlue),
+          if (isVeryNarrow)
+            IconButton(
+              key: const Key('btn_add_prescription'),
+              onPressed: _openPrescriptionsWorkspace,
+              icon: Icon(Icons.medication, size: 18, color: AppTheme.primaryBlue),
+              tooltip: 'Add Prescription',
+            )
+          else
+            OutlinedButton.icon(
+              key: const Key('btn_add_prescription'),
+              onPressed: _openPrescriptionsWorkspace,
+              icon: Icon(Icons.medication, size: 16, color: AppTheme.primaryBlue),
+              label: Text('+ Prescription', style: TextStyle(fontSize: 12, color: AppTheme.primaryBlue)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppTheme.primaryBlue),
+              ),
             ),
-          ),
-          SizedBox(width: 8),
+          SizedBox(width: isVeryNarrow ? 4 : 8),
 
           // Print PDF
           IconButton(
@@ -783,15 +855,20 @@ class _EyeExamViewState extends State<EyeExamView> {
             icon: _isSaving
                 ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Icon(Icons.save, size: 16),
-            label: Text(_isSaving ? 'Saving...' : 'Save Record', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            label: Text(
+              _isSaving
+                  ? 'Saving...'
+                  : (isVeryNarrow ? 'Save' : 'Save Record'),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: isVeryNarrow ? 10 : 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          SizedBox(width: 16),
+          SizedBox(width: isVeryNarrow ? 8 : 16),
         ],
       ),
       body: _buildLayoutBody(),
@@ -825,7 +902,29 @@ class _EyeExamViewState extends State<EyeExamView> {
       case ExaminationPreferencesStore.layoutExpandedSingleCanvas:
         return Container(
           key: const Key('exam_layout_expanded_single_canvas'),
-          child: _buildPaperCanvas(),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _buildPaperCanvas(),
+              ),
+              Positioned(
+                right: 20,
+                bottom: 20,
+                child: FloatingActionButton.extended(
+                  key: const Key('btn_expanded_canvas_notes'),
+                  heroTag: 'expanded_canvas_notes_fab',
+                  onPressed: () => _showClinicalNotesSheet(context),
+                  icon: const Icon(Icons.assignment_outlined, size: 18),
+                  label: const Text(
+                    'Clinical Findings & Notes',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
         );
 
       case ExaminationPreferencesStore.layoutClinicalTabbed:
@@ -1160,6 +1259,70 @@ class _EyeExamViewState extends State<EyeExamView> {
             onChanged: (_) => _saveLocalDraft(),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showClinicalNotesSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppTheme.borderColor),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: AppTheme.borderColor)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.assignment_turned_in_outlined, color: AppTheme.primaryBlue, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Clinical Findings & Notes',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildVisualAcuitySection(),
+                    const SizedBox(height: 20),
+                    _buildTonometrySection(),
+                    const SizedBox(height: 20),
+                    _buildNotesSection(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

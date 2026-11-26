@@ -447,4 +447,175 @@ void main() {
       expect(profileView.initialTabIndex, 0);
     });
   });
+
+  group('Layout Switching, Data Preservation & Responsiveness Tests', () {
+    Future<void> pumpView(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('Interactive layout switcher dynamically updates workspace layout and persists to store', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await attachBackend();
+      await AuthService.instance.signIn('doctor@clinic.test', 'Doctor@123');
+
+      final store = ExaminationPreferencesStore.instance;
+      expect(store.defaultExamLayout, ExaminationPreferencesStore.layoutStandard2Column);
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      // Verify started in Standard 2-Column
+      expect(find.byKey(const Key('exam_layout_standard_2_column')), findsOneWidget);
+
+      // Tap layout switcher in AppBar
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+
+      // Switch to Expanded Single Canvas
+      await tester.tap(find.text('Expanded Single Canvas').last);
+      await pumpView(tester);
+
+      // Verify layout updated and preference persisted
+      expect(find.byKey(const Key('exam_layout_expanded_single_canvas')), findsOneWidget);
+      expect(store.defaultExamLayout, ExaminationPreferencesStore.layoutExpandedSingleCanvas);
+
+      // Tap layout switcher again and switch to Clinical Tabbed
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+
+      await tester.tap(find.text('Clinical Tabbed').last);
+      await pumpView(tester);
+
+      // Verify layout updated and preference persisted
+      expect(find.byKey(const Key('exam_layout_clinical_tabbed')), findsOneWidget);
+      expect(store.defaultExamLayout, ExaminationPreferencesStore.layoutClinicalTabbed);
+    });
+
+    testWidgets('Inputs, notes, and findings are preserved seamlessly across layout transitions without data loss', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      // Enter VA, IOP, and Assessment in Standard 2-Column
+      final vaODField = find.widgetWithText(TextField, 'VA (OD - Right Eye)');
+      expect(vaODField, findsOneWidget);
+      await tester.enterText(vaODField, '20/20');
+
+      final iopODField = find.widgetWithText(TextField, 'IOP (OD) mmHg');
+      expect(iopODField, findsOneWidget);
+      await tester.enterText(iopODField, '18');
+
+      final assessmentField = find.widgetWithText(TextField, 'Assessment / Diagnosis');
+      expect(assessmentField, findsOneWidget);
+      await tester.enterText(assessmentField, 'Normal Tension Glaucoma Suspect');
+      await pumpView(tester);
+
+      // Switch to Expanded Single Canvas
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+      await tester.tap(find.text('Expanded Single Canvas').last);
+      await pumpView(tester);
+
+      // Check floating notes button in Expanded Single Canvas
+      final notesFab = find.byKey(const Key('btn_expanded_canvas_notes'));
+      expect(notesFab, findsOneWidget);
+      await tester.tap(notesFab);
+      await pumpView(tester);
+
+      // Verify entered values are intact in the bottom sheet
+      expect(find.text('20/20'), findsOneWidget);
+      expect(find.text('18'), findsOneWidget);
+      expect(find.text('Normal Tension Glaucoma Suspect'), findsOneWidget);
+
+      // Close bottom sheet
+      await tester.tap(find.byIcon(Icons.close));
+      await pumpView(tester);
+
+      // Switch to Clinical Tabbed
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+      await tester.tap(find.text('Clinical Tabbed').last);
+      await pumpView(tester);
+
+      // Switch to Visual Acuity & Refraction tab
+      await tester.tap(find.byKey(const Key('tab_exam_acuity_refraction')));
+      await pumpView(tester);
+      expect(find.text('20/20'), findsOneWidget);
+
+      // Switch to Diagnostics & Assessment tab
+      await tester.tap(find.byKey(const Key('tab_exam_findings')));
+      await pumpView(tester);
+      expect(find.text('18'), findsOneWidget);
+      expect(find.text('Normal Tension Glaucoma Suspect'), findsOneWidget);
+
+      // Switch back to Standard 2-Column and verify data remains intact
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+      await tester.tap(find.text('Standard 2-Column').last);
+      await pumpView(tester);
+
+      expect(find.text('20/20'), findsOneWidget);
+      expect(find.text('18'), findsOneWidget);
+      expect(find.text('Normal Tension Glaucoma Suspect'), findsOneWidget);
+    });
+
+    testWidgets('Responsive behavior adapts smoothly across tablet/mobile and desktop viewports', (WidgetTester tester) async {
+      // Test mobile/tablet viewport width: 750px
+      tester.view.physicalSize = const Size(750, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      // Standard 2-column renders without RenderFlex overflow on narrow viewport
+      expect(find.byKey(const Key('exam_layout_standard_2_column')), findsOneWidget);
+      expect(find.byKey(const Key('exam_clinical_findings_panel')), findsOneWidget);
+
+      // Switch to Clinical Tabbed on tablet viewport
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+      await tester.tap(find.text('Clinical Tabbed').last);
+      await pumpView(tester);
+
+      expect(find.byKey(const Key('exam_layout_clinical_tabbed')), findsOneWidget);
+
+      // Switch to Expanded Single Canvas on tablet viewport
+      await tester.tap(find.byKey(const Key('exam_layout_indicator')));
+      await pumpView(tester);
+      await tester.tap(find.text('Expanded Single Canvas').last);
+      await pumpView(tester);
+
+      expect(find.byKey(const Key('exam_layout_expanded_single_canvas')), findsOneWidget);
+      expect(find.byKey(const Key('btn_expanded_canvas_notes')), findsOneWidget);
+    });
+  });
 }
