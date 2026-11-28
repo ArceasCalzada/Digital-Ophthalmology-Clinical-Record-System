@@ -94,6 +94,7 @@ class PaperSheetDrawingData {
   final String patientId;
   final List<VectorStroke> strokes;
   final String updatedAt;
+  final String template;
 
   PaperSheetDrawingData({
     required this.id,
@@ -101,6 +102,7 @@ class PaperSheetDrawingData {
     required this.patientId,
     required this.strokes,
     required this.updatedAt,
+    this.template = 'Fundus / Retina Map',
   });
 
   Map<String, dynamic> toJson() {
@@ -110,12 +112,13 @@ class PaperSheetDrawingData {
       'patientId': patientId,
       'strokes': strokes.map((s) => s.toJson()).toList(),
       'updatedAt': updatedAt,
+      'template': template,
     };
   }
 
   /// Compact binary form stored in Firestore (see [DrawingCodec]).
   Uint8List toPacked() => DrawingCodec.pack(
-        PackedDrawing(meta: [updatedAt], strokes: _toPacked(strokes)),
+        PackedDrawing(meta: [updatedAt, template], strokes: _toPacked(strokes)),
         maxBytes: AppLimits.maxPaperSheetDrawingBytes,
       );
 
@@ -131,6 +134,7 @@ class PaperSheetDrawingData {
       patientId: patientId,
       strokes: _fromPacked(d.strokes, 'stk'),
       updatedAt: d.meta.isNotEmpty ? d.meta[0] : DateTime.now().toIso8601String(),
+      template: d.meta.length > 1 ? d.meta[1] : 'Fundus / Retina Map',
     );
   }
 
@@ -144,6 +148,7 @@ class PaperSheetDrawingData {
               .toList() ??
           [],
       updatedAt: json['updatedAt'] as String? ?? DateTime.now().toIso8601String(),
+      template: json['template'] as String? ?? 'Fundus / Retina Map',
     );
   }
 }

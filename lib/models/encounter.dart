@@ -71,8 +71,11 @@ class Encounter {
 
     final data = toJson();
     data['patientId'] = patientId;
-    if (paperSheetDrawing != null && paperSheetDrawing!.strokes.isNotEmpty) {
-      data['paperSheet'] = paperSheetDrawing!.toPacked();
+    if (paperSheetDrawing != null) {
+      data['drawingTemplate'] = paperSheetDrawing!.template;
+      if (paperSheetDrawing!.strokes.isNotEmpty) {
+        data['paperSheet'] = paperSheetDrawing!.toPacked();
+      }
     }
     if (drawingOD != null && drawingOD!.strokes.isNotEmpty) {
       data['drawOD'] = drawingOD!.toPacked();

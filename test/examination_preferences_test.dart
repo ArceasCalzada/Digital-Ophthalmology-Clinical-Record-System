@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ophthalmology_clinical_record_system/models/patient.dart';
+import 'package:ophthalmology_clinical_record_system/models/drawing_stroke.dart';
 import 'package:ophthalmology_clinical_record_system/services/auth_service.dart';
+import 'package:ophthalmology_clinical_record_system/services/draft_manager_service.dart';
 import 'package:ophthalmology_clinical_record_system/services/examination_preferences_store.dart';
 import 'package:ophthalmology_clinical_record_system/theme/app_theme.dart';
 import 'package:ophthalmology_clinical_record_system/views/eye_exam_view.dart';
@@ -11,6 +13,7 @@ import 'package:ophthalmology_clinical_record_system/views/main_layout.dart';
 import 'package:ophthalmology_clinical_record_system/views/patient_profile_view.dart';
 import 'package:ophthalmology_clinical_record_system/views/prescription_view.dart';
 import 'package:ophthalmology_clinical_record_system/views/settings_view.dart';
+import 'package:ophthalmology_clinical_record_system/widgets/drawing/paper_sheet_canvas.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/fake_auth_backend.dart';
@@ -39,6 +42,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await AuthService.instance.resetForTesting();
     ExaminationPreferencesStore.instance.reset();
+    DraftManagerService().clearAllDrafts();
     PatientRepository.clearForTesting();
     PatientRepository.addPatient(testPatient);
   });
@@ -46,6 +50,7 @@ void main() {
   tearDown(() async {
     await AuthService.instance.resetForTesting();
     ExaminationPreferencesStore.instance.reset();
+    DraftManagerService().clearAllDrafts();
     PatientRepository.clearForTesting();
   });
 
@@ -616,6 +621,149 @@ void main() {
 
       expect(find.byKey(const Key('exam_layout_expanded_single_canvas')), findsOneWidget);
       expect(find.byKey(const Key('btn_expanded_canvas_notes')), findsOneWidget);
+    });
+  });
+
+  group('Eye Drawing Template Pre-loading and Mid-exam Switching Tests', () {
+    Future<void> pumpView(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('Starting new exam automatically pre-loads Anterior Segment / Cornea template when saved in preferences', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      ExaminationPreferencesStore.instance.fromMap({
+        'defaultDrawingTemplate': ExaminationPreferencesStore.templateAnterior,
+      });
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      expect(find.byKey(const Key('paper_sheet_template_badge')), findsOneWidget);
+      expect(find.text('Anterior Segment / Cornea'), findsWidgets);
+
+      // Verify PaperSheetCanvas and PrintedPaperSheetPainter have the template
+      final paperCanvas = tester.widget<PaperSheetCanvas>(find.byKey(const Key('eye_exam_paper_canvas')));
+      expect(paperCanvas.drawingTemplate, ExaminationPreferencesStore.templateAnterior);
+
+      final customPaint = tester.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is PrintedPaperSheetPainter));
+      final painter = customPaint.painter as PrintedPaperSheetPainter;
+      expect(painter.drawingTemplate, ExaminationPreferencesStore.templateAnterior);
+    });
+
+    testWidgets('Starting new exam automatically pre-loads External Eye & Lids template when saved in preferences', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      ExaminationPreferencesStore.instance.fromMap({
+        'defaultDrawingTemplate': ExaminationPreferencesStore.templateExternal,
+      });
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      expect(find.byKey(const Key('paper_sheet_template_badge')), findsOneWidget);
+      expect(find.text('External Eye & Lids'), findsWidgets);
+
+      final paperCanvas = tester.widget<PaperSheetCanvas>(find.byKey(const Key('eye_exam_paper_canvas')));
+      expect(paperCanvas.drawingTemplate, ExaminationPreferencesStore.templateExternal);
+
+      final customPaint = tester.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is PrintedPaperSheetPainter));
+      final painter = customPaint.painter as PrintedPaperSheetPainter;
+      expect(painter.drawingTemplate, ExaminationPreferencesStore.templateExternal);
+    });
+
+    testWidgets('Switching template mid-exam via canvas toolbar updates active canvas without altering global default', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final store = ExaminationPreferencesStore.instance;
+      store.fromMap({
+        'defaultDrawingTemplate': ExaminationPreferencesStore.templateFundus,
+      });
+      expect(store.defaultDrawingTemplate, ExaminationPreferencesStore.templateFundus);
+
+      final patient = createSamplePatient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: EyeExamView(patient: patient),
+        ),
+      );
+      await pumpView(tester);
+
+      // Verify canvas begins with Fundus / Retina Map
+      expect(find.text('Fundus / Retina Map'), findsWidgets);
+      var customPaint = tester.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is PrintedPaperSheetPainter));
+      var painter = customPaint.painter as PrintedPaperSheetPainter;
+      expect(painter.drawingTemplate, ExaminationPreferencesStore.templateFundus);
+
+      // Switch template mid-exam using the floating canvas toolbar switcher
+      final canvasSwitcher = find.byKey(const Key('btn_canvas_template_switcher'));
+      expect(canvasSwitcher, findsOneWidget);
+      await tester.tap(canvasSwitcher);
+      await pumpView(tester);
+
+      // Select Anterior Segment / Cornea from the menu
+      final anteriorOption = find.text('Anterior Segment / Cornea').last;
+      await tester.tap(anteriorOption);
+      await pumpView(tester);
+
+      // Verify active canvas now displays Cornea & Anterior Segment Exam
+      expect(find.text('Anterior Segment / Cornea'), findsWidgets);
+      customPaint = tester.widget<CustomPaint>(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is PrintedPaperSheetPainter));
+      painter = customPaint.painter as PrintedPaperSheetPainter;
+      expect(painter.drawingTemplate, ExaminationPreferencesStore.templateAnterior);
+
+      // CRITICAL ACCEPTANCE CRITERIA: Verify saved global default preference in store remains Fundus / Retina Map!
+      expect(store.defaultDrawingTemplate, ExaminationPreferencesStore.templateFundus);
+    });
+
+    test('PaperSheetDrawingData encodes and decodes drawing template in metadata', () {
+      final drawing = PaperSheetDrawingData(
+        id: 'drw-test-1',
+        encounterId: 'enc-test-1',
+        patientId: 'pat-test-1',
+        strokes: [],
+        template: 'Anterior Segment / Cornea',
+        updatedAt: '2026-11-28T12:00:00Z',
+      );
+
+      final packed = drawing.toPacked();
+      final restored = PaperSheetDrawingData.fromPacked(
+        packed,
+        encounterId: 'enc-test-1',
+        patientId: 'pat-test-1',
+      );
+
+      expect(restored.template, 'Anterior Segment / Cornea');
+      expect(restored.updatedAt, '2026-11-28T12:00:00Z');
+
+      // Test json serialization
+      final json = drawing.toJson();
+      expect(json['template'], 'Anterior Segment / Cornea');
+      final fromJson = PaperSheetDrawingData.fromJson(json);
+      expect(fromJson.template, 'Anterior Segment / Cornea');
     });
   });
 }

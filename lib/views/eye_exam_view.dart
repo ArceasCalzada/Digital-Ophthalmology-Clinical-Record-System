@@ -42,6 +42,7 @@ class _EyeExamViewState extends State<EyeExamView> {
   late Patient _activePatient;
   late String _currentLayout;
   late String _drawingTemplate;
+  bool _isTemplateManuallyOverridden = false;
 
   // Digital Ink Strokes over the Paper Sheet
   List<VectorStroke> _paperStrokes = [];
@@ -167,14 +168,20 @@ class _EyeExamViewState extends State<EyeExamView> {
   }
 
   void _onPreferencesChanged() {
-    if (widget.initialLayout == null && mounted) {
+    if (mounted) {
       final storeLayout = ExaminationPreferencesStore.instance.defaultExamLayout;
       final storeTemplate = ExaminationPreferencesStore.instance.defaultDrawingTemplate;
-      if (_currentLayout != storeLayout || _drawingTemplate != storeTemplate) {
-        setState(() {
-          _currentLayout = storeLayout;
-          _drawingTemplate = storeTemplate;
-        });
+      bool needsRebuild = false;
+      if (widget.initialLayout == null && _currentLayout != storeLayout) {
+        _currentLayout = storeLayout;
+        needsRebuild = true;
+      }
+      if (widget.initialTemplate == null && !_isTemplateManuallyOverridden && _drawingTemplate != storeTemplate) {
+        _drawingTemplate = storeTemplate;
+        needsRebuild = true;
+      }
+      if (needsRebuild) {
+        setState(() {});
       }
     }
   }
@@ -257,8 +264,16 @@ class _EyeExamViewState extends State<EyeExamView> {
     }
 
     // Digital Vector Strokes
-    if (enc.paperSheetDrawing != null && enc.paperSheetDrawing!.strokes.isNotEmpty) {
-      _paperStrokes = List.from(enc.paperSheetDrawing!.strokes);
+    if (enc.paperSheetDrawing != null) {
+      if (enc.paperSheetDrawing!.strokes.isNotEmpty) {
+        _paperStrokes = List.from(enc.paperSheetDrawing!.strokes);
+      } else {
+        _paperStrokes = [];
+      }
+      if (enc.paperSheetDrawing!.template.isNotEmpty) {
+        _drawingTemplate = enc.paperSheetDrawing!.template;
+        _isTemplateManuallyOverridden = true;
+      }
     } else {
       _paperStrokes = [];
     }
@@ -397,6 +412,10 @@ class _EyeExamViewState extends State<EyeExamView> {
         debugPrint('Error restoring paper strokes from draft: $e');
       }
     }
+    if (payload['drawingTemplate'] != null && (payload['drawingTemplate'] as String).isNotEmpty) {
+      _drawingTemplate = payload['drawingTemplate'] as String;
+      _isTemplateManuallyOverridden = true;
+    }
     if (payload['name'] != null && (payload['name'] as String).isNotEmpty) {
       _nameController.text = payload['name'];
       _activePatient = _activePatient.copyWith(fullName: payload['name']);
@@ -459,6 +478,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       'patientId': patientContext.id,
       'patientName': patientContext.fullName.isNotEmpty ? patientContext.fullName : 'Active Patient',
       'strokes': strokeJsonList,
+      'drawingTemplate': _drawingTemplate,
       'name': _nameController.text,
       'middleName': _middleNameController.text,
       'date': _dateController.text,
@@ -571,6 +591,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       encounterId: 'enc-active',
       patientId: _activePatient.id,
       strokes: _paperStrokes,
+      template: _drawingTemplate,
       updatedAt: DateTime.now().toIso8601String(),
     );
 
@@ -682,6 +703,7 @@ class _EyeExamViewState extends State<EyeExamView> {
       encounterId: 'enc-active',
       patientId: _activePatient.id,
       strokes: _paperStrokes,
+      template: _drawingTemplate,
       updatedAt: DateTime.now().toIso8601String(),
     );
 
@@ -891,6 +913,12 @@ class _EyeExamViewState extends State<EyeExamView> {
       birthDate: _birthDateController.text,
       onStrokesChanged: (updatedStrokes) {
         _paperStrokes = updatedStrokes;
+      },
+      onTemplateChanged: (newTemplate) {
+        setState(() {
+          _drawingTemplate = newTemplate;
+          _isTemplateManuallyOverridden = true;
+        });
       },
       onSave: _isSaving ? null : _saveConsultationRecord,
       onPrint: _showPdfPreview,

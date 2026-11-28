@@ -29,11 +29,13 @@ class PaperSheetCanvas extends StatefulWidget {
   final String? phicNumber;
   final String? birthDate;
   final String drawingTemplate;
+  final ValueChanged<String>? onTemplateChanged;
 
   const PaperSheetCanvas({
     super.key,
     this.initialStrokes = const [],
     required this.onStrokesChanged,
+    this.onTemplateChanged,
     this.onSave,
     this.onPrint,
     this.patientName,
@@ -85,16 +87,21 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
   bool _showHighlighterColorTray = false;
   bool _showSizeTray = false;
   bool _savedIndicator = false;
+  late String _currentTemplate;
 
   @override
   void initState() {
     super.initState();
+    _currentTemplate = widget.drawingTemplate;
     _strokes = List.from(widget.initialStrokes);
   }
 
   @override
   void didUpdateWidget(covariant PaperSheetCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.drawingTemplate != widget.drawingTemplate) {
+      _currentTemplate = widget.drawingTemplate;
+    }
     if (oldWidget.initialStrokes != widget.initialStrokes) {
       setState(() {
         _strokes = List.from(widget.initialStrokes);
@@ -318,7 +325,7 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                                 occupation: widget.occupation,
                                 phicNumber: widget.phicNumber,
                                 birthDate: widget.birthDate,
-                                drawingTemplate: widget.drawingTemplate,
+                                drawingTemplate: _currentTemplate,
                               ),
                             ),
 
@@ -349,33 +356,55 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                               ),
                             ),
 
-                            // Floating Template Badge
+                            // Floating Template Badge (Interactive with template switcher)
                             Positioned(
                               top: 12,
                               left: 12,
-                              child: Container(
-                                key: const Key('paper_sheet_template_badge'),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFCBD5E1)),
-                                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.remove_red_eye_outlined, size: 11, color: AppTheme.primaryBlue),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.drawingTemplate,
-                                      style: TextStyle(
-                                        color: AppTheme.primaryBlue,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
+                              child: PopupMenuButton<String>(
+                                tooltip: 'Switch Diagram Template (Current: $_currentTemplate)',
+                                initialValue: _currentTemplate,
+                                onSelected: (newTemplate) {
+                                  setState(() => _currentTemplate = newTemplate);
+                                  widget.onTemplateChanged?.call(newTemplate);
+                                },
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(
+                                    value: 'Fundus / Retina Map',
+                                    child: Text('Fundus / Retina Map'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'Anterior Segment / Cornea',
+                                    child: Text('Anterior Segment / Cornea'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'External Eye & Lids',
+                                    child: Text('External Eye & Lids'),
+                                  ),
+                                ],
+                                child: Container(
+                                  key: const Key('paper_sheet_template_badge'),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.remove_red_eye_outlined, size: 11, color: AppTheme.primaryBlue),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _currentTemplate,
+                                        style: TextStyle(
+                                          color: AppTheme.primaryBlue,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -672,6 +701,64 @@ class _PaperSheetCanvasState extends State<PaperSheetCanvas> {
                 ),
                 tooltip: 'Clear All Ink',
                 visualDensity: VisualDensity.compact,
+              ),
+
+              const SizedBox(width: 4),
+              Container(width: 1.2, height: 22, color: AppTheme.borderColor),
+              const SizedBox(width: 4),
+
+              // 👁️ Canvas Template Switcher
+              PopupMenuButton<String>(
+                key: const Key('btn_canvas_template_switcher'),
+                tooltip: 'Switch Template (Current: $_currentTemplate)',
+                initialValue: _currentTemplate,
+                onSelected: (template) {
+                  setState(() => _currentTemplate = template);
+                  widget.onTemplateChanged?.call(template);
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'Fundus / Retina Map',
+                    child: Text('Fundus / Retina Map'),
+                  ),
+                  PopupMenuItem(
+                    value: 'Anterior Segment / Cornea',
+                    child: Text('Anterior Segment / Cornea'),
+                  ),
+                  PopupMenuItem(
+                    value: 'External Eye & Lids',
+                    child: Text('External Eye & Lids'),
+                  ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.remove_red_eye_outlined, size: 15, color: AppTheme.primaryBlue),
+                      const SizedBox(width: 4),
+                      Text(
+                        _currentTemplate == 'Fundus / Retina Map'
+                            ? 'Fundus'
+                            : (_currentTemplate == 'Anterior Segment / Cornea'
+                                ? 'Anterior'
+                                : 'External'),
+                        style: TextStyle(
+                          color: AppTheme.primaryBlue,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.arrow_drop_down, size: 15, color: AppTheme.primaryBlue),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -1267,6 +1354,10 @@ class PrintedPaperSheetPainter extends CustomPainter {
       final discCenter = Offset(center.dx + discOffsetX, center.dy);
       final double discRadius = radius * 0.18;
       canvas.drawCircle(discCenter, discRadius, borderPaint);
+      canvas.drawCircle(discCenter, discRadius * 0.45, borderPaint);
+
+      final maculaCenter = Offset(center.dx - (isOD ? radius * 0.22 : -radius * 0.22), center.dy);
+      canvas.drawCircle(maculaCenter, radius * 0.05, borderPaint);
 
       final nasalTop = Path();
       nasalTop.moveTo(discCenter.dx, discCenter.dy - discRadius);
@@ -1313,14 +1404,111 @@ class PrintedPaperSheetPainter extends CustomPainter {
       canvas.drawPath(infArcade, borderPaint);
     }
 
-    const double fundusRadius = 35.0;
-    drawText('OD', 575, 542, fontSize: 11.0);
-    final odFundusCenter = pt(636, 550);
-    drawFundusDiagram(odFundusCenter, fundusRadius * scaleX, true);
+    void drawAnteriorSegmentDiagram(Offset center, double radius, bool isOD) {
+      // Outer limbus / cornea circle
+      canvas.drawCircle(center, radius, borderPaint);
 
+      // Inner pupil aperture
+      final double pupilRadius = radius * 0.35;
+      canvas.drawCircle(center, pupilRadius, borderPaint);
+
+      // Collarette / Iris pattern
+      final double collaretteRadius = radius * 0.62;
+      final collarettePaint = Paint()
+        ..color = const Color(0xFF94A3B8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8 * scaleX;
+      canvas.drawCircle(center, collaretteRadius, collarettePaint);
+
+      // Corneal optical cross-section / slit beam curve
+      final slitPath = Path();
+      slitPath.moveTo(center.dx - radius * 0.65, center.dy - radius * 0.65);
+      slitPath.quadraticBezierTo(center.dx + radius * 0.15, center.dy, center.dx - radius * 0.65, center.dy + radius * 0.65);
+      canvas.drawPath(slitPath, borderPaint);
+
+      final slitInner = Path();
+      slitInner.moveTo(center.dx - radius * 0.50, center.dy - radius * 0.60);
+      slitInner.quadraticBezierTo(center.dx + radius * 0.28, center.dy, center.dx - radius * 0.50, center.dy + radius * 0.60);
+      canvas.drawPath(slitInner, borderPaint);
+
+      // Angle depth indicators at 3 & 9 o'clock
+      canvas.drawLine(
+        Offset(center.dx - radius, center.dy),
+        Offset(center.dx - radius + 4 * scaleX, center.dy),
+        borderPaint,
+      );
+      canvas.drawLine(
+        Offset(center.dx + radius, center.dy),
+        Offset(center.dx + radius - 4 * scaleX, center.dy),
+        borderPaint,
+      );
+    }
+
+    void drawExternalEyeDiagram(Offset center, double radius, bool isOD) {
+      final double halfWidth = radius * 1.15;
+      final double halfHeight = radius * 0.70;
+      final medialSign = isOD ? 1.0 : -1.0;
+      final medialCanthus = Offset(center.dx + halfWidth * medialSign, center.dy);
+      final lateralCanthus = Offset(center.dx - halfWidth * medialSign, center.dy);
+
+      // Palpebral fissure contour (eyelids)
+      final palpebralPath = Path();
+      palpebralPath.moveTo(lateralCanthus.dx, lateralCanthus.dy);
+      // Upper lid apex slightly medial
+      palpebralPath.cubicTo(
+        center.dx - (radius * 0.3 * medialSign),
+        center.dy - halfHeight * 1.15,
+        center.dx + (radius * 0.35 * medialSign),
+        center.dy - halfHeight * 1.05,
+        medialCanthus.dx,
+        medialCanthus.dy,
+      );
+      // Lower lid curve
+      palpebralPath.cubicTo(
+        center.dx + (radius * 0.25 * medialSign),
+        center.dy + halfHeight * 0.95,
+        center.dx - (radius * 0.35 * medialSign),
+        center.dy + halfHeight * 0.95,
+        lateralCanthus.dx,
+        lateralCanthus.dy,
+      );
+      canvas.drawPath(palpebralPath, borderPaint);
+
+      // Supratarsal fold (upper eyelid crease)
+      final creasePath = Path();
+      creasePath.moveTo(lateralCanthus.dx + (4 * scaleX * medialSign), center.dy - 6 * scaleX);
+      creasePath.quadraticBezierTo(center.dx, center.dy - halfHeight * 1.45, medialCanthus.dx - (6 * scaleX * medialSign), center.dy - 4 * scaleX);
+      final creasePaint = Paint()
+        ..color = const Color(0xFF94A3B8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9 * scaleX;
+      canvas.drawPath(creasePath, creasePaint);
+
+      // Visible iris & pupil centered in palpebral aperture
+      canvas.drawCircle(center, radius * 0.48, borderPaint);
+      canvas.drawCircle(center, radius * 0.22, borderPaint);
+
+      // Lacrimal caruncle & punctum at medial canthus
+      final caruncleCenter = Offset(medialCanthus.dx - (3 * scaleX * medialSign), medialCanthus.dy);
+      canvas.drawCircle(caruncleCenter, 2.2 * scaleX, borderPaint);
+    }
+
+    const double diagramRadius = 35.0;
+    drawText('OD', 575, 542, fontSize: 11.0);
+    final odDiagramCenter = pt(636, 550);
     drawText('OS', 685, 542, fontSize: 11.0);
-    final osFundusCenter = pt(746, 550);
-    drawFundusDiagram(osFundusCenter, fundusRadius * scaleX, false);
+    final osDiagramCenter = pt(746, 550);
+
+    if (isAnterior) {
+      drawAnteriorSegmentDiagram(odDiagramCenter, diagramRadius * scaleX, true);
+      drawAnteriorSegmentDiagram(osDiagramCenter, diagramRadius * scaleX, false);
+    } else if (isExternal) {
+      drawExternalEyeDiagram(odDiagramCenter, diagramRadius * scaleX, true);
+      drawExternalEyeDiagram(osDiagramCenter, diagramRadius * scaleX, false);
+    } else {
+      drawFundusDiagram(odDiagramCenter, diagramRadius * scaleX, true);
+      drawFundusDiagram(osDiagramCenter, diagramRadius * scaleX, false);
+    }
 
     // ==========================================
     // SECTION F: CLINICAL NOTES & WRITING LINES
@@ -1362,7 +1550,8 @@ class PrintedPaperSheetPainter extends CustomPainter {
         oldDelegate.phicNumber != phicNumber ||
         oldDelegate.birthDate != birthDate ||
         oldDelegate.encounter != encounter ||
-        oldDelegate.medicalHistory != medicalHistory;
+        oldDelegate.medicalHistory != medicalHistory ||
+        oldDelegate.drawingTemplate != drawingTemplate;
   }
 }
 
